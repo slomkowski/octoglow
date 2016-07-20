@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name futaba-vfd)(type Legacy)(uri "$(KIPRJMOD)/futaba-vfd.mod")(options "")(descr ""))
+)
