@@ -614,10 +614,6 @@ Entry Wire Line
 	9950 4950 10050 5050
 Entry Wire Line
 	9950 5050 10050 5150
-Entry Wire Line
-	9950 5150 10050 5250
-Entry Wire Line
-	9950 5250 10050 5350
 Text Label 9800 3250 0    60   ~ 0
 G21
 Text Label 9800 3150 0    60   ~ 0
@@ -1032,9 +1028,7 @@ Text Label 4400 1300 1    60   ~ 0
 MISO
 Text Label 4500 1300 1    60   ~ 0
 SCK
-Entry Wire Line
-	4300 2900 4400 2800
-Text Label 4100 2900 0    60   ~ 0
+Text Label 5850 2900 0    60   ~ 0
 RST
 $Comp
 L GND #PWR013
@@ -1301,23 +1295,23 @@ $EndComp
 $Comp
 L GND #PWR023
 U 1 1 57807930
-P 5150 2500
-F 0 "#PWR023" H 5150 2250 50  0001 C CNN
-F 1 "GND" H 5150 2350 50  0000 C CNN
-F 2 "" H 5150 2500 50  0000 C CNN
-F 3 "" H 5150 2500 50  0000 C CNN
-	1    5150 2500
+P 5150 2450
+F 0 "#PWR023" H 5150 2200 50  0001 C CNN
+F 1 "GND" H 5150 2300 50  0000 C CNN
+F 2 "" H 5150 2450 50  0000 C CNN
+F 3 "" H 5150 2450 50  0000 C CNN
+	1    5150 2450
 	1    0    0    -1  
 $EndComp
 $Comp
 L GND #PWR024
 U 1 1 57807992
-P 5650 2500
-F 0 "#PWR024" H 5650 2250 50  0001 C CNN
-F 1 "GND" H 5650 2350 50  0000 C CNN
-F 2 "" H 5650 2500 50  0000 C CNN
-F 3 "" H 5650 2500 50  0000 C CNN
-	1    5650 2500
+P 5650 2450
+F 0 "#PWR024" H 5650 2200 50  0001 C CNN
+F 1 "GND" H 5650 2300 50  0000 C CNN
+F 2 "" H 5650 2450 50  0000 C CNN
+F 3 "" H 5650 2450 50  0000 C CNN
+	1    5650 2450
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -2174,10 +2168,6 @@ Wire Wire Line
 Wire Wire Line
 	9500 5050 9950 5050
 Wire Wire Line
-	9950 5150 9500 5150
-Wire Wire Line
-	9500 5250 9950 5250
-Wire Wire Line
 	9950 1550 9500 1550
 Wire Wire Line
 	8250 4150 8250 4450
@@ -2282,7 +2272,7 @@ Wire Wire Line
 Wire Wire Line
 	4300 1750 3550 1750
 Wire Wire Line
-	4300 2900 3550 2900
+	3550 2900 6050 2900
 Wire Bus Line
 	4100 7800 4100 10250
 Wire Wire Line
@@ -2383,9 +2373,9 @@ Connection ~ 10400 8400
 Wire Wire Line
 	3550 2150 5650 2150
 Wire Wire Line
-	5650 2450 5650 2500
+	5650 2450 5650 2450
 Wire Wire Line
-	5150 2500 5150 2450
+	5150 2450 5150 2450
 Wire Wire Line
 	8950 8850 8950 8800
 Connection ~ 8950 8850
@@ -2718,12 +2708,12 @@ Wire Wire Line
 Wire Wire Line
 	4500 1950 4500 1050
 Wire Wire Line
-	3550 2700 4100 2700
+	3550 2700 6050 2700
 Wire Wire Line
-	3550 2800 4100 2800
-Text Label 3900 2700 0    60   ~ 0
+	3550 2800 6050 2800
+Text Label 5850 2700 0    60   ~ 0
 SDA
-Text Label 3900 2800 0    60   ~ 0
+Text Label 5850 2800 0    60   ~ 0
 SCL
 NoConn ~ 1650 2050
 NoConn ~ 1650 2800
@@ -2751,4 +2741,80 @@ ENC_B
 Text Label 5650 3350 0    60   ~ 0
 BTN_ENC
 NoConn ~ 11300 2350
+Entry Wire Line
+	4100 950  4200 1050
+Wire Wire Line
+	3550 1650 4200 1650
+Wire Wire Line
+	4200 1650 4200 1050
+Text Label 4200 1300 1    60   ~ 0
+CL
+Entry Wire Line
+	4000 950  4100 1050
+Entry Wire Line
+	3900 950  4000 1050
+Wire Wire Line
+	3550 1550 4100 1550
+Wire Wire Line
+	4100 1550 4100 1050
+Wire Wire Line
+	3550 1450 4000 1450
+Wire Wire Line
+	4000 1450 4000 1050
+Text Label 4100 1300 1    60   ~ 0
+STB
+Text Label 4000 1300 1    60   ~ 0
+S-IN
+Entry Wire Line
+	6050 3750 6150 3850
+Wire Wire Line
+	6050 3750 3550 3750
+Text Label 5800 3750 0    60   ~ 0
+CK
+Entry Wire Line
+	6050 3650 6150 3750
+Wire Wire Line
+	6050 3650 3550 3650
+Text Label 5800 3650 0    60   ~ 0
+CHG
+Entry Wire Line
+	6050 2700 6150 2800
+Entry Wire Line
+	6050 2800 6150 2900
+Entry Wire Line
+	6050 2900 6150 3000
+Entry Wire Line
+	6050 3550 6150 3650
+Wire Wire Line
+	6050 3550 3550 3550
+Text Label 5800 3550 0    60   ~ 0
+SPKR
+Entry Wire Line
+	6050 7000 6150 7100
+Wire Wire Line
+	6050 7000 1400 7000
+Wire Wire Line
+	1400 7000 1400 5900
+Wire Wire Line
+	1400 5900 1850 5900
+Text Label 5600 7000 0    60   ~ 0
+BTN_WAKE
+NoConn ~ 9500 5150
+NoConn ~ 9500 5250
+NoConn ~ 12500 1550
+NoConn ~ 12500 1650
+NoConn ~ 3550 3450
+NoConn ~ 3550 3050
+NoConn ~ 3550 2300
+NoConn ~ 3550 2400
+NoConn ~ 3550 2500
+NoConn ~ 3550 2600
+NoConn ~ 3650 5900
+NoConn ~ 1850 6000
+NoConn ~ 2500 6600
+NoConn ~ 2600 6600
+NoConn ~ 2700 6600
+NoConn ~ 2800 6600
+NoConn ~ 2900 6600
+NoConn ~ 3000 6600
 $EndSCHEMATC
