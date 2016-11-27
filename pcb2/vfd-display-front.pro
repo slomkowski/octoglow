@@ -1,4 +1,4 @@
-update=śro, 20 lip 2016, 03:24:03
+update=Wed 23 Nov 2016 02:31:08 CET
 version=1
 last_client=kicad
 [pcbnew]
@@ -23,6 +23,18 @@ ModuleOutlineThickness=0.150000000000
 [cvpcb]
 version=1
 NetIExt=net
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=Pcbnew
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60
+[general]
+version=1
 [eeschema]
 version=1
 LibDir=/home/michal/Projects/KICAD/libraries
@@ -64,15 +76,4 @@ LibName34=lm2596
 LibName35=ziebarth
 LibName36=crystal
 LibName37=kicad-ESP8266/ESP8266
-[schematic_editor]
-version=1
-PageLayoutDescrFile=
-PlotDirectoryName=
-SubpartIdSeparator=0
-SubpartFirstId=65
-NetFmtName=Pcbnew
-SpiceForceRefPrefix=0
-SpiceUseNetNumbers=0
-LabSize=60
-[general]
-version=1
+LibName38=TD62C950RF.pretty/td62c950rf
