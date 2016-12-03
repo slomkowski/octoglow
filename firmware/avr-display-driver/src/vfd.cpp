@@ -122,7 +122,7 @@ static const uint8_t Font5x7[] PROGMEM = {
 };
 
 
-void ckPulse() {
+static inline void ckPulse() {
     _delay_us(300);
     PORT(CK_PORT) |= _BV(CK_PIN);
     _delay_us(300);
@@ -130,7 +130,157 @@ void ckPulse() {
     _delay_us(300);
 }
 
-void loadLetter(uint8_t position);
+static inline void posUp(int8_t startInclusive, int8_t stopInclusive, int8_t validPosition) {
+
+    for (int8_t p = startInclusive; p <= stopInclusive; ++p) {
+        // validPosition =p;
+        if (p == validPosition) {
+            PORT(S_IN_PORT) |= _BV(S_IN_PIN);
+        } else {
+            PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+        }
+        ckPulse();
+    }
+}
+
+static inline void posDown(int8_t startInclusive, int8_t stopInclusive, int8_t validPosition) {
+
+    for (int8_t p = startInclusive; p >= stopInclusive; --p) {
+        //  validPosition = p;
+        if (p == validPosition) {
+            PORT(S_IN_PORT) |= _BV(S_IN_PIN);
+        } else {
+            PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+        }
+        ckPulse();
+    }
+}
+
+static inline void setOutputPin(uint16_t letterOffset, int8_t column, int8_t row) {
+    static uint8_t x[] = {0x7F, 0x09, 0x19, 0x29, 0x46};
+    if (x[column] & (1 << row)) {
+        PORT(S_IN_PORT) |= _BV(S_IN_PIN);
+    } else {
+        PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    }
+}
+
+// position 0 - 39
+void loadLetter(uint8_t position, uint8_t dot) {
+    if ((position >= 10) and (position <= 19)) {
+        position += 20;
+    } else if ((position >= 20) and (position <= 29)) {
+        position -= 10;
+    } else if (position >= 30) {
+        position -= 10;
+    }
+
+    const uint16_t letterOffset = (dot - 32) * 5;
+
+    // g7 - g1
+    posDown(6, 0, position);
+
+    // g8 - g20
+    posUp(7, 19, position);
+
+    // a1 - a11
+
+    int8_t column = 2;
+    int8_t row = 3;
+    for (uint8_t a = 0; a <= 10; ++a) {
+
+        setOutputPin(letterOffset, column, row);
+
+        ++column;
+
+        if (column == 5) {
+            column = 0;
+            ++row;
+        }
+
+        ckPulse();
+    }
+
+    column = 4;
+    row = 6;
+    // a18 - a14
+    for (uint8_t a = 17; a >= 13; --a) {
+
+        setOutputPin(letterOffset, column, row);
+
+        if (column == 0) {
+            column = 4;
+            --row;
+        } else {
+            --column;
+        }
+
+        ckPulse();
+    }
+
+    // 2 dummy
+    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    ckPulse();
+    ckPulse();
+
+    // a12 - a13
+    column = 3;
+    row = 5;
+    for (uint8_t a = 11; a <= 12; ++a) {
+        setOutputPin(letterOffset, column, row);
+
+        ++column;
+
+        ckPulse();
+    }
+
+    // 2 dummy
+    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    ckPulse();
+    ckPulse();
+
+    // a25 - a19
+    column = 0;
+    row = 2;
+    for (uint8_t a = 24; a >= 18; --a) {
+        setOutputPin(letterOffset, column, row);
+
+        if (column == 4) {
+            column = 0;
+            ++row;
+        } else {
+            ++column;
+        }
+
+        ckPulse();
+    }
+
+    // a26 - a35
+    column = 4;
+    row = 1;
+    for (uint8_t a = 25; a <= 34; ++a) {
+        setOutputPin(letterOffset, column, row);
+
+        if (column == 0) {
+            column = 4;
+            --row;
+        } else {
+            --column;
+        }
+
+        ckPulse();
+    }
+
+    // a36
+    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    ckPulse();
+
+    // g21 - g33
+    posUp(20, 32, position);
+
+    // g40 - g34
+    posDown(39, 33, position);
+}
 
 void vfd::init() {
     // all connectors are outputs
@@ -157,7 +307,7 @@ void vfd::init() {
     while (true) {
         PORT(STB_PORT) &= ~_BV(STB_PIN);
 
-        loadLetter(i);
+        loadLetter(i, 'B');
         if (i >= 39) {
             i = 0;
         } else {
@@ -166,98 +316,11 @@ void vfd::init() {
         //  loadLetter(20);
 
         PORT(STB_PORT) |= _BV(STB_PIN);
-        _delay_ms(20);
-    }
-}
-
-static void posUp(int8_t startInclusive, int8_t stopInclusive, int8_t validPosition) {
-
-    for (int8_t p = startInclusive; p <= stopInclusive; ++p) {
-        // validPosition =p;
-        if (p == validPosition) {
-            PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-        } else {
-            PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
-        }
-        ckPulse();
-    }
-}
-
-static void posDown(int8_t startInclusive, int8_t stopInclusive, int8_t validPosition) {
-
-    for (int8_t p = startInclusive; p >= stopInclusive; --p) {
-        //  validPosition = p;
-        if (p == validPosition) {
-            PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-        } else {
-            PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
-        }
-        ckPulse();
+        _delay_ms(1000);
     }
 }
 
 
-// position 0 - 39
-void loadLetter(uint8_t position) {
-    uint8_t letterA[] = {0x7E, 0x11, 0x11, 0x11, 0x7E};
 
-    if ((position >= 10) and (position <= 19)) {
-        position += 20;
-    } else if ((position >= 20) and (position <= 29)) {
-        position -= 10;
-    } else if (position >= 30) {
-        position -= 10;
-    }
 
-    // g7 - g1
-    posDown(6, 0, position);
 
-    // g8 - g20
-    posUp(7, 19, position);
-
-    // a1 - a11
-    for (uint8_t a = 1; a <= 11; ++a) {
-        PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-        ckPulse();
-    }
-
-    // a18 - a14
-    for (uint8_t a = 18; a >= 14; --a) {
-        PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-        ckPulse();
-    }
-
-    // 2 dummy
-    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
-    ckPulse();
-    ckPulse();
-
-    // a12 - a13
-    for (uint8_t a = 12; a <= 13; ++a) {
-        PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-        ckPulse();
-    }
-
-    // 2 dummy
-    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
-    ckPulse();
-    ckPulse();
-
-    // a25 - a19
-    for (uint8_t a = 25; a >= 19; --a) {
-        PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-        ckPulse();
-    }
-
-    // a26 - a36
-    for (uint8_t a = 26; a <= 36; ++a) {
-        PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-        ckPulse();
-    }
-
-    // g21 - g33
-    posUp(20, 32, position);
-
-    // g40 - g34
-    posDown(39, 33, position);
-}
