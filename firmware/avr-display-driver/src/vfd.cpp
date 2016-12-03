@@ -123,11 +123,11 @@ static const uint8_t Font5x7[] PROGMEM = {
 
 
 static inline void ckPulse() {
-    _delay_us(300);
+   // _delay_us(300);
     PORT(CK_PORT) |= _BV(CK_PIN);
-    _delay_us(300);
+    _delay_us(1);
     PORT(CK_PORT) &= ~_BV(CK_PIN);
-    _delay_us(300);
+   // _delay_us(300);
 }
 
 static inline void posUp(int8_t startInclusive, int8_t stopInclusive, int8_t validPosition) {
@@ -157,8 +157,10 @@ static inline void posDown(int8_t startInclusive, int8_t stopInclusive, int8_t v
 }
 
 static inline void setOutputPin(uint16_t letterOffset, int8_t column, int8_t row) {
-    static uint8_t x[] = {0x7F, 0x09, 0x19, 0x29, 0x46};
-    if (x[column] & (1 << row)) {
+
+    const uint8_t go = pgm_read_byte(Font5x7 + letterOffset + column);
+
+    if (go & (1 << row)) {
         PORT(S_IN_PORT) |= _BV(S_IN_PIN);
     } else {
         PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
@@ -167,6 +169,9 @@ static inline void setOutputPin(uint16_t letterOffset, int8_t column, int8_t row
 
 // position 0 - 39
 void loadLetter(uint8_t position, uint8_t dot) {
+
+    PORT(STB_PORT) &= ~_BV(STB_PIN);
+
     if ((position >= 10) and (position <= 19)) {
         position += 20;
     } else if ((position >= 20) and (position <= 29)) {
@@ -280,7 +285,11 @@ void loadLetter(uint8_t position, uint8_t dot) {
 
     // g40 - g34
     posDown(39, 33, position);
+
+    PORT(STB_PORT) |= _BV(STB_PIN);
 }
+
+static const char text[] PROGMEM = "<Hello &%)>";
 
 void vfd::init() {
     // all connectors are outputs
@@ -304,19 +313,17 @@ void vfd::init() {
     _delay_ms(1);
 
     int i = 0;
-    while (true) {
-        PORT(STB_PORT) &= ~_BV(STB_PIN);
 
-        loadLetter(i, 'B');
-        if (i >= 39) {
+    while (true) {
+        loadLetter(i, pgm_read_byte(&text[i]));
+
+        if(i == sizeof(text)) {
             i = 0;
         } else {
-            i++;
+            ++i;
         }
-        //  loadLetter(20);
 
-        PORT(STB_PORT) |= _BV(STB_PIN);
-        _delay_ms(1000);
+       // _delay_ms(1000);
     }
 }
 
