@@ -23,7 +23,11 @@ int main() {
 
     sei();
 
+    vfd::write("aącćzźżłl żółwia maść ZŻÓOŁWIA MĄKA");
+
     while (true) {
+
+        vfd::pool();
 
 #if WATCHD0G_ENABLE
         wdt_reset();
