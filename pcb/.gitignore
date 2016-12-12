@@ -24,9 +24,11 @@ _saved_*
 *.xml
 *.csv
 
-#*-cache.lib
-# *-rescue.lib
-#fp-lib-table
+*-cache.lib
+#*-rescue.lib
+fp-lib-table
 
 *.pdf
+*.xml
+*.csv
 

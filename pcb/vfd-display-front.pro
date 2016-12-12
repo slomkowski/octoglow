@@ -1,4 +1,4 @@
-update=Mon 12 Dec 2016 02:39:03 CET
+update=Mon 12 Dec 2016 15:29:32 CET
 version=1
 last_client=kicad
 [pcbnew]
@@ -75,5 +75,5 @@ LibName33=lm2596
 LibName34=ziebarth
 LibName35=crystal
 LibName36=kicad-ESP8266/ESP8266
-LibName37=TD62C950RF.pretty/td62c950rf
-LibName38=lib/futaba-vfd
+LibName37=lib/futaba-vfd
+LibName38=lib/TD62C950RF
