@@ -1,4 +1,0 @@
-(fp_lib_table
-  (lib (name futaba-vfd)(type KiCad)(uri "$(KIPRJMOD)/lib/futaba-vfd.pretty")(options "")(descr ""))
-  (lib (name TD62C950RF)(type KiCad)(uri "$(KIPRJMOD)/lib/TD62C950RF.pretty")(options "")(descr ""))
-)

@@ -1,4 +1,4 @@
-update=Mon 12 Dec 2016 15:29:32 CET
+update=Mon 12 Dec 2016 17:38:19 CET
 version=1
 last_client=kicad
 [pcbnew]
@@ -37,7 +37,7 @@ LabSize=60
 version=1
 [eeschema]
 version=1
-LibDir=/home/michal/Projects/KICAD/libraries
+LibDir=/home/michal/Projects/KICAD/libraries;../lib
 [eeschema/libraries]
 LibName1=power
 LibName2=device
@@ -75,5 +75,5 @@ LibName33=lm2596
 LibName34=ziebarth
 LibName35=crystal
 LibName36=kicad-ESP8266/ESP8266
-LibName37=lib/futaba-vfd
-LibName38=lib/TD62C950RF
+LibName37=futaba-vfd
+LibName38=TD62C950RF
