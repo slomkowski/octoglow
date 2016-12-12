@@ -1,4 +1,4 @@
-update=Wed 23 Nov 2016 02:31:08 CET
+update=Mon 12 Dec 2016 02:39:03 CET
 version=1
 last_client=kicad
 [pcbnew]
@@ -68,12 +68,12 @@ LibName26=opto
 LibName27=atmel
 LibName28=contrib
 LibName29=valves
-LibName30=futaba-vfd
-LibName31=w_connectors
-LibName32=w_device
-LibName33=w_microcontrollers
-LibName34=lm2596
-LibName35=ziebarth
-LibName36=crystal
-LibName37=kicad-ESP8266/ESP8266
-LibName38=TD62C950RF.pretty/td62c950rf
+LibName30=w_connectors
+LibName31=w_device
+LibName32=w_microcontrollers
+LibName33=lm2596
+LibName34=ziebarth
+LibName35=crystal
+LibName36=kicad-ESP8266/ESP8266
+LibName37=TD62C950RF.pretty/td62c950rf
+LibName38=lib/futaba-vfd
