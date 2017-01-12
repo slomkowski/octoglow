@@ -1,4 +1,4 @@
-update=Fri 06 Jan 2017 01:49:07 CET
+update=Wed 11 Jan 2017 22:32:08 CET
 version=1
 last_client=kicad
 [pcbnew]
@@ -63,3 +63,4 @@ LibName31=/home/michal/Projects/vfd-display/vfd-display/pcb/lib/TD62C950RF
 LibName32=V23079-monostable
 LibName33=TJA1010
 LibName34=lm75
+LibName35=RFM83C-433S
