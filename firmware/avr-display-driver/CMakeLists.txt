@@ -16,7 +16,7 @@ include_directories(libsrc)
 
 SET(LIBRARY_SOURCES libsrc/i2c-slave.cpp libsrc/i2c-slave.hpp)
 
-SET(SOURCES src/main.cpp src/global.hpp src/vfd.cpp src/vfd.hpp)
+SET(SOURCES src/main.cpp src/global.hpp src/vfd.cpp src/vfd.hpp src/speaker.cpp src/speaker.hpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 

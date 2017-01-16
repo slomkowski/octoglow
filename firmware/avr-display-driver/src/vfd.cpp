@@ -142,10 +142,7 @@ static const uint8_t Font5x7[] PROGMEM = {
 
 static uint8_t brightness = 5;
 
-static uint8_t currentPosition = 0;
-static uint8_t displayCharBuffer[40];
-
-static uint8_t currentCharBuffer[5];
+static uint8_t frameBuffer[40 * 5];
 
 static inline __attribute((always_inline)) void ckPulse() {
     PORT(CK_PORT) |= _BV(CK_PIN);
@@ -176,9 +173,9 @@ static inline void posDown(const int8_t startInclusive, const int8_t stopInclusi
     }
 }
 
-static inline void setOutputPin(const int8_t column, const int8_t row) {
+static inline void setOutputPin(const uint8_t *characterBuffer, const int8_t column, const int8_t row) {
 
-    const uint8_t go = currentCharBuffer[column];
+    const uint8_t go = characterBuffer[column];
 
     if (go & (1 << row)) {
         PORT(S_IN_PORT) |= _BV(S_IN_PIN);
@@ -188,15 +185,13 @@ static inline void setOutputPin(const int8_t column, const int8_t row) {
 }
 
 //__attribute__((optimize("unroll-loops")))
-static inline void loadLetter(uint8_t position, const uint8_t character) {
-
-    const uint16_t letterOffset = (character - 32) * 5;
+static inline void loadLetter(uint8_t position) {
 
     PORT(STB_PORT) &= ~_BV(STB_PIN);
 
     PORT(CL_PORT) |= _BV(CL_PIN);
 
-    memcpy_P(currentCharBuffer, Font5x7 + letterOffset, 5);
+    const uint8_t *characterPtr = &frameBuffer[5 * position];
 
     if ((position >= 10) and (position <= 19)) {
         position += 20;
@@ -228,7 +223,7 @@ static inline void loadLetter(uint8_t position, const uint8_t character) {
     int8_t row = 3;
     for (uint8_t a = 0; a != 11; ++a) {
 
-        setOutputPin(column, row);
+        setOutputPin(characterPtr, column, row);
 
         ++column;
 
@@ -244,7 +239,7 @@ static inline void loadLetter(uint8_t position, const uint8_t character) {
     row = 6;
     // a18 - a14
     for (uint8_t a = 17; a != 12; --a) {
-        setOutputPin(column, row);
+        setOutputPin(characterPtr, column, row);
         --column;
         ckPulse();
     }
@@ -259,9 +254,9 @@ static inline void loadLetter(uint8_t position, const uint8_t character) {
     }
 
     // a12 - a13
-    setOutputPin(3, 5);
+    setOutputPin(characterPtr, 3, 5);
     ckPulse();
-    setOutputPin(4, 5);
+    setOutputPin(characterPtr, 4, 5);
     ckPulse();
 
 
@@ -274,7 +269,7 @@ static inline void loadLetter(uint8_t position, const uint8_t character) {
     column = 0;
     row = 2;
     for (uint8_t a = 24; a != 17; --a) {
-        setOutputPin(column, row);
+        setOutputPin(characterPtr, column, row);
 
         if (column == 4) {
             column = 0;
@@ -290,7 +285,7 @@ static inline void loadLetter(uint8_t position, const uint8_t character) {
     column = 4;
     row = 1;
     for (uint8_t a = 25; a != 35; ++a) {
-        setOutputPin(column, row);
+        setOutputPin(characterPtr, column, row);
 
         if (column == 0) {
             column = 4;
@@ -332,21 +327,13 @@ void vfd::init() {
     DDR(CL_PORT) |= _BV(CL_PIN);
     DDR(STB_PORT) |= _BV(STB_PIN);
     DDR(S_IN_PORT) |= _BV(S_IN_PIN);
-
-    //PORT(CL_PORT) |= _BV(CL_PIN);
-    //PORT(STB_PORT) |= _BV(STB_PIN);
-
-    // font: 5 x 7
-
-//     PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-//    PORT(CHG_PORT) |= _BV(CHG_PIN);
-//    _delay_ms(1);
-//    PORT(CL_PORT) |= _BV(CL_PIN);
-
 }
 
+static uint8_t currentPosition = 0;
+
 void vfd::pool() {
-    loadLetter(currentPosition, displayCharBuffer[currentPosition]);
+
+    loadLetter(currentPosition);
 
     if (currentPosition == 39) {
         currentPosition = 0;
@@ -378,21 +365,20 @@ void vfd::write(const char *str) {
     uint8_t currPos = 0;
 
     while (str[strIdx] != 0) {
-        uint8_t byte = str[strIdx];
+        const uint8_t byte = str[strIdx];
 
         if (byte < 0x80) {
             strIdx++;
 
-            displayCharBuffer[currPos] = byte;
+            memcpy_P(&frameBuffer[5 * currPos], &Font5x7[5 * (byte - 32)], 5);
         }
         else {
-            uint16_t unicode = str[strIdx + 1] & 0x3f;
-            unicode += (byte & 0x1f) << 6;
+            const uint16_t unicode = (str[strIdx + 1] & 0x3f) + ((byte & 0x1f) << 6);
             strIdx += 2;
 
             for (uint8_t offset = 0; offset < 18; ++offset) {
                 if (pgm_read_word(&utfMappings[offset]) == unicode) {
-                    displayCharBuffer[currPos] = 126 + offset;
+                    memcpy_P(&frameBuffer[5 * currPos], &Font5x7[5 * (126 + offset - 32)], 5);
                     break;
                 }
             }
