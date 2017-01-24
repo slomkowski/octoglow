@@ -43,14 +43,15 @@ struct ScrollingSlot {
 
     uint16_t currentShift;
 
+    uint8_t textLength;
     const uint8_t maxTextLength;
     uint8_t *const convertedText;
 };
 
 static ScrollingSlot scrollingSlots[3] = {
-        {0, 0, 0, scroll::SLOT0_MAX_LENGTH, scrolTextBuffer0},
-        {0, 0, 0, scroll::SLOT1_MAX_LENGTH, scrolTextBuffer1},
-        {0, 0, 0, scroll::SLOT2_MAX_LENGTH, scrolTextBuffer2}
+        {0, 0, 0, 0, scroll::SLOT0_MAX_LENGTH, scrolTextBuffer0},
+        {0, 0, 0, 0, scroll::SLOT1_MAX_LENGTH, scrolTextBuffer1},
+        {0, 0, 0, 0, scroll::SLOT2_MAX_LENGTH, scrolTextBuffer2}
 };
 
 static_assert(sizeof(scrollingSlots) / sizeof(scrollingSlots[0]) == scroll::NUMBER_OF_SLOTS);
@@ -98,10 +99,21 @@ static void loadUtf8text(ScrollingSlot *slot, const char *str) {
         ++currPos;
     }
 
+    slot->textLength = currPos;
+
+    //todo this is not necessary
     memset(&(slot->convertedText[currPos]), 0, slot->maxTextLength - currPos - 1);
 }
 
+constexpr uint8_t WIDTH_BETWEEN_CHARACTERS = 2;
+constexpr uint8_t GAPE_WIDTH = 2;
+constexpr uint8_t SPACE_WIDTH = 5;
 
+/*
+ * jak liczyć przesunięcie z currentShift. od czego jest zależne:
+ * * pozycja
+ * * czy tekst ma spacje, bo wtedy zmienia się szerokość teksu
+ */
 static void fillPixels(ScrollingSlot *slot) {
 
     // uint8_t convertedTextOffset = slot->currentShift / 5;
@@ -118,20 +130,53 @@ static void fillPixels(ScrollingSlot *slot) {
 
         const uint8_t characterColumn = (p + singleLetterOffset) % 5;
 
-        if (characterColumn == 0) {
-            extraSpace += 2;
-        }
+//        if (characterColumn == 0) {
+//            extraSpace += 2;
+//        }
 
         const uint8_t frameBufferColumn = 5 * slot->startPosition + p + extraSpace;
 
         frameBuffer[frameBufferColumn] = pgm_read_byte(Font5x7 + 5 * character + characterColumn);
 
-        if (characterColumn == 0) {
-            frameBuffer[frameBufferColumn - 1] = 0;
-            frameBuffer[frameBufferColumn - 2] = 0;
-        }
+//        if (characterColumn == 0) {
+//            frameBuffer[frameBufferColumn - 1] = 0;
+//            frameBuffer[frameBufferColumn - 2] = 0;
+//        }
     }
 
+}
+
+constexpr uint8_t CELL_MODE_NUMBER_OF_SPACES = 2;
+
+static void fillPixelsCellMode(ScrollingSlot *slot) {
+
+    // p is position within window
+    for (uint8_t p = 0; p < slot->length; ++p) {
+
+        const uint8_t op = slot->currentShift + p;
+        uint8_t character;
+
+        if (op < slot->textLength) {
+            character = slot->convertedText[op];
+        } else if (op - slot->textLength < CELL_MODE_NUMBER_OF_SPACES or slot->textLength <= slot->length) {
+            character = ' ';
+        } else {
+            character = slot->convertedText[(op - CELL_MODE_NUMBER_OF_SPACES) % slot->textLength];
+        }
+
+        memcpy_P(frameBuffer + 5 * (slot->startPosition + p), Font5x7 + 5 * (character - ' '), 5);
+    }
+
+    if (slot->textLength <= slot->length) {
+        slot->currentShift = 0;
+        return;
+    }
+
+    slot->currentShift++;
+
+    if (slot->currentShift == slot->textLength) {
+        slot->currentShift = 0;
+    }
 }
 
 static inline __attribute((always_inline)) void ckPulse() {
@@ -329,13 +374,21 @@ void vfd::pool() {
 
     const auto encVal = vfd::encoder::getValueAndClear();
 
-    if (encVal != 0) {
-        scrollingSlots[0].currentShift += encVal;
-        fillPixels(&scrollingSlots[0]);
-    }
+//    if (encVal != 0) {
+//        scrollingSlots[0].currentShift += encVal;
+//        fillPixelsCellMode(&scrollingSlots[0]);
+//    }
 
     if (currentPosition == 39) {
         currentPosition = 0;
+
+        x++;
+        if (x == 20) {
+            //scrollingSlots[0].currentShift++;
+            fillPixelsCellMode(&scrollingSlots[0]);
+            x = 0;
+        }
+
     } else {
         ++currentPosition;
     }
@@ -354,6 +407,6 @@ void vfd::write(const char *str) {
 
     scrollingSlots[0].currentShift = 0;
 
-    fillPixels(&scrollingSlots[0]);
+    fillPixelsCellMode(&scrollingSlots[0]);
 }
 
