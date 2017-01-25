@@ -33,9 +33,9 @@ static uint8_t brightness = 5;
 
 static uint8_t frameBuffer[40 * 5];
 
-static uint8_t scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH];
-static uint8_t scrolTextBuffer1[scroll::SLOT1_MAX_LENGTH];
-static uint8_t scrolTextBuffer2[scroll::SLOT2_MAX_LENGTH];
+static char scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH];
+static char scrolTextBuffer1[scroll::SLOT1_MAX_LENGTH];
+static char scrolTextBuffer2[scroll::SLOT2_MAX_LENGTH];
 
 struct ScrollingSlot {
     uint8_t startPosition;
@@ -45,7 +45,7 @@ struct ScrollingSlot {
 
     uint8_t textLength;
     const uint8_t maxTextLength;
-    uint8_t *const convertedText;
+    char *const convertedText;
 };
 
 static ScrollingSlot scrollingSlots[3] = {
@@ -54,7 +54,8 @@ static ScrollingSlot scrollingSlots[3] = {
         {0, 0, 0, 0, scroll::SLOT2_MAX_LENGTH, scrolTextBuffer2}
 };
 
-static_assert(sizeof(scrollingSlots) / sizeof(scrollingSlots[0]) == scroll::NUMBER_OF_SLOTS);
+static_assert(sizeof(scrollingSlots) / sizeof(scrollingSlots[0]) == scroll::NUMBER_OF_SLOTS,
+              "slot number doesn't match");
 
 static const uint16_t utfMappings[] PROGMEM = {
         0x104, 0x105,
@@ -68,18 +69,19 @@ static const uint16_t utfMappings[] PROGMEM = {
         0x17b, 0x17c
 };
 
-static void loadUtf8text(ScrollingSlot *slot, const char *str) {
-
+static void forEachUtf8character(const char *str,
+                                 const uint8_t maxLength,
+                                 void *userData,
+                                 void (*callback)(void *userData, uint8_t currentPosition, uint8_t characterCode)) {
     uint8_t strIdx = 0;
-
     uint8_t currPos = 0;
 
-    while (str[strIdx] != 0 and currPos < slot->maxTextLength - 1) {
+    while (str[strIdx] != 0 and currPos < maxLength) {
         const uint8_t singleAsciiValue = str[strIdx];
 
         if (singleAsciiValue < 0x80) {
             strIdx++;
-            slot->convertedText[currPos] = singleAsciiValue;
+            callback(userData, currPos, singleAsciiValue);
         }
         else {
             const uint16_t twoByteUnicodeValue = (str[strIdx + 1] & 0x3f) + ((singleAsciiValue & 0x1f) << 6);
@@ -88,7 +90,7 @@ static void loadUtf8text(ScrollingSlot *slot, const char *str) {
             for (uint8_t offset = 0; offset < 18; ++offset) {
                 if (pgm_read_word(&utfMappings[offset]) == twoByteUnicodeValue) {
 
-                    slot->convertedText[currPos] = 126 + offset;
+                    callback(userData, currPos, 126 + offset);
                     break;
                 }
             }
@@ -96,9 +98,35 @@ static void loadUtf8text(ScrollingSlot *slot, const char *str) {
 
         ++currPos;
     }
+}
+
+static void loadUtf8text(ScrollingSlot *slot, const char *str) {
 
     slot->currentShift = 0;
-    slot->textLength = currPos;
+
+    forEachUtf8character(str, slot->maxTextLength, slot, [](void *s, uint8_t curPos, uint8_t code) -> void {
+        static_cast<ScrollingSlot *>(s)->convertedText[curPos] = code;
+        static_cast<ScrollingSlot *>(s)->textLength = curPos + 1;
+    });
+}
+
+static void loadStaticText(uint8_t startPosition, uint8_t maxLength, const char *str) {
+
+    struct LocalData {
+        uint8_t startPosition;
+        uint8_t lastPos;
+    } local;
+
+    local.startPosition = startPosition;
+    local.lastPos = 0;
+
+    forEachUtf8character(str, maxLength, &local, [](void *s, uint8_t curPos, uint8_t code) -> void {
+        const auto ld = static_cast<LocalData *>(s);
+        memcpy_P(frameBuffer + 5 * (ld->startPosition + curPos), Font5x7 + 5 * (code - ' '), 5);
+        ld->lastPos = curPos;
+    });
+
+    memset(frameBuffer + 5 * (startPosition + local.lastPos + 1), 0, 5 * (maxLength - local.lastPos));
 }
 
 constexpr uint8_t LOOP_NUMBER_OF_SPACES = 2;
@@ -148,11 +176,10 @@ static void fillPixelsColumnMode(ScrollingSlot *slot) {
 
     slot->currentShift++;
 
-    if (slot->currentShift == 5 * slot->textLength + 10) {
+    if (slot->currentShift == 5u * slot->textLength + 10u) {
         slot->currentShift = 0;
     }
 }
-
 
 
 static void fillPixelsCellMode(ScrollingSlot *slot) {
@@ -187,12 +214,12 @@ static void fillPixelsCellMode(ScrollingSlot *slot) {
 }
 
 static void scrollTextToNextPosition(ScrollingSlot *slot) {
-
-    if (slot->textLength <= slot->length) {
-        // fall back to static text
-    } else {
-        fillPixelsColumnMode(slot);
-    }
+//todo write static text fallback for short texts
+    //if (slot->textLength <= slot->length) {
+    //     loadStaticText(slot->startPosition, slot->maxTextLength, slot->convertedText);
+    // } else {
+    fillPixelsColumnMode(slot);
+    //  }
 }
 
 static inline __attribute((always_inline)) void ckPulse() {
@@ -419,5 +446,10 @@ void vfd::write(const char *str) {
     scrollingSlots[0].length = 10;
 
     loadUtf8text(&scrollingSlots[0], str);
+
+    loadStaticText(22, 5, "foo");
+    loadStaticText(22, 5, "papajxD");
+    loadStaticText(22, 5, "ab");
+    loadStaticText(0, 3, "xD:");
 }
 

@@ -10,7 +10,7 @@ SET(CMAKE_C_COMPILER avr-gcc)
 SET(CMAKE_CXX_COMPILER avr-g++)
 
 SET(CMAKE_C_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=gnu99 -Wl,--gc-sections -Wall -Wextra -pedantic")
-SET(CMAKE_CXX_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
+SET(CMAKE_CXX_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c++11 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
 
 include_directories(libsrc)
 
