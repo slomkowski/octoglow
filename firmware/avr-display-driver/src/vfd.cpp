@@ -70,8 +70,6 @@ static const uint16_t utfMappings[] PROGMEM = {
 
 static void loadUtf8text(ScrollingSlot *slot, const char *str) {
 
-    slot->currentShift = 0;
-
     uint8_t strIdx = 0;
 
     uint8_t currPos = 0;
@@ -99,54 +97,63 @@ static void loadUtf8text(ScrollingSlot *slot, const char *str) {
         ++currPos;
     }
 
+    slot->currentShift = 0;
     slot->textLength = currPos;
-
-    //todo this is not necessary
-    memset(&(slot->convertedText[currPos]), 0, slot->maxTextLength - currPos - 1);
 }
 
-constexpr uint8_t WIDTH_BETWEEN_CHARACTERS = 2;
-constexpr uint8_t GAPE_WIDTH = 2;
-constexpr uint8_t SPACE_WIDTH = 5;
+constexpr uint8_t LOOP_NUMBER_OF_SPACES = 2;
 
-/*
- * jak liczyć przesunięcie z currentShift. od czego jest zależne:
- * * pozycja
- * * czy tekst ma spacje, bo wtedy zmienia się szerokość teksu
- */
-static void fillPixels(ScrollingSlot *slot) {
+// if text shorter than window, fall to static text
+static void fillPixelsColumnMode(ScrollingSlot *slot) {
 
-    // uint8_t convertedTextOffset = slot->currentShift / 5;
-    // uint8_t columnOffset = slot->currentShift % 5;
-
-    const uint8_t convertedTextOffset = slot->currentShift / 5;
-    const uint8_t singleLetterOffset = slot->currentShift % 5;
-
-    uint8_t extraSpace = 0;
+    uint8_t characterOffset = slot->currentShift / 5;
+    uint8_t columnOffset = slot->currentShift % 5;
+    uint8_t charactersSkpLines = 0;
 
     for (uint16_t p = 0; p < slot->length * 5; ++p) {
 
-        const uint8_t character = slot->convertedText[convertedTextOffset + p / 5] - 32;
+        const uint8_t op = characterOffset;
+        uint8_t character;
 
-        const uint8_t characterColumn = (p + singleLetterOffset) % 5;
+        if (op < slot->textLength) {
+            character = slot->convertedText[op];
+        } else if (op - slot->textLength < LOOP_NUMBER_OF_SPACES or slot->textLength <= slot->length) {
+            character = ' ';
+        } else {
+            character = slot->convertedText[(op - LOOP_NUMBER_OF_SPACES) % slot->textLength];
+        }
 
-//        if (characterColumn == 0) {
-//            extraSpace += 2;
-//        }
 
-        const uint8_t frameBufferColumn = 5 * slot->startPosition + p + extraSpace;
+        //const uint8_t character = slot->convertedText[characterOffset];
 
-        frameBuffer[frameBufferColumn] = pgm_read_byte(Font5x7 + 5 * character + characterColumn);
+        const uint8_t frameBufferColumn = 5 * slot->startPosition + p;
 
-//        if (characterColumn == 0) {
-//            frameBuffer[frameBufferColumn - 1] = 0;
-//            frameBuffer[frameBufferColumn - 2] = 0;
-//        }
+        frameBuffer[frameBufferColumn + charactersSkpLines]
+                = pgm_read_byte(Font5x7 + 5 * (character - ' ') + columnOffset);
+
+        ++columnOffset;
+
+        if (columnOffset == 5) {
+            frameBuffer[frameBufferColumn + charactersSkpLines + 1] = 0;
+            columnOffset = 0;
+            ++characterOffset;
+            ++charactersSkpLines;
+        }
     }
 
+    if (slot->textLength <= slot->length) {
+        slot->currentShift = 0;
+        return;
+    }
+
+    slot->currentShift++;
+
+    if (slot->currentShift == 5 * slot->textLength + 10) {
+        slot->currentShift = 0;
+    }
 }
 
-constexpr uint8_t CELL_MODE_NUMBER_OF_SPACES = 2;
+
 
 static void fillPixelsCellMode(ScrollingSlot *slot) {
 
@@ -158,10 +165,10 @@ static void fillPixelsCellMode(ScrollingSlot *slot) {
 
         if (op < slot->textLength) {
             character = slot->convertedText[op];
-        } else if (op - slot->textLength < CELL_MODE_NUMBER_OF_SPACES or slot->textLength <= slot->length) {
+        } else if (op - slot->textLength < LOOP_NUMBER_OF_SPACES or slot->textLength <= slot->length) {
             character = ' ';
         } else {
-            character = slot->convertedText[(op - CELL_MODE_NUMBER_OF_SPACES) % slot->textLength];
+            character = slot->convertedText[(op - LOOP_NUMBER_OF_SPACES) % slot->textLength];
         }
 
         memcpy_P(frameBuffer + 5 * (slot->startPosition + p), Font5x7 + 5 * (character - ' '), 5);
@@ -176,6 +183,15 @@ static void fillPixelsCellMode(ScrollingSlot *slot) {
 
     if (slot->currentShift == slot->textLength) {
         slot->currentShift = 0;
+    }
+}
+
+static void scrollTextToNextPosition(ScrollingSlot *slot) {
+
+    if (slot->textLength <= slot->length) {
+        // fall back to static text
+    } else {
+        fillPixelsColumnMode(slot);
     }
 }
 
@@ -376,16 +392,15 @@ void vfd::pool() {
 
 //    if (encVal != 0) {
 //        scrollingSlots[0].currentShift += encVal;
-//        fillPixelsCellMode(&scrollingSlots[0]);
+//        fillPixelsColumnMode(&scrollingSlots[0]);
 //    }
 
     if (currentPosition == 39) {
         currentPosition = 0;
 
         x++;
-        if (x == 20) {
-            //scrollingSlots[0].currentShift++;
-            fillPixelsCellMode(&scrollingSlots[0]);
+        if (x == 6) {
+            scrollTextToNextPosition(&scrollingSlots[0]);
             x = 0;
         }
 
@@ -404,9 +419,5 @@ void vfd::write(const char *str) {
     scrollingSlots[0].length = 10;
 
     loadUtf8text(&scrollingSlots[0], str);
-
-    scrollingSlots[0].currentShift = 0;
-
-    fillPixelsCellMode(&scrollingSlots[0]);
 }
 

@@ -28,11 +28,15 @@ int main() {
     sei();
 //    vfd::write("aącćzźżłl żółwia maść ZŻÓOŁWIA MĄKA");
 //     vfd::write("abcdefghijklmnoprst");
+    vfd::setBrightness(2);
     vfd::write("Ala ma żółtego kota");
 
 //    vfd::write("foo");
-    vfd::write(
-            "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an");
+//    vfd::write(
+//            "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an");
+
+    vfd::write("no i ja się pytam człowieku dumny ty jesteś z siebie zdajesz sobie sprawę z tego co robisz?"
+                       "masz ty wogóle rozum i godnośc człowieka?");
 
     while (true) {
 
