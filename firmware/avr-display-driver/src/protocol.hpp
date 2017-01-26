@@ -2,9 +2,8 @@
 
 #include <stdint.h>
 
-namespace vfd {
-
-    namespace main {
+namespace octoglow {
+    namespace vfd_front {
 
         namespace text {
             constexpr uint8_t MODE = 't';

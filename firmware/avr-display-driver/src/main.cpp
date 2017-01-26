@@ -1,4 +1,4 @@
-#include "vfd.hpp"
+#include "display.hpp"
 #include "speaker.hpp"
 #include "encoder.hpp"
 
@@ -6,15 +6,18 @@
 #include <avr/wdt.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 
 #include <i2c-slave.hpp>
+
+using namespace octoglow::vfd_front;
 
 static void processCommands(uint8_t *rxbuf, uint8_t *txbuf) {
 }
 
 int main() {
     vfd::encoder::init();
-    vfd::init();
+    display::init();
     speaker::init();
 
     // i2c
@@ -28,20 +31,17 @@ int main() {
     sei();
 //    vfd::write("aącćzźżłl żółwia maść ZŻÓOŁWIA MĄKA");
 //     vfd::write("abcdefghijklmnoprst");
-    vfd::setBrightness(2);
-    vfd::write("Ala ma żółtego kota");
+    display::setBrightness(5);
 
-//    vfd::write("foo");
-//    vfd::write(
-//            "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an");
+    display::writeStaticText_P(1, 12, PSTR("xD:"));
+    display::writeScrollingText(1, 21, 5, "aącćzźżłl żółwia maść ZŻÓOŁWIA MĄKA");
 
-    vfd::write("no i ja się pytam człowieku dumny ty jesteś z siebie zdajesz sobie sprawę z tego co robisz?"
-                       "masz ty wogóle rozum i godnośc człowieka?");
+    display::writeScrollingText_P(0, 4, 10,
+                                  PSTR("no i ja się pytam człowieku dumny ty jesteś z siebie zdajesz sobie sprawę z tego co robisz?"
+                                               "masz ty wogóle rozum i godnośc człowieka?"));
 
     while (true) {
-
-
-        vfd::pool();
+        display::pool();
         speaker::pool();
         vfd::encoder::pool();
 

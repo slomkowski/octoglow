@@ -1,0 +1,231 @@
+#include "display-lowlevel.hpp"
+#include "Font5x7.hpp"
+#include "global.hpp"
+
+#include <avr/io.h>
+
+#define CK_PORT D
+#define CK_PIN 7
+
+#define CHG_PORT D
+#define CHG_PIN 6
+
+#define CL_PORT B
+#define CL_PIN 2
+
+#define STB_PORT B
+#define STB_PIN 1
+
+#define S_IN_PORT B
+#define S_IN_PIN 0
+
+using namespace octoglow::vfd_front::display_lowlevel;
+
+uint8_t octoglow::vfd_front::display_lowlevel::frameBuffer[NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER];
+
+static uint8_t brightness = MAX_BRIGHTNESS;
+static uint8_t currentPosition = 0;
+
+void ::octoglow::vfd_front::display_lowlevel::init() {
+    // all connectors are outputs
+    DDR(CK_PORT) |= _BV(CK_PIN);
+    DDR(CHG_PORT) |= _BV(CHG_PIN);
+    DDR(CL_PORT) |= _BV(CL_PIN);
+    DDR(STB_PORT) |= _BV(STB_PIN);
+    DDR(S_IN_PORT) |= _BV(S_IN_PIN);
+}
+
+void ::octoglow::vfd_front::display_lowlevel::setBrightness(const uint8_t b) {
+    brightness = b > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : b;
+}
+
+static inline __attribute((always_inline)) void ckPulse() {
+    PORT(CK_PORT) |= _BV(CK_PIN);
+    PORT(CK_PORT) &= ~_BV(CK_PIN);
+}
+
+static inline void iterateOverCharacterPixelsAscending(const int8_t startInclusive,
+                                                       const int8_t stopInclusive,
+                                                       const int8_t validPosition) {
+    for (int8_t p = startInclusive; p != stopInclusive + 1; ++p) {
+        if (p == validPosition) {
+            PORT(S_IN_PORT) |= _BV(S_IN_PIN);
+        } else {
+            PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+        }
+        ckPulse();
+    }
+}
+
+static inline void iterateOverCharacterPixelsDescending(const int8_t startInclusive,
+                                                        const int8_t stopInclusive,
+                                                        const int8_t validPosition) {
+    for (int8_t p = startInclusive; p != stopInclusive - 1; --p) {
+        if (p == validPosition) {
+            PORT(S_IN_PORT) |= _BV(S_IN_PIN);
+        } else {
+            PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+        }
+        ckPulse();
+    }
+}
+
+static inline void setOutputPin(const uint8_t *characterBuffer, const int8_t column, const int8_t row) {
+
+    const uint8_t go = characterBuffer[column];
+
+    if (go & (1 << row)) {
+        PORT(S_IN_PORT) |= _BV(S_IN_PIN);
+    } else {
+        PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    }
+}
+
+//__attribute__((optimize("unroll-loops")))
+static inline void holdCharacterOnDisplayInputs(uint8_t position) {
+
+    PORT(STB_PORT) &= ~_BV(STB_PIN);
+
+    PORT(CL_PORT) |= _BV(CL_PIN);
+
+    const uint8_t *characterPtr = &frameBuffer[(COLUMNS_IN_CHARACTER * position) %
+                                               (NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER)];
+
+    if ((position >= 10) and (position <= 19)) {
+        position += 20;
+    } else if ((position >= 20) and (position <= 29)) {
+        position -= 10;
+    } else if (position >= 30) {
+        position -= 10;
+    }
+
+    if (position < 20) {
+        // g7 - g1
+        iterateOverCharacterPixelsDescending(6, 0, position);
+
+        // g8 - g20
+        iterateOverCharacterPixelsAscending(7, 19, position);
+    } else {
+        PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+        for (uint8_t i = 0; i != 20; ++i) {
+            ckPulse();
+        }
+    }
+
+    if (brightness == 1) {
+        PORT(CL_PORT) &= ~_BV(CL_PIN);
+    }
+
+    // a1 - a11
+    int8_t column = 2;
+    int8_t row = 3;
+    for (uint8_t a = 0; a != 11; ++a) {
+
+        setOutputPin(characterPtr, column, row);
+
+        ++column;
+
+        if (column == 5) {
+            column = 0;
+            ++row;
+        }
+
+        ckPulse();
+    }
+
+    column = 4;
+    row = 6;
+    // a18 - a14
+    for (uint8_t a = 17; a != 12; --a) {
+        setOutputPin(characterPtr, column, row);
+        --column;
+        ckPulse();
+    }
+
+    // 2 dummy
+    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    ckPulse();
+    ckPulse();
+
+    if (brightness == 2) {
+        PORT(CL_PORT) &= ~_BV(CL_PIN);
+    }
+
+    // a12 - a13
+    setOutputPin(characterPtr, 3, 5);
+    ckPulse();
+    setOutputPin(characterPtr, 4, 5);
+    ckPulse();
+
+
+    // 2 dummy
+    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    ckPulse();
+    ckPulse();
+
+    // a25 - a19
+    column = 0;
+    row = 2;
+    for (uint8_t a = 24; a != 17; --a) {
+        setOutputPin(characterPtr, column, row);
+
+        if (column == 4) {
+            column = 0;
+            ++row;
+        } else {
+            ++column;
+        }
+
+        ckPulse();
+    }
+
+    // a26 - a35
+    column = 4;
+    row = 1;
+    for (uint8_t a = 25; a != 35; ++a) {
+        setOutputPin(characterPtr, column, row);
+
+        if (column == 0) {
+            column = 4;
+            --row;
+        } else {
+            --column;
+        }
+
+        ckPulse();
+    }
+
+    if (brightness == 3) {
+        PORT(CL_PORT) &= ~_BV(CL_PIN);
+    }
+
+    // a36
+    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    ckPulse();
+
+    if (position > 19) {
+        // g21 - g33
+        iterateOverCharacterPixelsAscending(20, 32, position);
+
+        // g40 - g34
+        iterateOverCharacterPixelsDescending(39, 33, position);
+    } else {
+        for (uint8_t i = 0; i != 20; ++i) {
+            ckPulse();
+        }
+    }
+
+    PORT(STB_PORT) |= _BV(STB_PIN);
+}
+
+
+void ::octoglow::vfd_front::display_lowlevel::displayPool() {
+
+    holdCharacterOnDisplayInputs(currentPosition);
+
+    if (currentPosition == NUM_OF_CHARACTERS - 1) {
+        currentPosition = 0;
+    } else {
+        ++currentPosition;
+    }
+}
