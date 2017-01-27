@@ -23,6 +23,8 @@ using namespace octoglow::vfd_front::display_lowlevel;
 
 uint8_t octoglow::vfd_front::display_lowlevel::frameBuffer[NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER];
 
+uint32_t octoglow::vfd_front::display_lowlevel::upperBarBuffer = 0l;
+
 static uint8_t brightness = MAX_BRIGHTNESS;
 static uint8_t currentPosition = 0;
 
@@ -40,33 +42,35 @@ void ::octoglow::vfd_front::display_lowlevel::setBrightness(const uint8_t b) {
 }
 
 static inline __attribute((always_inline)) void ckPulse() {
-    PORT(CK_PORT) |= _BV(CK_PIN);
     PORT(CK_PORT) &= ~_BV(CK_PIN);
+    PORT(CK_PORT) |= _BV(CK_PIN);
 }
 
-static inline void iterateOverCharacterPixelsAscending(const int8_t startInclusive,
-                                                       const int8_t stopInclusive,
-                                                       const int8_t validPosition) {
+static inline void iterateOverPositionsAscending(const int8_t startInclusive,
+                                                 const int8_t stopInclusive,
+                                                 const int8_t validPosition) {
     for (int8_t p = startInclusive; p != stopInclusive + 1; ++p) {
+        PORT(CK_PORT) &= ~_BV(CK_PIN);
         if (p == validPosition) {
             PORT(S_IN_PORT) |= _BV(S_IN_PIN);
         } else {
             PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
         }
-        ckPulse();
+        PORT(CK_PORT) |= _BV(CK_PIN);
     }
 }
 
-static inline void iterateOverCharacterPixelsDescending(const int8_t startInclusive,
-                                                        const int8_t stopInclusive,
-                                                        const int8_t validPosition) {
+static inline void iterateOverPositionsDescending(const int8_t startInclusive,
+                                                  const int8_t stopInclusive,
+                                                  const int8_t validPosition) {
     for (int8_t p = startInclusive; p != stopInclusive - 1; --p) {
+        PORT(CK_PORT) &= ~_BV(CK_PIN);
         if (p == validPosition) {
             PORT(S_IN_PORT) |= _BV(S_IN_PIN);
         } else {
             PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
         }
-        ckPulse();
+        PORT(CK_PORT) |= _BV(CK_PIN);
     }
 }
 
@@ -101,10 +105,10 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
 
     if (position < 20) {
         // g7 - g1
-        iterateOverCharacterPixelsDescending(6, 0, position);
+        iterateOverPositionsDescending(6, 0, position);
 
         // g8 - g20
-        iterateOverCharacterPixelsAscending(7, 19, position);
+        iterateOverPositionsAscending(7, 19, position);
     } else {
         PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
         for (uint8_t i = 0; i != 20; ++i) {
@@ -199,17 +203,23 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
         PORT(CL_PORT) &= ~_BV(CL_PIN);
     }
 
-    // a36
-    PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    // a36 - upper bar
+    if ((position < 10 and upperBarBuffer & (1L << position))
+        or (position >= 30 and position < 40 and upperBarBuffer & (1L << (position - 20)))) {
+        PORT(S_IN_PORT) |= _BV(S_IN_PIN);
+    } else {
+        PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+    }
     ckPulse();
 
     if (position > 19) {
         // g21 - g33
-        iterateOverCharacterPixelsAscending(20, 32, position);
+        iterateOverPositionsAscending(20, 32, position);
 
         // g40 - g34
-        iterateOverCharacterPixelsDescending(39, 33, position);
+        iterateOverPositionsDescending(39, 33, position);
     } else {
+        PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
         for (uint8_t i = 0; i != 20; ++i) {
             ckPulse();
         }

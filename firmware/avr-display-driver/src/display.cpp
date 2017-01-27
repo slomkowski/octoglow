@@ -22,7 +22,63 @@ struct ScrollingSlot {
     uint8_t textLength;
     const uint8_t maxTextLength;
     uint8_t *const convertedText;
+
+public:
+    void clear();
+
+    void scrollAndLoadIntoFramebuffer();
 };
+
+void ScrollingSlot::clear() {
+    startPosition = 0;
+    length = 0;
+    textLength = 0;
+}
+
+void ScrollingSlot::scrollAndLoadIntoFramebuffer() {
+    if (this->textLength == 0 or this->length == 0) {
+        return;
+    }
+
+    uint8_t characterOffset = this->currentShift / display_lowlevel::COLUMNS_IN_CHARACTER;
+    uint8_t columnOffset = this->currentShift % display_lowlevel::COLUMNS_IN_CHARACTER;
+    uint8_t charactersSkpLines = 0;
+
+    for (uint16_t p = 0; p < this->length * display_lowlevel::COLUMNS_IN_CHARACTER; ++p) {
+
+        const uint8_t op = characterOffset;
+        uint8_t character;
+
+        if (op < this->textLength) {
+            character = this->convertedText[op];
+        } else if (op - this->textLength < LOOP_NUMBER_OF_SPACES) {
+            character = ' ';
+        } else {
+            character = this->convertedText[(op - LOOP_NUMBER_OF_SPACES) % this->textLength];
+        }
+
+        const uint8_t frameBufferColumn = display_lowlevel::COLUMNS_IN_CHARACTER * this->startPosition + p;
+
+        display_lowlevel::frameBuffer[frameBufferColumn + charactersSkpLines]
+                = pgm_read_byte(Font5x7 + display_lowlevel::COLUMNS_IN_CHARACTER * (character - ' ') + columnOffset);
+
+        ++columnOffset;
+
+        if (columnOffset == display_lowlevel::COLUMNS_IN_CHARACTER) {
+            display_lowlevel::frameBuffer[frameBufferColumn + charactersSkpLines + 1] = 0;
+            columnOffset = 0;
+            ++characterOffset;
+            ++charactersSkpLines;
+        }
+    }
+
+    this->currentShift++;
+
+    if (this->currentShift == display_lowlevel::COLUMNS_IN_CHARACTER * (this->textLength + 2u)) {
+        this->currentShift = 0;
+    }
+}
+
 
 static uint16_t scrollingWaitCounter = 0;
 
@@ -93,20 +149,19 @@ static void forEachUtf8character(const char *str,
 }
 
 
-static void loadStaticText(const uint8_t startPosition,
-                           const uint8_t maxLength,
-                           const char *str,
-                           const bool stringInProgramSpace) {
-
+void ::octoglow::vfd_front::display::writeStaticText(const uint8_t position,
+                                                     const uint8_t maxLength,
+                                                     char *const text,
+                                                     const bool textInProgramSpace) {
     struct LocalData {
         uint8_t startPosition;
         uint8_t lastPos;
     } local;
 
-    local.startPosition = startPosition;
+    local.startPosition = position;
     local.lastPos = 0;
 
-    forEachUtf8character(str, stringInProgramSpace, maxLength, &local,
+    forEachUtf8character(text, textInProgramSpace, maxLength, &local,
                          [](void *s, uint8_t curPos, uint8_t code) -> void {
                              const auto ld = static_cast<LocalData *>(s);
 
@@ -117,23 +172,24 @@ static void loadStaticText(const uint8_t startPosition,
 
                              ld->lastPos = curPos;
                          });
-    memset(display_lowlevel::frameBuffer + display_lowlevel::COLUMNS_IN_CHARACTER * (startPosition + local.lastPos + 1),
+
+    memset(display_lowlevel::frameBuffer + display_lowlevel::COLUMNS_IN_CHARACTER * (position + local.lastPos + 1),
            0,
            display_lowlevel::COLUMNS_IN_CHARACTER * (maxLength - local.lastPos));
 }
 
-static void loadScrollingText(const uint8_t slotNumber,
-                              const uint8_t startPosition,
-                              const uint8_t windowLength,
-                              const char *str,
-                              const bool stringInProgramSpace) {
+void ::octoglow::vfd_front::display::writeScrollingText(const uint8_t slotNumber,
+                                                        const uint8_t position,
+                                                        const uint8_t windowLength,
+                                                        char *const text,
+                                                        const bool textInProgramSpace) {
 
     ScrollingSlot &slot = scrollingSlots[slotNumber % scroll::NUMBER_OF_SLOTS];
-    slot.startPosition = startPosition;
+    slot.startPosition = position;
     slot.length = windowLength;
     slot.currentShift = 0;
 
-    forEachUtf8character(str, stringInProgramSpace, slot.maxTextLength, &slot,
+    forEachUtf8character(text, textInProgramSpace, slot.maxTextLength, &slot,
                          [](void *s, uint8_t curPos, uint8_t code) -> void {
                              static_cast<ScrollingSlot *>(s)->convertedText[curPos] = code;
                              static_cast<ScrollingSlot *>(s)->textLength = curPos + 1;
@@ -141,7 +197,7 @@ static void loadScrollingText(const uint8_t slotNumber,
 
     if (slot.textLength <= slot.length) {
         // if text is shorter than the window, fall back to static mode
-        loadStaticText(slot.startPosition, slot.length, str, stringInProgramSpace);
+        writeStaticText(slot.startPosition, slot.length, text, textInProgramSpace);
 
         // disable slot
         slot.length = 0;
@@ -149,54 +205,23 @@ static void loadScrollingText(const uint8_t slotNumber,
     }
 }
 
-static void fillPixelsColumnMode(ScrollingSlot &slot) {
-
-    if (slot.textLength == 0 or slot.length == 0) {
-        return;
-    }
-
-    uint8_t characterOffset = slot.currentShift / display_lowlevel::COLUMNS_IN_CHARACTER;
-    uint8_t columnOffset = slot.currentShift % display_lowlevel::COLUMNS_IN_CHARACTER;
-    uint8_t charactersSkpLines = 0;
-
-    for (uint16_t p = 0; p < slot.length * display_lowlevel::COLUMNS_IN_CHARACTER; ++p) {
-
-        const uint8_t op = characterOffset;
-        uint8_t character;
-
-        if (op < slot.textLength) {
-            character = slot.convertedText[op];
-        } else if (op - slot.textLength < LOOP_NUMBER_OF_SPACES) {
-            character = ' ';
-        } else {
-            character = slot.convertedText[(op - LOOP_NUMBER_OF_SPACES) % slot.textLength];
-        }
-
-        const uint8_t frameBufferColumn = display_lowlevel::COLUMNS_IN_CHARACTER * slot.startPosition + p;
-
-        display_lowlevel::frameBuffer[frameBufferColumn + charactersSkpLines]
-                = pgm_read_byte(Font5x7 + display_lowlevel::COLUMNS_IN_CHARACTER * (character - ' ') + columnOffset);
-
-        ++columnOffset;
-
-        if (columnOffset == display_lowlevel::COLUMNS_IN_CHARACTER) {
-            display_lowlevel::frameBuffer[frameBufferColumn + charactersSkpLines + 1] = 0;
-            columnOffset = 0;
-            ++characterOffset;
-            ++charactersSkpLines;
-        }
-    }
-
-    slot.currentShift++;
-
-    if (slot.currentShift == display_lowlevel::COLUMNS_IN_CHARACTER * (slot.textLength + 2u)) {
-        slot.currentShift = 0;
-    }
-}
-
 
 void ::octoglow::vfd_front::display::init() {
     display_lowlevel::init();
+    clear();
+}
+
+void ::octoglow::vfd_front::display::clear() {
+    for (uint8_t s = 0; s < scroll::NUMBER_OF_SLOTS; ++s) {
+        scrollingSlots[s].clear();
+    }
+
+    scrollingWaitCounter = 0;
+
+    display_lowlevel::upperBarBuffer = 0;
+
+    memset(display_lowlevel::frameBuffer, 0,
+           display_lowlevel::COLUMNS_IN_CHARACTER * display_lowlevel::NUM_OF_CHARACTERS);
 }
 
 void ::octoglow::vfd_front::display::pool() {
@@ -204,7 +229,7 @@ void ::octoglow::vfd_front::display::pool() {
     if (scrollingWaitCounter == 300) {
 
         for (uint8_t s = 0; s < scroll::NUMBER_OF_SLOTS; ++s) {
-            fillPixelsColumnMode(scrollingSlots[s]);
+            scrollingSlots[s].scrollAndLoadIntoFramebuffer();
         }
 
         scrollingWaitCounter = 0;
@@ -215,35 +240,46 @@ void ::octoglow::vfd_front::display::pool() {
     display_lowlevel::displayPool();
 }
 
-void ::octoglow::vfd_front::display::writeStaticText(const uint8_t position,
-                                                     const uint8_t maxLength,
-                                                     char *const text) {
-    loadStaticText(position, maxLength, text, false);
-}
-
-void ::octoglow::vfd_front::display::writeStaticText_P(const uint8_t position,
-                                                       const uint8_t maxLength,
-                                                       const char *const progmemText) {
-    loadStaticText(position, maxLength, progmemText, true);
-}
-
-void ::octoglow::vfd_front::display::writeScrollingText(const uint8_t slotNumber,
-                                                        const uint8_t position,
-                                                        const uint8_t windowLength,
-                                                        char *const text) {
-    loadScrollingText(slotNumber, position, windowLength, text, false);
-}
-
-void ::octoglow::vfd_front::display::writeScrollingText_P(const uint8_t slotNumber,
-                                                          const uint8_t position,
-                                                          const uint8_t windowLength,
-                                                          const char *const progmemText) {
-    loadScrollingText(slotNumber, position, windowLength, progmemText, true);
-}
-
 void ::octoglow::vfd_front::display::setBrightness(const uint8_t brightness) {
     display_lowlevel::setBrightness(brightness);
 }
+
+void ::octoglow::vfd_front::display::drawGraphics(const uint8_t columnPosition,
+                                                  const uint8_t columnLength,
+                                                  const bool sumWithText,
+                                                  uint8_t *const columnBuffer,
+                                                  const bool bufferInProgramSpace) {
+    for (uint8_t p = 0; p < columnLength; ++p) {
+        //todo sum with text
+        const uint8_t columnContent = bufferInProgramSpace
+                                      ? pgm_read_byte(columnBuffer + p)
+                                      : columnBuffer[p];
+
+        if (sumWithText) {
+            display_lowlevel::frameBuffer[columnPosition + p] |= columnContent;
+        } else {
+            display_lowlevel::frameBuffer[columnPosition + p] = columnContent;
+        }
+    }
+}
+
+void ::octoglow::vfd_front::display::setUpperBarContent(uint32_t content) {
+    display_lowlevel::upperBarBuffer = 0b11111111111111111111l & content;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

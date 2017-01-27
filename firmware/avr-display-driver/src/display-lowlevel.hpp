@@ -13,6 +13,8 @@ namespace octoglow {
 
             extern uint8_t frameBuffer[];
 
+            extern uint32_t upperBarBuffer;
+
             void init();
 
             void displayPool();
