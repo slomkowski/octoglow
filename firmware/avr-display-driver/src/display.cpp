@@ -135,13 +135,19 @@ static void forEachUtf8character(const char *str,
             const uint16_t twoByteUnicodeValue = (secondByteValue & 0x3f) + ((singleAsciiValue & 0x1f) << 6);
             strIdx += 2;
 
-            for (uint8_t offset = 0; offset < 18; ++offset) {
+            constexpr uint8_t NUMBER_OF_NATIONAL_CHARACTERS = sizeof(utfMappings) / sizeof(utfMappings[0]);
+            uint8_t offset;
+            for (offset = 0; offset < NUMBER_OF_NATIONAL_CHARACTERS; ++offset) {
                 if (pgm_read_word(&utfMappings[offset]) == twoByteUnicodeValue) {
-
-                    callback(userData, currPos, 126 + offset);
                     break;
                 }
             }
+
+            if (offset == NUMBER_OF_NATIONAL_CHARACTERS) {
+                offset = INVALID_CHARACTER_CODE - UNICODE_START_CODE;
+            }
+
+            callback(userData, currPos, UNICODE_START_CODE + offset);
         }
 
         ++currPos;

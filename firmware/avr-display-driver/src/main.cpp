@@ -26,9 +26,9 @@ static void showDemoOnDisplay() {
 
     display::setUpperBarContent(0b111101101110000000);
 
-    display::writeScrollingText_P(0, 21, 10, PSTR("Zażółć gęślą jaźń! no i ja się pytam człowieku dumny "
-                                                          "ty jesteś z siebie zdajesz sobie sprawę z tego co robisz?"
-                                                          "masz ty wogóle rozum i godnośc człowieka?"));
+    display::writeScrollingText_P(0, 21, 10, PSTR("Zażółć gęślą jaźń! ū \"no i ja się pytam człowieku dumny "
+                                                          "ty jesteś z siebie zdajesz sobie sprawę z tego "
+                                                          "co robisz?masz ty wogóle rozum i godnośc człowieka?\""));
 
     display::drawGraphics_P(5 * 34, 10, false, GRAPHICS_HEART);
     for (uint8_t c = 5; c < 25; ++c) {
