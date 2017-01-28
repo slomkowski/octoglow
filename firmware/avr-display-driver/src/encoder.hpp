@@ -3,15 +3,26 @@
 #include <stdint.h>
 
 
-namespace vfd {
-    namespace encoder {
-        void init();
+namespace octoglow {
+    namespace vfd_front {
+        namespace encoder {
 
-        void pool(); // todo zdecydować, czy pooling lub przerwanie
+            enum class ButtonState : int8_t {
+                NO_CHANGE = 0,
+                JUST_PRESSED = 1,
+                JUST_RELEASED = -1
+            };
 
-        /**
-         * 
-         */
-        int8_t getValueAndClear();
+            void init();
+
+            void pool();
+
+            /*
+             * Reads the effective number of steps from last call. Read zeroes the counter.
+             */
+            int8_t getValueAndClear();
+
+            ButtonState getButtonStateAndClear();
+        }
     }
 }

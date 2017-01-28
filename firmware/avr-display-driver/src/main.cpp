@@ -9,6 +9,7 @@
 #include <avr/pgmspace.h>
 
 #include <i2c-slave.hpp>
+#include <stdlib.h>
 
 using namespace octoglow::vfd_front;
 
@@ -30,14 +31,37 @@ static void showDemoOnDisplay() {
                                                           "ty jesteś z siebie zdajesz sobie sprawę z tego "
                                                           "co robisz?masz ty wogóle rozum i godnośc człowieka?\""));
 
-    display::drawGraphics_P(5 * 34, 10, false, GRAPHICS_HEART);
     for (uint8_t c = 5; c < 25; ++c) {
         display::drawGraphics_P(c, 1, true, GRAPHICS_STRIKETHROUGH);
     }
 }
 
+static void showEncoderValue() {
+    static int8_t encoderVal = 0;
+
+    const int8_t currentVal = encoder::getValueAndClear();
+
+    const encoder::ButtonState bs = encoder::getButtonStateAndClear();
+
+    if (currentVal != 0) {
+        encoderVal += currentVal;
+
+        char valueBuffer[5];
+
+        itoa(encoderVal, valueBuffer, 10);
+
+        display::writeStaticText(36, 4, valueBuffer);
+    }
+
+    if (bs == encoder::ButtonState::JUST_PRESSED) {
+        display::drawGraphics_P(5 * 33, 10, false, GRAPHICS_HEART);
+    } else if (bs == encoder::ButtonState::JUST_RELEASED) {
+        display::writeStaticText_P(33, 2, PSTR("xD"));
+    }
+}
+
 int main() {
-    vfd::encoder::init();
+    encoder::init();
     display::init();
     speaker::init();
 
@@ -56,8 +80,9 @@ int main() {
     while (true) {
         display::pool();
         speaker::pool();
-        vfd::encoder::pool();
+        encoder::pool();
 
+        showEncoderValue();
 
 #if WATCHD0G_ENABLE
         wdt_reset();
