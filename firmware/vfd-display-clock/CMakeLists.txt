@@ -16,7 +16,7 @@ include_directories(libsrc)
 
 SET(LIBRARY_SOURCES )
 
-SET(SOURCES src/main.cpp src/global.hpp src/vfd.cpp src/vfd.hpp)
+SET(SOURCES src/main.cpp src/global.hpp src/display.cpp src/display.hpp src/relay.cpp src/relay.hpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 
