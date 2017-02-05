@@ -38,7 +38,7 @@ static const uint8_t SEGMENT_ORDERING[] PROGMEM = {
         30, 29, 27, 26, 28, 32, 31
 };
 
-static_assert(sizeof(SEGMENT_ORDERING) == 4 * 7);
+static_assert(sizeof(SEGMENT_ORDERING) == 4 * 7, "ordering doesn't sum to 4 chars x 7 segments");
 
 static const uint8_t CHARACTER_SHAPES[] PROGMEM = {
         0b0000000,
@@ -129,11 +129,11 @@ void octoglow::vfd_clock::display::init() {
     TCCR1B |= _BV(CS12) | _BV(CS11) | _BV(CS10);
 
     OCR1C = PWM_STEPS;
-s
+
     setBrightness(MAX_BRIGHTNESS);
 
     setDots(LOWER_DOT, false);
-    setAllCharacters("-_-_");
+    setAllCharacters(const_cast<char *>("-_-_"));
 }
 
 void octoglow::vfd_clock::display::setBrightness(const uint8_t brightness) {
