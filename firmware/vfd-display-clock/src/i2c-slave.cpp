@@ -28,15 +28,16 @@
  * Data.
  ****************************************************************************/
 
-uint8_t			i2c_address;
+volatile uint8_t	i2c_rdbuf[I2C_RDSIZE];
+volatile uint8_t	i2c_wrbuf[I2C_WRSIZE];
 
-volatile uint8_t	*i2c_rdbuf;
-volatile uint8_t	i2c_rdlen, i2c_rdptr;
-volatile uint8_t	*i2c_wrbuf;
-volatile uint8_t	i2c_wrlen;
+static volatile uint8_t	i2c_rdlen;
+static volatile uint8_t i2c_rdptr;
 
-volatile uint8_t	usi_state;
-// #define usi_state	GPIOR2	// save ~28 bytes of code
+static volatile uint8_t	i2c_wrlen;
+
+static volatile uint8_t	usi_state;
+// #define usi_state	ADMUX	// save ~28 bytes of code
 
 #define USI_Stopped	 0
 #define USI_CheckAddress (1<<0)	// address received, read and compare
@@ -123,10 +124,8 @@ usi_reset(void)
  * Initialize I2C slave.
  ****************************************************************************/
 void
-i2c_initialize(uint8_t addr)
+i2c_initialize()
 {
-    i2c_address = addr;
-
     USI_PORT |= _BV(USI_SCL);				// SCL inactive
     USI_PORT |= _BV(USI_SDA);				// SDA inactive
     USI_DDR  |= _BV(USI_SCL);				// SCL output
@@ -205,7 +204,7 @@ i2c_reply_done(uint8_t n)
  * Start the state machine.
  * Prepare to receive the slave address.
  ****************************************************************************/
-ISR(USI_START_vect)
+ISR(USI_STRT_vect)
 {
     SetD(6);
 
@@ -246,14 +245,14 @@ ISR(USI_START_vect)
  * USI counter overflow interrupt.
  * The USI state machine.
  ****************************************************************************/
-ISR(USI_OVERFLOW_vect)
+ISR(USI_OVF_vect)
 {
     if (usi_state == USI_CheckAddress) {
 	//
 	// Slave address received.
 	//
 	uint8_t addr = USIDR;
-	if (addr == 0 || (addr & ~1) == i2c_address) {	// global address or ours?
+	if (addr == 0 || (addr & ~1) == (I2C_ADDRESS << 1)) {	// global address or ours?
 	    if (addr & 1) {				// master read mode?
 		if (i2c_rdlen == 0)			// abort if buffer empty
 		    goto abort;

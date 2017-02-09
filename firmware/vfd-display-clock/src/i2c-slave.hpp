@@ -34,10 +34,12 @@
 
 #include <stdint.h>
 
-void i2c_initialize(const uint8_t address,
-                    volatile uint8_t *const readBuffer,
-                    volatile uint8_t *const writeBuffer,
-                    const uint8_t writeBufferSize);        // set slave address, 8bit format
+constexpr uint8_t I2C_ADDRESS = 0x10;
+
+constexpr uint8_t I2C_RDSIZE = 9;    // slave => master buffer size
+constexpr uint8_t I2C_WRSIZE = 8;    // master => slave buffer size
+
+void i2c_initialize();        // set slave address, 8bit format
 
 uint8_t i2c_idle(void);
 
@@ -49,5 +51,7 @@ uint8_t i2c_reply_ready(void);
 
 void i2c_reply_done(uint8_t nbytes);    // set i2c_rdlen
 
-extern volatile uint8_t i2c_rdlen;
-extern volatile uint8_t i2c_wrlen;
+extern volatile uint8_t i2c_rdbuf[I2C_RDSIZE];
+//extern volatile uint8_t i2c_rdlen;
+extern volatile uint8_t i2c_wrbuf[I2C_WRSIZE];
+//extern volatile uint8_t i2c_wrlen;

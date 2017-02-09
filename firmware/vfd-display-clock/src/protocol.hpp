@@ -9,6 +9,8 @@ namespace octoglow {
             enum class Command : uint8_t {
                 SET_DISPLAY_CONTENT = 0x1, // 4 ascii chars + dot content
                 SET_RELAY,
+                SET_BRIGHTNESS,
+                GET_WEATHER_SENSOR_STATE
             };
 
             struct DisplayContent {
@@ -19,11 +21,19 @@ namespace octoglow {
             static_assert(sizeof(DisplayContent) == 5);
 
             struct RelayState {
-                char characters[4];
-                uint8_t dotState;
+                bool relay1enabled;
+                bool relay2enabled;
             }__attribute__((packed));
 
             static_assert(sizeof(RelayState) == 2);
+
+            struct WeatherSensorState {
+                int16_t temperature; // in 0.1 deg C
+                uint8_t humidity; // in %
+                bool weakBattery;
+            };
+
+            static_assert(sizeof(WeatherSensorState) == 4);
         }
 
     }
