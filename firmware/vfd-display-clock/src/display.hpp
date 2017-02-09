@@ -20,6 +20,8 @@ namespace octoglow {
             void setBrightness(const uint8_t brightness);
 
             void setDots(const uint8_t newDotState, const bool shouldReloadDisplay = true);
+
+            void setReceiverUpdateFlag(const bool enabled);
         }
     }
 }
