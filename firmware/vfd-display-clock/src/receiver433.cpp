@@ -59,13 +59,13 @@ void ::octoglow::vfd_clock::receiver433::pool() {
         timer1overflowCounter = 0;
         updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
     } else if (updateState == ValueUpdateState::FIRST_MEASUREMENT_PROVIDED) {
-        for (uint8_t i = sizeof(mainMeasurementBuffer) - 1; i != 0; --i) {
+        for (uint8_t i = 0; i != sizeof(mainMeasurementBuffer); ++i) {
             comparingMeasurementBuffer[i] = mainMeasurementBuffer[i];
         }
         updateState = ValueUpdateState::WAITING_FOR_SECOND_MEASUREMENT;
     } else if (updateState == ValueUpdateState::SECOND_MEASUREMENT_PROVIDED) {
         bool buffersAreEqual = true;
-        for (uint8_t i = sizeof(mainMeasurementBuffer) - 1; i != 0; --i) {
+        for (uint8_t i = 0; i != sizeof(mainMeasurementBuffer); ++i) {
             if (comparingMeasurementBuffer[i] != mainMeasurementBuffer[i]) {
                 buffersAreEqual = false;
                 break;
@@ -98,10 +98,7 @@ ISR(INT0_vect) {
 
     timerStop();
 
-    if (TCNT0 > msToTimer0pulses(9) and TCNT0 < msToTimer0pulses(10.3)) { //
-        // start bit
-        position = 0;
-    } else if (position < NUM_OF_BITS_IN_PACKET and TCNT0 > msToTimer0pulses(4) and TCNT0 < msToTimer0pulses(5.2)) {
+    if (position < NUM_OF_BITS_IN_PACKET and TCNT0 > msToTimer0pulses(4) and TCNT0 < msToTimer0pulses(5.2)) {
         // this is 1
         mainMeasurementBuffer[position / 8] |= _BV(7 - (position % 8));
         ++position;

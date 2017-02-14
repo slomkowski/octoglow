@@ -21,6 +21,7 @@
 #define S_IN_PORT A
 #define S_IN_PIN 3
 
+using namespace octoglow::vfd_clock;
 using namespace octoglow::vfd_clock::display;
 
 constexpr uint8_t NUMBER_OF_POSITIONS = 4;
@@ -29,8 +30,8 @@ constexpr uint8_t PWM_STEPS = 255;
 constexpr uint8_t RECEIVER_UPDATE_FLAG = 0b100;
 constexpr uint8_t RECEIVER_UPDATE_CHARACTER_SHAPE = 0b1100010;
 
-static_assert((RECEIVER_UPDATE_FLAG & LOWER_DOT) == 0);
-static_assert((RECEIVER_UPDATE_FLAG & UPPER_DOT) == 0);
+static_assert((RECEIVER_UPDATE_FLAG & protocol::LOWER_DOT) == 0);
+static_assert((RECEIVER_UPDATE_FLAG & protocol::UPPER_DOT) == 0);
 
 
 /*
@@ -81,17 +82,8 @@ static const char CHARACTER_ORDER[] PROGMEM = {
 static_assert(sizeof(CHARACTER_SHAPES) == sizeof(CHARACTER_ORDER), "every char shape has to have character defined");
 
 static uint8_t characterBuffer[NUMBER_OF_POSITIONS];
-static uint8_t dotBuffer = 0;
+static bool receiverUpdateFlagEnabled = false;
 static uint8_t segmentBuffer[5];
-
-static inline void setDot(const uint8_t outputNumber, const bool enabled) {
-
-    if (enabled) {
-        segmentBuffer[outputNumber / 8] |= _BV(outputNumber % 8);
-    } else {
-        segmentBuffer[outputNumber / 8] &= ~_BV(outputNumber % 8);
-    }
-}
 
 static void reloadDisplay() {
 
@@ -99,13 +91,16 @@ static void reloadDisplay() {
 
     PORT(STB_PORT) &= ~_BV(STB_PIN);
 
-    memset(segmentBuffer, 0, 5);
+    segmentBuffer[0] = segmentBuffer[2] = segmentBuffer[3] = 0;
+    segmentBuffer[4] = _BV(37 % 8);
+    segmentBuffer[1] &= (protocol::UPPER_DOT | protocol::LOWER_DOT);
 
     for (uint8_t numberPos = 0; numberPos != NUMBER_OF_POSITIONS; ++numberPos) {
-        const uint8_t characterShape =
-                (numberPos == 0 and (dotBuffer & RECEIVER_UPDATE_FLAG))
-                ? RECEIVER_UPDATE_CHARACTER_SHAPE
-                : pgm_read_byte(CHARACTER_SHAPES + characterBuffer[numberPos]);
+        uint8_t characterShape = pgm_read_byte(CHARACTER_SHAPES + characterBuffer[numberPos]);
+
+        if (receiverUpdateFlagEnabled and numberPos == 0) {
+            characterShape = RECEIVER_UPDATE_CHARACTER_SHAPE;
+        }
 
         for (uint8_t s = 0; s != 7; ++s) {
             if (characterShape & (1 << s)) {
@@ -116,9 +111,6 @@ static void reloadDisplay() {
         }
     }
 
-    setDot(13, (dotBuffer & LOWER_DOT) != 0);
-    setDot(14, (dotBuffer & UPPER_DOT) != 0);
-
     for (uint8_t a = 40; a != 0; --a) {
 
         const uint8_t idx = (a - 1) / 8;
@@ -126,10 +118,9 @@ static void reloadDisplay() {
 
         PORT(CK_PORT) &= ~_BV(CK_PIN);
 
-        if ((segmentBuffer[idx] & (1 << offset)) or a == 38) {
+        PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
+        if (segmentBuffer[idx] & (1 << offset)) {
             PORT(S_IN_PORT) |= _BV(S_IN_PIN);
-        } else {
-            PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
         }
 
         PORT(CK_PORT) |= _BV(CK_PIN);
@@ -151,14 +142,16 @@ void octoglow::vfd_clock::display::init() {
 
     OCR1C = PWM_STEPS;
 
-    setBrightness(MAX_BRIGHTNESS);
+    setBrightness(protocol::MAX_BRIGHTNESS);
 
-    setDots(LOWER_DOT, false);
+    setDots(protocol::LOWER_DOT, false);
     setAllCharacters(const_cast<char *>("-_-_"));
 }
 
 void octoglow::vfd_clock::display::setBrightness(const uint8_t brightness) {
-    OCR1B = (brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness) * PWM_STEPS / MAX_BRIGHTNESS;
+    OCR1B = (brightness > protocol::MAX_BRIGHTNESS
+             ? protocol::MAX_BRIGHTNESS : brightness)
+            * PWM_STEPS / protocol::MAX_BRIGHTNESS;
 }
 
 void octoglow::vfd_clock::display::setCharacter(const uint8_t position, const char character,
@@ -166,14 +159,10 @@ void octoglow::vfd_clock::display::setCharacter(const uint8_t position, const ch
     constexpr uint8_t numberOfCharacters = sizeof(CHARACTER_ORDER) / sizeof(CHARACTER_ORDER[0]);
 
     uint8_t c;
-    for (c = 0; c < numberOfCharacters; ++c) {
+    for (c = numberOfCharacters - 1; c != 0; --c) {
         if (pgm_read_byte(CHARACTER_ORDER + c) == character) {
             break;
         }
-    }
-
-    if (c == numberOfCharacters) {
-        c = 0;
     }
 
     characterBuffer[position % NUMBER_OF_POSITIONS] = c;
@@ -193,7 +182,7 @@ void octoglow::vfd_clock::display::setAllCharacters(char *const characters) {
 
 void ::octoglow::vfd_clock::display::setDots(const uint8_t newDotState, const bool shouldReloadDisplay) {
 
-    dotBuffer = newDotState;
+    segmentBuffer[1] = newDotState;
 
     if (shouldReloadDisplay) {
         reloadDisplay();
@@ -201,12 +190,7 @@ void ::octoglow::vfd_clock::display::setDots(const uint8_t newDotState, const bo
 }
 
 void ::octoglow::vfd_clock::display::setReceiverUpdateFlag(const bool enabled) {
-    if (enabled) {
-        dotBuffer |= RECEIVER_UPDATE_FLAG;
-    } else {
-        dotBuffer &= ~RECEIVER_UPDATE_FLAG;
-    }
-
+    receiverUpdateFlagEnabled = enabled;
     reloadDisplay();
 }
 

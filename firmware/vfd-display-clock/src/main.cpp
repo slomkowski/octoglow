@@ -65,9 +65,8 @@ int main() {
 
     sei();
 
-    //display::setAllCharacters("2137");
-
-    //display::setDots(display::UPPER_DOT);
+    display::setAllCharacters("2137");
+    display::setDots(protocol::UPPER_DOT);
 
     while (true) {
         receiver433::pool();
