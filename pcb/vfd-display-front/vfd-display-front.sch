@@ -1,4 +1,5 @@
 EESchema Schematic File Version 2
+LIBS:vfd-display-front-rescue
 LIBS:power
 LIBS:device
 LIBS:transistors
@@ -1103,7 +1104,7 @@ F 3 "" H 12150 9000 60  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L INDUCTOR L1
+L INDUCTOR-RESCUE-vfd-display-front L1
 U 1 1 578034BB
 P 12550 8100
 F 0 "L1" V 12500 8100 50  0000 C CNN
@@ -1857,7 +1858,7 @@ F 3 "" H 11450 9250 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L LM1117-3.3 U3
+L LM1117-3.3-RESCUE-vfd-display-front U3
 U 1 1 578CCB5D
 P 14400 8100
 F 0 "U3" H 14500 7850 50  0000 C CNN
