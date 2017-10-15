@@ -1,4 +1,4 @@
-update=Mon 09 Oct 2017 22:59:28 CEST
+update=Mon 16 Oct 2017 00:48:59 CEST
 version=1
 last_client=kicad
 [pcbnew]
@@ -62,3 +62,5 @@ LibName30=L_7x7
 LibName31=relay_dpst
 LibName32=lm208
 LibName33=gm_sbm-20
+LibName34=flyback_trans
+LibName35=eaa91
