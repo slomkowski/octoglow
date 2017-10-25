@@ -1,4 +1,4 @@
-update=Mon 16 Oct 2017 00:48:59 CEST
+update=Mon 16 Oct 2017 21:43:10 CEST
 version=1
 last_client=kicad
 [pcbnew]
@@ -64,3 +64,5 @@ LibName32=lm208
 LibName33=gm_sbm-20
 LibName34=flyback_trans
 LibName35=eaa91
+LibName36=MSP430G2553-DIP-20
+LibName37=ad558
