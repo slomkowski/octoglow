@@ -1100,13 +1100,13 @@ $EndComp
 $Comp
 L Conn_01x06 J4
 U 1 1 59EA7543
-P 10100 3350
-F 0 "J4" H 10100 3650 50  0000 C CNN
-F 1 "Conn_01x06" H 10100 2950 50  0000 C CNN
-F 2 "Terminal_Blocks:TerminalBlock_Pheonix_PT-3.5mm_6pol" H 10100 3350 50  0001 C CNN
-F 3 "" H 10100 3350 50  0001 C CNN
-	1    10100 3350
-	1    0    0    -1  
+P 10100 3450
+F 0 "J4" H 10100 3750 50  0000 C CNN
+F 1 "Conn_01x06" H 10100 3050 50  0000 C CNN
+F 2 "Terminal_Blocks:TerminalBlock_Pheonix_PT-3.5mm_6pol" H 10100 3450 50  0001 C CNN
+F 3 "" H 10100 3450 50  0001 C CNN
+	1    10100 3450
+	1    0    0    1   
 $EndComp
 $Comp
 L R R25
@@ -1146,13 +1146,13 @@ EYE_GRID
 $Comp
 L Conn_01x02 J5
 U 1 1 59EA89A8
-P 10100 4050
-F 0 "J5" H 10100 4150 50  0000 C CNN
-F 1 "Conn_01x02" H 10100 3850 50  0000 C CNN
-F 2 "Terminal_Blocks:TerminalBlock_Pheonix_MKDS1.5-2pol" H 10100 4050 50  0001 C CNN
-F 3 "" H 10100 4050 50  0001 C CNN
-	1    10100 4050
-	1    0    0    -1  
+P 10100 4150
+F 0 "J5" H 10100 4250 50  0000 C CNN
+F 1 "Conn_01x02" H 10100 3950 50  0000 C CNN
+F 2 "Terminal_Blocks:TerminalBlock_Pheonix_MKDS1.5-2pol" H 10100 4150 50  0001 C CNN
+F 3 "" H 10100 4150 50  0001 C CNN
+	1    10100 4150
+	1    0    0    1   
 $EndComp
 NoConn ~ 8300 2800
 $Comp
@@ -2116,21 +2116,15 @@ Wire Wire Line
 Wire Wire Line
 	4750 2800 5650 2800
 Wire Wire Line
-	6500 2650 4750 2650
-Wire Wire Line
 	6750 3750 6900 3750
 Wire Wire Line
 	6850 3750 6850 4000
 Wire Wire Line
-	5900 2900 6500 2900
-Wire Wire Line
 	7700 4000 7650 4000
 Wire Wire Line
-	7700 2900 7700 4000
+	7700 2800 7700 4000
 Wire Wire Line
 	7700 3750 7650 3750
-Wire Wire Line
-	7700 2900 7250 2900
 Connection ~ 7700 3750
 Wire Wire Line
 	6500 3050 6250 3050
@@ -2146,7 +2140,7 @@ Wire Wire Line
 	6850 4000 6900 4000
 Connection ~ 6850 3750
 Wire Wire Line
-	5900 2900 5900 5550
+	5900 2550 5900 5550
 Connection ~ 6250 3050
 Wire Wire Line
 	6900 4150 6600 4150
@@ -2169,8 +2163,6 @@ Wire Wire Line
 	8600 2950 8650 2950
 Wire Wire Line
 	8650 2950 8650 2650
-Wire Wire Line
-	8650 2650 7250 2650
 Wire Wire Line
 	8000 2950 7950 2950
 Wire Wire Line
@@ -2276,27 +2268,13 @@ Wire Wire Line
 	9250 3250 8700 3250
 Connection ~ 8700 3250
 Wire Wire Line
-	9150 3150 9900 3150
-Wire Wire Line
-	9900 3250 9550 3250
-Wire Wire Line
-	9900 3450 9500 3450
-Wire Wire Line
 	9500 3450 9500 3700
 Wire Wire Line
 	9350 3500 9400 3500
 Wire Wire Line
 	9400 3500 9400 3350
 Wire Wire Line
-	9400 3350 9900 3350
-Wire Wire Line
-	9900 4050 9850 4050
-Wire Wire Line
 	9850 4050 9850 3650
-Wire Wire Line
-	9850 3650 9900 3650
-Wire Wire Line
-	9900 3550 9750 3550
 Wire Wire Line
 	9750 3550 9750 3600
 Wire Wire Line
@@ -2307,8 +2285,6 @@ Wire Wire Line
 	5900 5550 9550 5550
 Wire Wire Line
 	9550 5550 9550 4150
-Wire Wire Line
-	9550 4150 9900 4150
 Connection ~ 5900 3750
 Connection ~ 4850 3750
 Wire Wire Line
@@ -2731,4 +2707,44 @@ Wire Wire Line
 	4850 3350 4850 3300
 Wire Wire Line
 	4850 3650 4850 3900
+Wire Wire Line
+	4750 2650 6050 2650
+Wire Wire Line
+	6050 2650 6050 2900
+Wire Wire Line
+	6050 2900 6500 2900
+Wire Wire Line
+	7250 2900 7500 2900
+Wire Wire Line
+	7500 2900 7500 2650
+Wire Wire Line
+	7500 2650 8650 2650
+Wire Wire Line
+	7700 2800 7300 2800
+Wire Wire Line
+	7300 2800 7300 2650
+Wire Wire Line
+	7300 2650 7250 2650
+Wire Wire Line
+	5900 2550 6400 2550
+Wire Wire Line
+	6400 2550 6400 2650
+Wire Wire Line
+	6400 2650 6500 2650
+Wire Wire Line
+	9900 4050 9850 4050
+Wire Wire Line
+	9550 4150 9900 4150
+Wire Wire Line
+	9850 3650 9900 3650
+Wire Wire Line
+	9750 3550 9900 3550
+Wire Wire Line
+	9500 3450 9900 3450
+Wire Wire Line
+	9400 3350 9900 3350
+Wire Wire Line
+	9900 3250 9550 3250
+Wire Wire Line
+	9900 3150 9150 3150
 $EndSCHEMATC
