@@ -618,7 +618,7 @@ U 1 1 59E6B7F2
 P 6250 3250
 F 0 "D5" H 6250 3350 50  0000 C CNN
 F 1 "D" H 6250 3150 50  0000 C CNN
-F 2 "Diodes_ThroughHole:D_DO-41_SOD81_P10.16mm_Horizontal" H 6250 3250 50  0001 C CNN
+F 2 "Diodes_ThroughHole:D_DO-41_SOD81_P12.70mm_Horizontal" H 6250 3250 50  0001 C CNN
 F 3 "" H 6250 3250 50  0001 C CNN
 	1    6250 3250
 	0    1    1    0   
@@ -629,7 +629,7 @@ U 1 1 59E6BA55
 P 6600 4450
 F 0 "D6" H 6600 4550 50  0000 C CNN
 F 1 "D" H 6600 4350 50  0000 C CNN
-F 2 "Diodes_ThroughHole:D_DO-41_SOD81_P10.16mm_Horizontal" H 6600 4450 50  0001 C CNN
+F 2 "Diodes_ThroughHole:D_DO-41_SOD81_P12.70mm_Horizontal" H 6600 4450 50  0001 C CNN
 F 3 "" H 6600 4450 50  0001 C CNN
 	1    6600 4450
 	0    1    1    0   
@@ -791,34 +791,23 @@ $EndComp
 $Comp
 L R R12
 U 1 1 59E93D2E
-P 6000 1200
-F 0 "R12" V 6080 1200 50  0000 C CNN
-F 1 "1M" V 6000 1200 50  0000 C CNN
-F 2 "Resistors_SMD:R_1206_HandSoldering" V 5930 1200 50  0001 C CNN
-F 3 "" H 6000 1200 50  0001 C CNN
-	1    6000 1200
+P 6350 1200
+F 0 "R12" V 6430 1200 50  0000 C CNN
+F 1 "1M" V 6350 1200 50  0000 C CNN
+F 2 "Resistors_ThroughHole:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal" V 6280 1200 50  0001 C CNN
+F 3 "" H 6350 1200 50  0001 C CNN
+	1    6350 1200
 	0    -1   -1   0   
 $EndComp
 $Comp
 L R R15
 U 1 1 59E93E32
-P 6400 1200
-F 0 "R15" V 6480 1200 50  0000 C CNN
-F 1 "1M" V 6400 1200 50  0000 C CNN
-F 2 "Resistors_SMD:R_1206_HandSoldering" V 6330 1200 50  0001 C CNN
-F 3 "" H 6400 1200 50  0001 C CNN
-	1    6400 1200
-	0    -1   -1   0   
-$EndComp
-$Comp
-L R R17
-U 1 1 59E93F1E
-P 6800 1200
-F 0 "R17" V 6880 1200 50  0000 C CNN
-F 1 "1M" V 6800 1200 50  0000 C CNN
-F 2 "Resistors_SMD:R_1206_HandSoldering" V 6730 1200 50  0001 C CNN
-F 3 "" H 6800 1200 50  0001 C CNN
-	1    6800 1200
+P 6750 1200
+F 0 "R15" V 6830 1200 50  0000 C CNN
+F 1 "2M2" V 6750 1200 50  0000 C CNN
+F 2 "Resistors_ThroughHole:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal" V 6680 1200 50  0001 C CNN
+F 3 "" H 6750 1200 50  0001 C CNN
+	1    6750 1200
 	0    -1   -1   0   
 $EndComp
 $Comp
@@ -849,7 +838,7 @@ U 1 1 59E95187
 P 7050 1900
 F 0 "D7" H 7050 2000 50  0000 C CNN
 F 1 "D_Schottky" H 7050 1800 50  0000 C CNN
-F 2 "Diodes_ThroughHole:D_DO-35_SOD27_P7.62mm_Horizontal" H 7050 1900 50  0001 C CNN
+F 2 "Diodes_ThroughHole:D_DO-35_SOD27_P10.16mm_Horizontal" H 7050 1900 50  0001 C CNN
 F 3 "" H 7050 1900 50  0001 C CNN
 	1    7050 1900
 	1    0    0    -1  
@@ -1114,7 +1103,7 @@ U 1 1 59EA7944
 P 9000 3150
 F 0 "R25" V 9080 3150 50  0000 C CNN
 F 1 "100k" V 9000 3150 50  0000 C CNN
-F 2 "Resistors_ThroughHole:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal" V 8930 3150 50  0001 C CNN
+F 2 "Resistors_ThroughHole:R_Axial_DIN0309_L9.0mm_D3.2mm_P15.24mm_Horizontal" V 8930 3150 50  0001 C CNN
 F 3 "" H 9000 3150 50  0001 C CNN
 	1    9000 3150
 	0    -1   -1   0   
@@ -1125,7 +1114,7 @@ U 1 1 59EA7ABA
 P 9400 3250
 F 0 "R26" V 9480 3250 50  0000 C CNN
 F 1 "100k" V 9400 3250 50  0000 C CNN
-F 2 "Resistors_ThroughHole:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal" V 9330 3250 50  0001 C CNN
+F 2 "Resistors_ThroughHole:R_Axial_DIN0309_L9.0mm_D3.2mm_P15.24mm_Horizontal" V 9330 3250 50  0001 C CNN
 F 3 "" H 9400 3250 50  0001 C CNN
 	1    9400 3250
 	0    -1   -1   0   
@@ -1746,39 +1735,6 @@ SDA
 Text GLabel 14950 1700 2    60   Input ~ 0
 SCL
 $Comp
-L C C26
-U 1 1 59F2272F
-P 15200 3100
-F 0 "C26" H 15225 3200 50  0000 L CNN
-F 1 "100n" H 15225 3000 50  0000 L CNN
-F 2 "Capacitors_SMD:C_1206_HandSoldering" H 15238 2950 50  0001 C CNN
-F 3 "" H 15200 3100 50  0000 C CNN
-	1    15200 3100
-	-1   0    0    -1  
-$EndComp
-$Comp
-L C C17
-U 1 1 59F22A05
-P 13050 3100
-F 0 "C17" H 13075 3200 50  0000 L CNN
-F 1 "100n" H 13075 3000 50  0000 L CNN
-F 2 "Capacitors_SMD:C_1206_HandSoldering" H 13088 2950 50  0001 C CNN
-F 3 "" H 13050 3100 50  0000 C CNN
-	1    13050 3100
-	-1   0    0    -1  
-$EndComp
-$Comp
-L GND #PWR059
-U 1 1 59F22B95
-P 13050 3250
-F 0 "#PWR059" H 13050 3000 50  0001 C CNN
-F 1 "GND" H 13050 3100 50  0000 C CNN
-F 2 "" H 13050 3250 50  0001 C CNN
-F 3 "" H 13050 3250 50  0001 C CNN
-	1    13050 3250
-	1    0    0    -1  
-$EndComp
-$Comp
 L GND #PWR060
 U 1 1 59F22CC6
 P 15200 3250
@@ -1795,7 +1751,7 @@ U 1 1 59F23A8D
 P 11900 3000
 F 0 "C13" H 11925 3100 50  0000 L CNN
 F 1 "220u" H 11925 2900 50  0000 L CNN
-F 2 "Capacitors_ThroughHole:CP_Radial_D8.0mm_P5.00mm" H 11938 2850 50  0001 C CNN
+F 2 "Capacitors_ThroughHole:CP_Radial_D12.5mm_P5.00mm" H 11938 2850 50  0001 C CNN
 F 3 "" H 11900 3000 50  0001 C CNN
 	1    11900 3000
 	-1   0    0    -1  
@@ -1805,8 +1761,8 @@ L CP C14
 U 1 1 59F23EA7
 P 12400 3000
 F 0 "C14" H 12425 3100 50  0000 L CNN
-F 1 "1000u" H 12425 2900 50  0000 L CNN
-F 2 "Capacitors_ThroughHole:CP_Radial_D16.0mm_P7.50mm" H 12438 2850 50  0001 C CNN
+F 1 "220u" H 12425 2900 50  0000 L CNN
+F 2 "Capacitors_ThroughHole:CP_Radial_D12.5mm_P5.00mm" H 12438 2850 50  0001 C CNN
 F 3 "" H 12400 3000 50  0001 C CNN
 	1    12400 3000
 	-1   0    0    -1  
@@ -1990,6 +1946,57 @@ Text GLabel 6450 8800 2    60   Input ~ 0
 DAC_LATCH
 Text GLabel 6450 8650 2    60   Input ~ 0
 DAC_IN
+Text GLabel 6450 8350 2    60   Input ~ 0
+DAC_CE
+Text GLabel 6450 8500 2    60   Input ~ 0
+DAC_CS
+$Comp
+L C C1
+U 1 1 5A064247
+P 14700 5050
+F 0 "C1" H 14725 5150 50  0000 L CNN
+F 1 "33n" H 14725 4950 50  0000 L CNN
+F 2 "Capacitors_ThroughHole:C_Disc_D5.0mm_W2.5mm_P5.00mm" H 14738 4900 50  0001 C CNN
+F 3 "" H 14700 5050 50  0000 C CNN
+	1    14700 5050
+	1    0    0    -1  
+$EndComp
+$Comp
+L C C15
+U 1 1 5A066A8F
+P 14950 5050
+F 0 "C15" H 14975 5150 50  0000 L CNN
+F 1 "33n" H 14975 4950 50  0000 L CNN
+F 2 "Capacitors_ThroughHole:C_Disc_D5.0mm_W2.5mm_P5.00mm" H 14988 4900 50  0001 C CNN
+F 3 "" H 14950 5050 50  0000 C CNN
+	1    14950 5050
+	1    0    0    -1  
+$EndComp
+$Comp
+L C C27
+U 1 1 5A069169
+P 15200 5050
+F 0 "C27" H 15225 5150 50  0000 L CNN
+F 1 "33n" H 15225 4950 50  0000 L CNN
+F 2 "Capacitors_ThroughHole:C_Disc_D5.0mm_W2.5mm_P5.00mm" H 15238 4900 50  0001 C CNN
+F 3 "" H 15200 5050 50  0000 C CNN
+	1    15200 5050
+	1    0    0    -1  
+$EndComp
+Text GLabel 6450 8200 2    60   Input ~ 0
+GM_PULSE
+Text GLabel 2100 8600 0    60   Input ~ 0
+FLYBACK_PULSE
+Text GLabel 2100 8900 0    60   Input ~ 0
+GM_VOL
+Text GLabel 2100 8800 0    60   Input ~ 0
+EYE_VOL
+Text GLabel 2100 8700 0    60   Input ~ 0
+REL_HEATER_2
+Text GLabel 2100 8500 0    60   Input ~ 0
+REL_HEATER_1
+NoConn ~ 2250 8400
+NoConn ~ 6150 9150
 Wire Wire Line
 	14550 5450 14550 5350
 Wire Wire Line
@@ -2155,9 +2162,7 @@ Wire Wire Line
 	7950 2950 7950 2650
 Connection ~ 7950 2650
 Wire Wire Line
-	8250 3300 8250 3350
-Wire Wire Line
-	8250 3350 7700 3350
+	7700 3350 8350 3350
 Connection ~ 7700 3350
 Wire Wire Line
 	8000 3150 7950 3150
@@ -2179,16 +2184,14 @@ Wire Wire Line
 Wire Wire Line
 	5450 1650 5450 1200
 Wire Wire Line
-	5300 1200 5850 1200
+	5300 1200 6200 1200
 Wire Wire Line
 	5450 1950 5450 2300
 Connection ~ 5450 1200
 Wire Wire Line
-	7000 1200 6950 1200
+	6900 1200 7000 1200
 Wire Wire Line
-	6650 1200 6550 1200
-Wire Wire Line
-	6250 1200 6150 1200
+	6600 1200 6500 1200
 Connection ~ 5750 1200
 Wire Wire Line
 	6800 1700 6800 1900
@@ -2255,8 +2258,6 @@ Wire Wire Line
 Connection ~ 8700 3250
 Wire Wire Line
 	9850 4050 9850 3650
-Wire Wire Line
-	8350 3550 8350 3300
 Wire Wire Line
 	5900 5550 9550 5550
 Wire Wire Line
@@ -2548,11 +2549,6 @@ Connection ~ 14400 2550
 Wire Wire Line
 	15200 2900 15200 2950
 Wire Wire Line
-	13050 2950 13050 2900
-Wire Wire Line
-	13050 2900 13250 2900
-Connection ~ 13250 2900
-Wire Wire Line
 	12400 2850 12400 2750
 Wire Wire Line
 	12400 3250 12400 3150
@@ -2643,22 +2639,6 @@ Wire Wire Line
 	11450 7800 11550 7900
 Wire Wire Line
 	11550 7900 12000 7900
-Text GLabel 6450 8500 2    60   Input ~ 0
-DAC_CE
-Wire Wire Line
-	6450 8500 6400 8500
-Wire Wire Line
-	6400 8500 6400 8600
-Wire Wire Line
-	6400 8600 6150 8600
-Text GLabel 6450 8350 2    60   Input ~ 0
-DAC_CS
-Wire Wire Line
-	6150 8500 6350 8500
-Wire Wire Line
-	6350 8500 6350 8350
-Wire Wire Line
-	6350 8350 6450 8350
 Wire Wire Line
 	4850 2950 4850 3000
 Wire Wire Line
@@ -2699,28 +2679,6 @@ Wire Wire Line
 	9900 3250 9550 3250
 Wire Wire Line
 	9900 3150 9150 3150
-$Comp
-L C C1
-U 1 1 5A064247
-P 14700 5050
-F 0 "C1" H 14725 5150 50  0000 L CNN
-F 1 "33n" H 14725 4950 50  0000 L CNN
-F 2 "Capacitors_ThroughHole:C_Disc_D5.0mm_W2.5mm_P5.00mm" H 14738 4900 50  0001 C CNN
-F 3 "" H 14700 5050 50  0000 C CNN
-	1    14700 5050
-	1    0    0    -1  
-$EndComp
-$Comp
-L C C15
-U 1 1 5A066A8F
-P 14950 5050
-F 0 "C15" H 14975 5150 50  0000 L CNN
-F 1 "33n" H 14975 4950 50  0000 L CNN
-F 2 "Capacitors_ThroughHole:C_Disc_D5.0mm_W2.5mm_P5.00mm" H 14988 4900 50  0001 C CNN
-F 3 "" H 14950 5050 50  0000 C CNN
-	1    14950 5050
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	15550 5150 15550 5550
 Wire Wire Line
@@ -2731,17 +2689,6 @@ Wire Wire Line
 	15300 5850 15150 5850
 Connection ~ 15150 5850
 Connection ~ 15550 5250
-$Comp
-L C C27
-U 1 1 5A069169
-P 15200 5050
-F 0 "C27" H 15225 5150 50  0000 L CNN
-F 1 "33n" H 15225 4950 50  0000 L CNN
-F 2 "Capacitors_ThroughHole:C_Disc_D5.0mm_W2.5mm_P5.00mm" H 15238 4900 50  0001 C CNN
-F 3 "" H 15200 5050 50  0000 C CNN
-	1    15200 5050
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	12800 5250 14450 5250
 Wire Wire Line
@@ -2783,19 +2730,15 @@ Wire Wire Line
 Wire Wire Line
 	8800 3350 8800 3550
 Wire Wire Line
-	8800 3550 8350 3550
+	8800 3550 8250 3550
 Wire Wire Line
 	9900 3450 9550 3450
-Text GLabel 6450 8200 2    60   Input ~ 0
-GM_PULSE
 Wire Wire Line
 	6450 8200 6300 8200
 Wire Wire Line
 	6300 8200 6300 8400
 Wire Wire Line
 	6300 8400 6150 8400
-Text GLabel 2100 8600 0    60   Input ~ 0
-FLYBACK_PULSE
 Wire Wire Line
 	2250 8600 2100 8600
 Wire Wire Line
@@ -2812,22 +2755,39 @@ Connection ~ 6800 4600
 Wire Wire Line
 	6900 4250 6600 4250
 Connection ~ 6600 4250
-Text GLabel 2100 8900 0    60   Input ~ 0
-GM_VOL
-Text GLabel 2100 8800 0    60   Input ~ 0
-EYE_VOL
 Wire Wire Line
 	2250 8900 2100 8900
 Wire Wire Line
 	2250 8800 2100 8800
-Text GLabel 2100 8700 0    60   Input ~ 0
-REL_HEATER_2
 Wire Wire Line
 	2250 8700 2100 8700
-Text GLabel 2100 8500 0    60   Input ~ 0
-REL_HEATER_1
 Wire Wire Line
 	2250 8500 2100 8500
-NoConn ~ 2250 8400
-NoConn ~ 6150 9150
+Wire Wire Line
+	6450 8500 6400 8500
+Wire Wire Line
+	6400 8500 6400 8600
+Wire Wire Line
+	6400 8600 6150 8600
+Wire Wire Line
+	6450 8350 6350 8350
+Wire Wire Line
+	6350 8350 6350 8500
+Wire Wire Line
+	6350 8500 6150 8500
+Wire Wire Line
+	8350 3350 8350 3300
+Wire Wire Line
+	8250 3550 8250 3300
+$Comp
+L C C26
+U 1 1 59F2272F
+P 15200 3100
+F 0 "C26" H 15225 3200 50  0000 L CNN
+F 1 "100n" H 15225 3000 50  0000 L CNN
+F 2 "Capacitors_SMD:C_1206_HandSoldering" H 15238 2950 50  0001 C CNN
+F 3 "" H 15200 3100 50  0000 C CNN
+	1    15200 3100
+	-1   0    0    -1  
+$EndComp
 $EndSCHEMATC
