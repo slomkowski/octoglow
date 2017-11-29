@@ -3,7 +3,7 @@ project(geiger_board)
 
 set(CMAKE_CXX_STANDARD 14)
 
-SET(DEVICE "msp430g2452")
+SET(DEVICE "msp430g2553")
 SET(FREQ "16000000")
 
 SET(CMAKE_C_COMPILER msp430-elf-gcc)
@@ -16,7 +16,7 @@ include_directories(libsrc)
 
 SET(LIBRARY_SOURCES)
 
-SET(SOURCES src/main.cpp)
+SET(SOURCES src/main.cpp src/magiceye.cpp src/magiceye.hpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 
