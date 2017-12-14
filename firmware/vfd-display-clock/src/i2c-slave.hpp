@@ -41,13 +41,13 @@ constexpr uint8_t I2C_WRSIZE = 8;    // master => slave buffer size
 
 void i2c_initialize();        // set slave address, 8bit format
 
-uint8_t i2c_idle(void);
+bool i2c_idle();
 
-uint8_t i2c_message_ready(void);
+uint8_t i2c_message_ready();
 
-void i2c_message_done(void);
+void i2c_message_done();
 
-uint8_t i2c_reply_ready(void);
+uint8_t i2c_reply_ready();
 
 void i2c_reply_done(uint8_t nbytes);    // set i2c_rdlen
 

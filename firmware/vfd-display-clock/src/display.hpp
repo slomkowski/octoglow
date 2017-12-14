@@ -10,15 +10,15 @@ namespace octoglow {
 
             void init();
 
-            void setCharacter(const uint8_t position, const char character, const bool shouldReloadDisplay = true);
+            void setCharacter(uint8_t position, char character, bool shouldReloadDisplay = true);
 
-            void setAllCharacters(char *const characters);
+            void setAllCharacters(char *characters);
 
-            void setBrightness(const uint8_t brightness);
+            void setBrightness(uint8_t brightness);
 
-            void setDots(const uint8_t newDotState, const bool shouldReloadDisplay = true);
+            void setDots(uint8_t newDotState, bool shouldReloadDisplay = true);
 
-            void setReceiverUpdateFlag(const bool enabled);
+            void setReceiverUpdateFlag(bool enabled);
         }
     }
 }

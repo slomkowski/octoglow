@@ -3,7 +3,7 @@ SET(CMAKE_SYSTEM_NAME Generic)
 
 project(vfd-display-clock)
 
-SET(DEVICE "attiny26")
+SET(DEVICE "attiny461a")
 SET(FREQ "8000000")
 
 SET(CMAKE_C_COMPILER avr-gcc)
@@ -20,7 +20,7 @@ SET(SOURCES src/main.cpp src/global.hpp src/display.cpp src/display.hpp src/rela
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 
-# todo add commands for burning fuses -U lfuse:w:0xe4:m -U hfuse:w:0xf4:m
+# todo add commands for burning fuses -U lfuse:w:0xe2:m -U hfuse:w:0xdc:m -U efuse:w:0xff:m
 # and programming
 
 ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME} POST_BUILD COMMAND avr-objcopy -O ihex -R.eeprom ${CMAKE_BINARY_DIR}/${PROJECT_NAME} ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.hex)

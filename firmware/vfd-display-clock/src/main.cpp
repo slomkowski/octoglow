@@ -15,7 +15,7 @@ using namespace octoglow::vfd_clock;
 static inline void processI2cCommands() {
     using namespace octoglow::vfd_clock::protocol;
 
-    const Command command = static_cast<Command >(i2c_wrbuf[0]);
+    const auto command = static_cast<Command >(i2c_wrbuf[0]);
 
     if (i2c_reply_ready()) {
 
@@ -33,13 +33,13 @@ static inline void processI2cCommands() {
 
         switch (command) {
             case Command::SET_DISPLAY_CONTENT: {
-                DisplayContent *dc = (DisplayContent *) (&i2c_wrbuf[1]);
+                auto *dc = (DisplayContent *) (&i2c_wrbuf[1]);
                 display::setDots(dc->dotState, false);
                 display::setAllCharacters(dc->characters);
             }
                 break;
             case Command::SET_RELAY: {
-                RelayState *rs = (RelayState *) (&i2c_wrbuf[1]);
+                auto *rs = (RelayState *) (&i2c_wrbuf[1]);
                 relay::setState(relay::Relay::RELAY_1, rs->relay1enabled);
                 relay::setState(relay::Relay::RELAY_2, rs->relay2enabled);
             }

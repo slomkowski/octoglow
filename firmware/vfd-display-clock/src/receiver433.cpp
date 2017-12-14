@@ -37,12 +37,12 @@ constexpr uint8_t msToTimer1overflows(double milliseconds) {
 }
 
 static inline void timerStart() {
-    TCNT0 = 0;
-    TCCR0 = _BV(PSR0) | _BV(CS02) | _BV(CS00); // prescaler to fclk/1024
+    TCNT0L = 0;
+    TCCR0B = _BV(PSR0) | _BV(CS02) | _BV(CS00); // prescaler to fclk/1024
 }
 
 static inline void timerStop() {
-    TCCR0 = 0;
+    TCCR0B = 0;
 }
 
 void ::octoglow::vfd_clock::receiver433::init() {
@@ -98,11 +98,11 @@ ISR(INT0_vect) {
 
     timerStop();
 
-    if (position < NUM_OF_BITS_IN_PACKET and TCNT0 > msToTimer0pulses(4) and TCNT0 < msToTimer0pulses(5.2)) {
+    if (position < NUM_OF_BITS_IN_PACKET and TCNT0L > msToTimer0pulses(4) and TCNT0L < msToTimer0pulses(5.2)) {
         // this is 1
         mainMeasurementBuffer[position / 8] |= _BV(7 - (position % 8));
         ++position;
-    } else if (position < NUM_OF_BITS_IN_PACKET and TCNT0 > msToTimer0pulses(2) and TCNT0 < msToTimer0pulses(3)) {
+    } else if (position < NUM_OF_BITS_IN_PACKET and TCNT0L > msToTimer0pulses(2) and TCNT0L < msToTimer0pulses(3)) {
         // this is 0
         mainMeasurementBuffer[position / 8] &= ~_BV(7 - (position % 8));
         ++position;
@@ -122,7 +122,7 @@ ISR(INT0_vect) {
 }
 
 // this is configured in init() in display.cpp. called every 16.384 ms
-ISR(TIMER1_OVF1_vect) {
+ISR(TIMER1_OVF_vect) {
     if (timer1overflowCounter != 250) {
         ++timer1overflowCounter;
     }
