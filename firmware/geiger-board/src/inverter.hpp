@@ -7,7 +7,7 @@ namespace octoglow {
         namespace inverter {
             void init();
 
-            void loop();
+            void tick();
 
             void setEyeEnabled(bool enabled);
         }

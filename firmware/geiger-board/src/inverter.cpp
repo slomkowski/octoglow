@@ -87,7 +87,7 @@ void ::octoglow::geiger::inverter::init() {
     setEyeEnabled(false);
 }
 
-void ::octoglow::geiger::inverter::loop() {
+void ::octoglow::geiger::inverter::tick() {
 
     const uint16_t geigerReadout = readAdcValue(INCH_5);
 

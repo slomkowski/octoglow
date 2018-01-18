@@ -19,7 +19,7 @@ include_directories(${SUPPORT_FILE_DIRECTORY})
 
 SET(LIBRARY_SOURCES)
 
-SET(SOURCES src/main.cpp src/magiceye.cpp src/magiceye.hpp src/inverter.cpp src/inverter.hpp)
+SET(SOURCES src/main.cpp src/main.hpp src/magiceye.cpp src/magiceye.hpp src/inverter.cpp src/inverter.hpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 

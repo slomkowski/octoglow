@@ -1,3 +1,4 @@
+#include "main.hpp"
 #include "magiceye.hpp"
 #include "inverter.hpp"
 
@@ -5,8 +6,6 @@
 #include <iomacros.h>
 
 using namespace octoglow::geiger;
-
-constexpr uint16_t TICK_TIMER_FREQ = 50; // 20 Hz
 
 static volatile bool timerTicked = false;
 
@@ -32,7 +31,7 @@ static inline void configureClockSystem() {
  * Configures tick timer. Tick ensures that cyclic event have reliable time source.
  */
 static inline void configureTickTimer() {
-    TA0CCR0 = F_CPU / 8 / TICK_TIMER_FREQ; // we set clock divider to 8
+    TA0CCR0 = F_CPU / 8 / octoglow::geiger::TICK_TIMER_FREQ; // we set clock divider to 8
     TA0CCTL0 = CCIE;
     TA0CTL = TASSEL_2 | ID_3 | MC_1;
 }
@@ -52,12 +51,7 @@ int main() {
 
     configureClockSystem();
 
-    P1SEL &= (~BIT0);
     P1DIR |= BIT0;
-
-    P1DIR |= BIT3 | BIT5;
-    P1OUT |= BIT3 | BIT5;
-
 
     configureTickTimer();
 
@@ -75,9 +69,8 @@ int main() {
             // code below is executed at frequency TICK_TIMER_FREQ
             P1OUT ^= BIT0;
 
-            inverter::loop();
+            inverter::tick();
+            magiceye::tick();
         }
-
-        //inverter::loop();
     }
 }
