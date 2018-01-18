@@ -2,21 +2,24 @@ cmake_minimum_required(VERSION 3.7)
 project(geiger_board)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 SET(DEVICE "msp430g2553")
-SET(FREQ "16000000")
+SET(FREQ "5700000")
 
 SET(CMAKE_C_COMPILER msp430-elf-gcc)
 SET(CMAKE_CXX_COMPILER msp430-elf-g++)
+SET(SUPPORT_FILE_DIRECTORY /home/michal/projects/vfd-display/msp430-gcc-support-files/include)
 
 SET(CMAKE_C_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=gnu99 -Wl,--gc-sections -Wall -Wextra -pedantic")
 SET(CMAKE_CXX_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c++14 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
-
+SET(CMAKE_EXE_LINKER_FLAGS "-L${SUPPORT_FILE_DIRECTORY}")
 include_directories(libsrc)
+include_directories(${SUPPORT_FILE_DIRECTORY})
 
 SET(LIBRARY_SOURCES)
 
-SET(SOURCES src/main.cpp src/magiceye.cpp src/magiceye.hpp)
+SET(SOURCES src/main.cpp src/magiceye.cpp src/magiceye.hpp src/inverter.cpp src/inverter.hpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 
