@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace octoglow{
+namespace octoglow {
     namespace geiger {
         /**
          * Defines, how often main tick call is called. tick() functions of various modules assume

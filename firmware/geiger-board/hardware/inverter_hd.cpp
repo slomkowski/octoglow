@@ -111,9 +111,9 @@ void ::octoglow::geiger::inverter::tick() {
 }
 
 void ::octoglow::geiger::inverter::setEyeEnabled(bool enabled) {
-    if(enabled) {
+    if (enabled) {
         P2SEL |= PWM_BIT_EYE;
-    }else {
+    } else {
         P2SEL &= ~PWM_BIT_EYE;
         P2OUT |= PWM_BIT_EYE;
     }
