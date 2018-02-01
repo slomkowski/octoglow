@@ -14,10 +14,9 @@ void ::octoglow::geiger::magiceye::hd::enablePreheatRelay(bool enabled) {
 
 void ::octoglow::geiger::magiceye::hd::enableMainRelay(bool enabled) {
     cout << "main " << enabled << endl;
-
 }
 
-TEST(Tick, HeatingProcedure) {
+TEST(MagicEye, HeatingProcedure) {
     cout << endl;
 
     setEnabled(false);
@@ -76,4 +75,11 @@ TEST(Tick, HeatingProcedure) {
     }
     ASSERT_TRUE(eyeInverterEnabled);
     ASSERT_EQ(EyeState::RUNNING, getState());
+
+    setEnabled(false);
+    for (int i = 0; i < UINT16_MAX * 3; ++i) {
+        tick();
+    }
+    ASSERT_EQ(EyeState::DISABLED, getState());
+    ASSERT_FALSE(eyeInverterEnabled);
 }

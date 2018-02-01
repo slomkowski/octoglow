@@ -61,6 +61,10 @@ int main() {
     __nop();
     __enable_interrupt();
 
+    //magiceye::setEnabled(true);
+
+    uint8_t  x = 0;
+
     while (true) {
         //
         if (timerTicked) {
@@ -71,6 +75,8 @@ int main() {
 
             inverter::tick();
             magiceye::tick();
+
+            magiceye::setAdcValue(++x);
         }
     }
 }

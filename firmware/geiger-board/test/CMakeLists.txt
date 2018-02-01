@@ -4,10 +4,12 @@ project(geiger_test)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-SET(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -Wall -Wextra -pedantic")
+SET(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -DF_CPU=${FREQ}UL -Wall -Wextra -pedantic")
 include_directories(../libsrc)
 
-SET(LIBRARY_SOURCES ../libsrc/magiceye.cpp ../libsrc/magiceye.hpp)
+SET(LIBRARY_SOURCES
+        ../libsrc/magiceye.cpp ../libsrc/magiceye.hpp
+        ../libsrc/inverter.cpp ../libsrc/inverter.hpp)
 
 SET(SOURCES common.hpp magiceye_test.cpp inverter_test.cpp)
 

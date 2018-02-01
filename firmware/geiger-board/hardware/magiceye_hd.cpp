@@ -33,7 +33,7 @@ void ::octoglow::geiger::magiceye::init() {
 
     P1DIR |= RELAY_MAIN | RELAY_PREHEAT;
     hd::enableMainRelay(false);
-    hd::enablePreheatRelay(true);
+    hd::enablePreheatRelay(false);
 
     // init DAC
 
