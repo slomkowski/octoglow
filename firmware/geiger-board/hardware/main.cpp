@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "magiceye.hpp"
 #include "inverter.hpp"
+#include "i2c-slave.hpp"
 
 #include <msp430.h>
 #include <iomacros.h>
@@ -57,6 +58,7 @@ int main() {
 
     magiceye::init();
     inverter::init();
+    i2c::init();
 
     __nop();
     __enable_interrupt();

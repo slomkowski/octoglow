@@ -82,3 +82,7 @@ void ::octoglow::geiger::magiceye::setAdcValue(uint8_t v) {
     __nop();
     P2OUT |= DAC_CE;
 }
+
+void ::octoglow::geiger::magiceye::setControllerState(octoglow::geiger::protocol::EyeControllerState state) {
+
+}

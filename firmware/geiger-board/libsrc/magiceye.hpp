@@ -1,17 +1,12 @@
 #pragma once
 
+#include "protocol.hpp"
+
 #include <cstdint>
 
 namespace octoglow {
     namespace geiger {
         namespace magiceye {
-
-            enum class EyeState : uint16_t {
-                DISABLED,
-                PREHEATING,
-                POSTHEATING,
-                RUNNING
-            };
 
             void init();
 
@@ -21,7 +16,9 @@ namespace octoglow {
 
             void setEnabled(bool enabled);
 
-            EyeState getState();
+            void setControllerState(protocol::EyeControllerState state);
+
+            protocol::EyeInverterState getState();
 
             namespace hd {
                 void enablePreheatRelay(bool enabled);
