@@ -19,9 +19,10 @@ include_directories(${SUPPORT_FILE_DIRECTORY})
 SET(LIBRARY_SOURCES ../libsrc/main.hpp ../libsrc/protocol.hpp
         ../libsrc/magiceye.cpp ../libsrc/magiceye.hpp
         ../libsrc/inverter.hpp ../libsrc/inverter.cpp
-        ../libsrc/i2c-slave.hpp ../libsrc/i2c-slave.cpp)
+        ../libsrc/i2c-slave.hpp ../libsrc/i2c-slave.cpp
+        ../libsrc/geiger-counter.cpp ../libsrc/geiger-counter.hpp)
 
-SET(SOURCES main.cpp magiceye_hd.cpp inverter_hd.cpp i2c-slave_hd.cpp)
+SET(SOURCES main.cpp magiceye_hd.cpp inverter_hd.cpp i2c-slave_hd.cpp geiger-counter_hd.cpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 

@@ -2,6 +2,7 @@
 #include "magiceye.hpp"
 #include "inverter.hpp"
 #include "i2c-slave.hpp"
+#include "geiger-counter_hd.cpp"
 
 #include <msp430.h>
 #include <iomacros.h>
@@ -59,6 +60,7 @@ int main() {
     magiceye::init();
     inverter::init();
     i2c::init();
+    geiger_counter::init();
 
     __nop();
     __enable_interrupt();
@@ -77,6 +79,7 @@ int main() {
 
             inverter::tick();
             magiceye::tick();
+            geiger_counter::tick();
 
             magiceye::setAdcValue(++x);
         }

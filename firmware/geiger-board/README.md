@@ -2,6 +2,10 @@
 
 todo jak skompilować projekt
 
+* msp430 toolchain
+* gtest
+* gcc
+
 ## I2C protocol sprecification
 
 
