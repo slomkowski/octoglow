@@ -67,7 +67,7 @@ int main() {
 
     //magiceye::setEnabled(true);
 
-    uint8_t  x = 0;
+    uint8_t x = 0;
 
     while (true) {
         //

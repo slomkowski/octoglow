@@ -3,7 +3,6 @@
 using namespace octoglow::geiger::inverter::_private;
 
 
-
 void octoglow::geiger::inverter::_private::regulateEyeInverter(const uint16_t adcReadout, uint16_t *const pwmValue) {
     if (adcReadout < EYE_DESIRED_ADC_READOUT) {
         *pwmValue -= EYE_PWM_STEP;

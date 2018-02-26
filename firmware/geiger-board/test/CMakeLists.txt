@@ -7,12 +7,6 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 SET(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -DF_CPU=${FREQ}UL -Wall -Wextra -pedantic")
 include_directories(../libsrc)
 
-SET(LIBRARY_SOURCES ../libsrc/main.hpp ../libsrc/protocol.hpp
-        ../libsrc/magiceye.cpp ../libsrc/magiceye.hpp
-        ../libsrc/inverter.cpp ../libsrc/inverter.hpp
-        ../libsrc/i2c-slave.cpp ../libsrc/i2c-slave.hpp
-        ../libsrc/geiger-counter.cpp ../libsrc/geiger-counter.hpp)
-
 SET(SOURCES common.hpp magiceye_test.cpp inverter_test.cpp i2c-slave_test.cpp)
 
 enable_testing()

@@ -11,7 +11,9 @@ namespace octoglow {
             constexpr uint8_t SLAVE_ADDRESS = 0x12;
 
             void onStart();
+
             void onTransmit(uint8_t volatile *value);
+
             void onReceive(uint8_t value);
 
             void init();

@@ -33,7 +33,7 @@ __attribute__ ((interrupt(USCIAB0RX_VECTOR))) void USCIAB0RX_ISR() {
     i2c::onStart();
 }
 
-protocol::DeviceState& octoglow::geiger::i2c::hd::getDeviceState() {
+protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
     static protocol::DeviceState state;
     state.eyeInverterState = magiceye::getState();
     state.eyeControllerState = magiceye::getControllerState();

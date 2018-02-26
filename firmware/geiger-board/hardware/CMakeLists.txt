@@ -16,12 +16,6 @@ SET(CMAKE_EXE_LINKER_FLAGS "-L${SUPPORT_FILE_DIRECTORY}")
 include_directories(../libsrc)
 include_directories(${SUPPORT_FILE_DIRECTORY})
 
-SET(LIBRARY_SOURCES ../libsrc/main.hpp ../libsrc/protocol.hpp
-        ../libsrc/magiceye.cpp ../libsrc/magiceye.hpp
-        ../libsrc/inverter.cpp ../libsrc/inverter.hpp
-        ../libsrc/i2c-slave.cpp ../libsrc/i2c-slave.hpp
-        ../libsrc/geiger-counter.cpp ../libsrc/geiger-counter.hpp)
-
 SET(SOURCES main.cpp magiceye_hd.cpp inverter_hd.cpp i2c-slave_hd.cpp geiger-counter_hd.cpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})

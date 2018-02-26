@@ -5,7 +5,7 @@ using namespace octoglow::geiger;
 
 static protocol::DeviceState deviceState;
 
-protocol::DeviceState& octoglow::geiger::i2c::hd::getDeviceState() {
+protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
     return deviceState;
 }
 

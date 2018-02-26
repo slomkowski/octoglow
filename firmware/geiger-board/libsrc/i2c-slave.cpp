@@ -7,15 +7,15 @@ using namespace octoglow::geiger::protocol;
 using namespace octoglow::geiger;
 
 static volatile Command currentCommand = Command::_UNDEFINED;
-static volatile char* transmittedDataPointer = nullptr;
+static volatile char *transmittedDataPointer = nullptr;
 
 void ::octoglow::geiger::i2c::onTransmit(uint8_t volatile *value) {
 
     if (transmittedDataPointer == nullptr) {
         if (currentCommand == Command::GET_GEIGER_STATE) {
-            transmittedDataPointer = reinterpret_cast<char*>(&geiger_counter::getState());
+            transmittedDataPointer = reinterpret_cast<char *>(&geiger_counter::getState());
         } else if (currentCommand == Command::GET_DEVICE_STATE) {
-            transmittedDataPointer = reinterpret_cast<char*>(&hd::getDeviceState());
+            transmittedDataPointer = reinterpret_cast<char *>(&hd::getDeviceState());
         }
     }
 

@@ -39,7 +39,7 @@ void ::octoglow::geiger::inverter::init() {
 
     P2DIR |= PWM_BIT_EYE | PWM_BIT_GEIGER;
     P2SEL |= PWM_BIT_EYE | PWM_BIT_GEIGER;
-    P2OUT |= PWM_BIT_EYE |PWM_BIT_GEIGER;
+    P2OUT |= PWM_BIT_EYE | PWM_BIT_GEIGER;
 
     // timer counts to TA0CCR0, is in high state during TA0CCR1
     TA1CCR0 = _private::PWM_PERIOD;

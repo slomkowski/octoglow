@@ -27,8 +27,6 @@ namespace octoglow {
 
                 void enableMainRelay(bool enabled);
             }
-
-            uint8_t _animate(bool hasBeenGeigerCountInLastCycle);
         }
     }
 }

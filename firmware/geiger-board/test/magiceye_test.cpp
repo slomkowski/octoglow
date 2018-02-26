@@ -12,11 +12,11 @@ using namespace octoglow::geiger::protocol;
 
 static uint8_t currentAdcValue;
 
-void ::octoglow::geiger::magiceye::hd::enablePreheatRelay(bool enabled) {
+void octoglow::geiger::magiceye::hd::enablePreheatRelay(bool enabled) {
     cout << "preheat " << enabled << endl;
 }
 
-void ::octoglow::geiger::magiceye::hd::enableMainRelay(bool enabled) {
+void octoglow::geiger::magiceye::hd::enableMainRelay(bool enabled) {
     cout << "main " << enabled << endl;
 }
 
