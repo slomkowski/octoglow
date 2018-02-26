@@ -12,6 +12,8 @@ Testing/
 # for IntelliJ
 .idea/
 *.iml
+cmake-build-debug
+cmake-build-release
 
 *.log
 *.elf

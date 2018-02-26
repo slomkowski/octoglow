@@ -10,12 +10,19 @@ using namespace std;
 using namespace octoglow::geiger::magiceye;
 using namespace octoglow::geiger::protocol;
 
+static uint8_t currentAdcValue;
+
 void ::octoglow::geiger::magiceye::hd::enablePreheatRelay(bool enabled) {
     cout << "preheat " << enabled << endl;
 }
 
 void ::octoglow::geiger::magiceye::hd::enableMainRelay(bool enabled) {
     cout << "main " << enabled << endl;
+}
+
+void octoglow::geiger::magiceye::setAdcValue(uint8_t v) {
+    cout << "ADC set to " << v << endl;
+    currentAdcValue = v;
 }
 
 TEST(MagicEye, HeatingProcedure) {
@@ -84,4 +91,10 @@ TEST(MagicEye, HeatingProcedure) {
     }
     ASSERT_EQ(EyeInverterState::DISABLED, getState());
     ASSERT_FALSE(eyeInverterEnabled);
+}
+
+TEST(MagicEye, Animation) {
+    cout << endl;
+
+
 }

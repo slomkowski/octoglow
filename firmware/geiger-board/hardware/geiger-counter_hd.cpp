@@ -1,4 +1,4 @@
-#include "geiger-counter_hd.cpp"
+#include "geiger-counter.hpp"
 
 /*
  * todo
@@ -6,6 +6,9 @@
  * obsługa przerwania, które inkrementuje licznik
  */
 
-void octoglow::geiger::geiger_counter::init() {
+using namespace octoglow::geiger;
 
+
+void octoglow::geiger::geiger_counter::init() {
+    //todo init geiger counter
 }

@@ -13,7 +13,7 @@ SET(LIBRARY_SOURCES ../libsrc/main.hpp ../libsrc/protocol.hpp
         ../libsrc/i2c-slave.cpp ../libsrc/i2c-slave.hpp
         ../libsrc/geiger-counter.cpp ../libsrc/geiger-counter.hpp)
 
-SET(SOURCES common.hpp magiceye_test.cpp inverter_test.cpp)
+SET(SOURCES common.hpp magiceye_test.cpp inverter_test.cpp i2c-slave_test.cpp)
 
 enable_testing()
 

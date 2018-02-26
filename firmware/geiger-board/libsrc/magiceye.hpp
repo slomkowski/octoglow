@@ -12,11 +12,13 @@ namespace octoglow {
 
             void tick();
 
-            void setAdcValue(uint8_t v);
-
             void setEnabled(bool enabled);
 
+            void setAdcValue(uint8_t v);
+
             void setControllerState(protocol::EyeControllerState state);
+
+            protocol::EyeControllerState getControllerState();
 
             protocol::EyeInverterState getState();
 
@@ -25,6 +27,8 @@ namespace octoglow {
 
                 void enableMainRelay(bool enabled);
             }
+
+            uint8_t _animate(bool hasBeenGeigerCountInLastCycle);
         }
     }
 }

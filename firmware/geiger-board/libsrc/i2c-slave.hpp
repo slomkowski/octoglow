@@ -1,5 +1,7 @@
 #pragma once
 
+#include "protocol.hpp"
+
 #include <cstdint>
 
 namespace octoglow {
@@ -13,6 +15,10 @@ namespace octoglow {
             void onReceive(uint8_t value);
 
             void init();
+
+            namespace hd {
+                protocol::DeviceState &getDeviceState();
+            }
         }
     }
 }

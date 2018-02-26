@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "magiceye.hpp"
 #include "inverter.hpp"
+#include "geiger-counter.hpp"
 
 constexpr uint16_t PREHEAT_TIME_SECONDS = 8;
 constexpr uint16_t POSTHEAT_TIME_SECONDS = 5;
@@ -11,7 +12,9 @@ using namespace octoglow::geiger::magiceye;
 using namespace octoglow::geiger::protocol;
 
 static EyeInverterState eyeState = EyeInverterState::DISABLED;
+static EyeControllerState eyeControllerState = EyeControllerState::ANIMATION;
 static uint16_t cyclesCounter = UINT16_MAX;
+
 
 void octoglow::geiger::magiceye::tick() {
 
@@ -30,6 +33,15 @@ void octoglow::geiger::magiceye::tick() {
 
     if (cyclesCounter != UINT16_MAX) {
         ++cyclesCounter;
+    }
+
+    if(eyeControllerState == EyeControllerState::ANIMATION) {
+        static uint16_t previousValue = UINT16_MAX;
+        const uint16_t currentValue = geiger_counter::getState().numOfCountsCurrentCycle;
+
+        setAdcValue(_animate(currentValue > previousValue));
+
+        previousValue = currentValue;
     }
 }
 
@@ -56,4 +68,20 @@ void octoglow::geiger::magiceye::setEnabled(bool enabled) {
 
 octoglow::geiger::protocol::EyeInverterState octoglow::geiger::magiceye::getState() {
     return eyeState;
+}
+
+void ::octoglow::geiger::magiceye::setControllerState(octoglow::geiger::protocol::EyeControllerState state) {
+    eyeControllerState = state;
+}
+
+uint8_t octoglow::geiger::magiceye::_animate(bool hasBeenGeigerCountInLastCycle) {
+    //todo do animation here
+
+    static uint8_t x = 0;
+
+    return x++;
+}
+
+protocol::EyeControllerState octoglow::geiger::magiceye::getControllerState() {
+    return eyeControllerState;
 }

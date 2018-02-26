@@ -37,14 +37,14 @@ namespace octoglow {
                 EyeInverterState eyeInverterState;
                 EyeControllerState eyeControllerState;
             }__attribute__((packed));
-            static_assert(sizeof(DeviceState) == 8);
+            static_assert(sizeof(DeviceState) == 8, "invalid size");
 
             struct GeigerState {
                 uint16_t numOfCountsCurrentCycle;
                 uint16_t numOfCountsPreviousCycle;
                 uint16_t cycleLength;
             }__attribute__((packed));
-            static_assert(sizeof(GeigerState) == 6);
+            static_assert(sizeof(GeigerState) == 6, "invalid size");
         }
     }
 }
