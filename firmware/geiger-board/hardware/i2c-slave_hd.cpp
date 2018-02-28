@@ -27,7 +27,6 @@ __attribute__ ((interrupt(USCIAB0TX_VECTOR))) void USCIAB0TX_ISR() {
     }
 }
 
-// USCI_B0 State ISR
 __attribute__ ((interrupt(USCIAB0RX_VECTOR))) void USCIAB0RX_ISR() {
     UCB0STAT &= ~UCSTTIFG;                    // Clear start condition int flag
     i2c::onStart();
@@ -39,8 +38,8 @@ protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
     state.eyeControllerState = magiceye::getControllerState();
     state.eyePwmValue = TA1CCR2;
     state.geigerPwmValue = TA1CCR1;
-    state.geigerVoltage;
-    state.eyeVoltage;
+    state.geigerVoltage = 0x1234;
+    state.eyeVoltage = 0x5678;
 
     return state;
 }

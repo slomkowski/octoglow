@@ -7,6 +7,20 @@ todo jak skompilować projekt
 * gcc
 
 
+# Bus pirate example
+
+Write address *0x24*, read *0x25*.
+
+```
+W - enable power supply
+P - enable pull-up resistors
+
+[ 0x24 1 [ 0x25 r:8 ] - read device state
+[ 0x24 2 [ 0x25 r:6 ]
+
+
+```
+
 ## Animation test - `animationtest`
 
 This program was used to easily test magic eye animation procedure. Uses code from `libsrc`. Requires SDL2 library.

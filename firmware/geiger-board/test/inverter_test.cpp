@@ -26,6 +26,6 @@ TEST(Inverter, EyeRegulation) {
 
     uint16_t adcValue = 134;
     uint16_t pwmValue = 100;
-    _private::regulateEyeInverter(134, &pwmValue);
+    _private::regulateEyeInverter(adcValue, &pwmValue);
 
 }
