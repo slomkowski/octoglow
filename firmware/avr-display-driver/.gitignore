@@ -8,10 +8,14 @@ cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
 Testing/
+cmake-build-debug
 
 # for IntelliJ
 .idea/
 *.iml
 
 *.log
+
+# this file is exported from GLCD
+font/font.lcd.xml
 
