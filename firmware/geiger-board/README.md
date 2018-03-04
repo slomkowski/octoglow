@@ -14,7 +14,11 @@ This program was used to easily test magic eye animation procedure. Uses code fr
 * space - simulate Geiger count
 * Esc - exit
 
-## I2C protocol sprecification
+## Animation idea
+
+wartość średnia
+
+## I2C protocol specification
 
 
 status:
