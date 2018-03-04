@@ -18,6 +18,10 @@ namespace octoglow {
              * This should be called TICK_TIMER_FREQ.
              */
             void tick();
+
+            namespace hd {
+                extern volatile uint16_t numOfCountsCurrentCycle;
+            }
         }
     }
 }

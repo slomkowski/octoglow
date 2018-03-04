@@ -1,18 +1,36 @@
+#include <iostream>
 #include "animation.hpp"
 
-constexpr double PERIOD = 200;
-constexpr double BASE_NOMINAL = 50;
-constexpr double AMPLITUDE_STEP = 20;
+constexpr double GAIN = 1.1;
+constexpr uint16_t OSCILLATION_PERIOD = 200;
+constexpr uint8_t OSCILLATION_AMPLITUDE = 20;
 
-inline double triangleWave(int16_t cycle, double amplitude) {
-    if(cycle < PERIOD / 2) {
-        return amplitude * 2.0 * cycle / PERIOD;
+inline double limitedTriangleWave(int16_t cycle) {
+    double outputValue;
+    if (cycle < OSCILLATION_PERIOD / 4.0) {
+        outputValue = -4.0 * cycle / OSCILLATION_PERIOD * OSCILLATION_AMPLITUDE;
+    } else if (cycle < 3.0 / 4.0 * OSCILLATION_PERIOD) {
+        outputValue = -OSCILLATION_AMPLITUDE + ( 4.0 * (cycle - (OSCILLATION_PERIOD / 4.0)) / OSCILLATION_PERIOD) * OSCILLATION_AMPLITUDE;
     } else {
-        return amplitude * 2.0 * (PERIOD - cycle) / PERIOD;
+        outputValue = OSCILLATION_AMPLITUDE - 4.0 * (cycle - 3.0 / 4.0 * OSCILLATION_PERIOD) / OSCILLATION_PERIOD * OSCILLATION_AMPLITUDE;
+    }
+
+    outputValue *= GAIN;
+
+    if(outputValue > OSCILLATION_AMPLITUDE) {
+        return OSCILLATION_AMPLITUDE;
+    } else if(outputValue < -OSCILLATION_AMPLITUDE) {
+        return -OSCILLATION_AMPLITUDE;
+    } else {
+        return outputValue;
     }
 }
 
-constexpr uint16_t CYCLES_TO_GO_TO_MAX = 10;
+constexpr uint8_t NOMINAL_BASE_VALUE = 127;
+constexpr uint8_t BASE_STEP = 10;
+constexpr uint8_t CYCLES_TO_GO_TO_MAX = 5;
+constexpr uint8_t CYCLES_TO_STAY_AT_MAX = 20;
+constexpr uint8_t CYCLES_TO_BACK_TO_NORMAL = 50;
 
 enum class CurrentMode {
     NORMAL,
@@ -22,50 +40,68 @@ enum class CurrentMode {
 };
 
 uint8_t octoglow::geiger::magiceye::_animate(bool hasBeenGeigerCountInLastCycle) {
-    //todo do animation here
-
     static CurrentMode currentMode = CurrentMode::NORMAL;
     static uint8_t previousValue = 0;
     static uint16_t cycleCounter = 0;
     static uint8_t step;
+    static uint8_t base = NOMINAL_BASE_VALUE;
 
+    if (hasBeenGeigerCountInLastCycle) {
 
-    if(hasBeenGeigerCountInLastCycle) {
+        if (currentMode != CurrentMode::NORMAL) {
+            base += BASE_STEP;
+        }
+
+        cycleCounter = 0;
         currentMode = CurrentMode::RAISING_TO_MAX;
-        step = (255 - previousValue) / CYCLES_TO_GO_TO_MAX;
+        step = (0xff - previousValue) / CYCLES_TO_GO_TO_MAX;
     }
 
-    if(currentMode == CurrentMode::RAISING_TO_MAX) {
-        if (255 - previousValue < step) {
-            currentMode = CurrentMode::STAY_AT_MAX;
-        } else {
+    if (currentMode == CurrentMode::NORMAL) {
 
+        if(cycleCounter == OSCILLATION_PERIOD) {
+            cycleCounter = 0;
+
+            if(base > NOMINAL_BASE_VALUE) {
+                base -= BASE_STEP;
+            }
+        }
+
+        previousValue = base + limitedTriangleWave(cycleCounter);
+        ++ cycleCounter;
+        return previousValue;
+    } else if (currentMode == CurrentMode::RAISING_TO_MAX) {
+        if (cycleCounter < CYCLES_TO_GO_TO_MAX) {
+            ++cycleCounter;
             previousValue += step;
+            return previousValue;
+        } else {
+            currentMode = CurrentMode::STAY_AT_MAX;
+            cycleCounter = 0;
+            return previousValue;
+        }
+    } else if (currentMode == CurrentMode::STAY_AT_MAX) {
+        if (cycleCounter < CYCLES_TO_STAY_AT_MAX) {
+            ++cycleCounter;
+            return previousValue;
+        } else {
+            currentMode = CurrentMode::BACKING_TO_NORMAL;
+            step = (previousValue - base) / CYCLES_TO_BACK_TO_NORMAL;
+            return previousValue;
+        }
+    } else if (currentMode == CurrentMode::BACKING_TO_NORMAL) {
+
+        if (cycleCounter < CYCLES_TO_BACK_TO_NORMAL) {
+            ++cycleCounter;
+            previousValue -= step;
+            return previousValue;
+        } else {
+            currentMode = CurrentMode::NORMAL;
+            cycleCounter = 0;
             return previousValue;
         }
     }
 
-
-
-
-
-
-    static double base = BASE_NOMINAL;
-    static int16_t cycleCounter = 0;
-
-    if (hasBeenGeigerCountInLastCycle and base < 3 * AMPLITUDE_STEP) { //todo przeformułować
-        base += AMPLITUDE_STEP;
-        cycleCounter = 0;
-    }
-
-    if(cycleCounter > PERIOD) {
-        cycleCounter = 0;
-        if(base > BASE_NOMINAL) {
-            base -= BASE_NOMINAL;
-        }
-    }
-
-    ++cycleCounter;
-    return base + triangleWave(cycleCounter, 30);
+    return base;
 }
 
