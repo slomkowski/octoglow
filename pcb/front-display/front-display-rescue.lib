@@ -1,11 +1,11 @@
 EESchema-LIBRARY Version 2.3
 #encoding utf-8
 #
-# INDUCTOR-RESCUE-vfd-display-front
+# INDUCTOR-RESCUE-front-display
 #
-DEF INDUCTOR-RESCUE-vfd-display-front L 0 40 N N 1 F N
+DEF INDUCTOR-RESCUE-front-display L 0 40 N N 1 F N
 F0 "L" -50 0 50 V V C CNN
-F1 "INDUCTOR-RESCUE-vfd-display-front" 100 0 50 V V C CNN
+F1 "INDUCTOR-RESCUE-front-display" 100 0 50 V V C CNN
 F2 "" 0 0 50 H V C CNN
 F3 "" 0 0 50 H V C CNN
 $FPLIST
@@ -22,11 +22,11 @@ X 2 2 0 -300 100 U 50 50 1 1 P
 ENDDRAW
 ENDDEF
 #
-# LM1117-3.3-RESCUE-vfd-display-front
+# LM1117-3.3-RESCUE-front-display
 #
-DEF LM1117-3.3-RESCUE-vfd-display-front U 0 30 Y Y 1 F N
+DEF LM1117-3.3-RESCUE-front-display U 0 30 Y Y 1 F N
 F0 "U" 100 -250 50 H V C CNN
-F1 "LM1117-3.3-RESCUE-vfd-display-front" 0 250 50 H V C CNN
+F1 "LM1117-3.3-RESCUE-front-display" 0 250 50 H V C CNN
 F2 "" 0 0 50 H V C CNN
 F3 "" 0 0 50 H V C CNN
 $FPLIST

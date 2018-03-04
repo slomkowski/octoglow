@@ -34,7 +34,7 @@ LIBS:V23079-monostable
 LIBS:TJA1010
 LIBS:lm75
 LIBS:RFM83C-433S
-LIBS:vfd-display-clock-cache
+LIBS:clock-display-cache
 EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268

@@ -29,7 +29,7 @@ version=1
 version=1
 LibDir=/home/michal/Projects/KICAD/libraries;../lib
 [eeschema/libraries]
-LibName1=vfd-display-front-rescue
+LibName1=front-display-rescue
 LibName2=power
 LibName3=device
 LibName4=transistors
