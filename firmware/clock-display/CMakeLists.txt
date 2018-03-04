@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 SET(CMAKE_SYSTEM_NAME Generic)
 
-project(vfd-display-clock)
+project(octoglow-clock-display)
 
 SET(DEVICE "attiny461a")
 SET(FREQ "8000000")

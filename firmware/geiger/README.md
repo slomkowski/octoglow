@@ -23,7 +23,7 @@ P - enable pull-up resistors
 
 ## Animation test - `animationtest`
 
-This program was used to easily test magic eye animation procedure. Uses code from `libsrc`. Requires SDL2 library.
+This program was used to easily test magic eye animation procedure. Uses code from `noarch`. Requires SDL2 library.
 
 * space - simulate Geiger count
 * Esc - exit
