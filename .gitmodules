@@ -1,0 +1,3 @@
+[submodule "firmware/lib/libfixmath"]
+	path = firmware/lib/libfixmath
+	url = https://github.com/PetteriAimonen/libfixmath

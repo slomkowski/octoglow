@@ -8,7 +8,8 @@ SET(LIBRARY_SOURCES ../noarch/main.hpp ../noarch/protocol.hpp
         ../noarch/animation.cpp ../noarch/animation.hpp
         ../noarch/inverter.cpp ../noarch/inverter.hpp
         ../noarch/i2c-slave.cpp ../noarch/i2c-slave.hpp
-        ../noarch/geiger-counter.cpp ../noarch/geiger-counter.hpp)
+        ../noarch/geiger-counter.cpp ../noarch/geiger-counter.hpp
+        ../../lib/libfixmath/libfixmath/fix16.hpp ../../lib/libfixmath/libfixmath/fix16.h ../../lib/libfixmath/libfixmath/fix16.c)
 
 add_subdirectory(msp430)
 add_subdirectory(test)
