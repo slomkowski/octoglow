@@ -21,7 +21,7 @@ void octoglow::geiger::magiceye::hd::enableMainRelay(bool enabled) {
 }
 
 void octoglow::geiger::magiceye::setAdcValue(uint8_t v) {
-    cout << "ADC set to " << (int)v << endl;
+    cout << "ADC set to " << (int) v << endl;
     currentAdcValue = v;
 }
 
