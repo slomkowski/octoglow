@@ -197,7 +197,7 @@ i2c_reply_done(uint8_t n) {
  * Start the state machine.
  * Prepare to receive the slave address.
  ****************************************************************************/
-ISR(USI_STRT_vect) {
+ISR(USI_START_vect) {
     SetD(6);
 
     setInput();

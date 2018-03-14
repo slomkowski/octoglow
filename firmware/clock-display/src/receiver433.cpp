@@ -38,7 +38,7 @@ constexpr uint8_t msToTimer1overflows(double milliseconds) {
 
 static inline void timerStart() {
     TCNT0L = 0;
-    TCCR0B = _BV(PSR0) | _BV(CS02) | _BV(CS00); // prescaler to fclk/1024
+    TCCR0B = _BV(CS02) | _BV(CS00); // prescaler to fclk/1024
 }
 
 static inline void timerStop() {
@@ -49,6 +49,8 @@ void ::octoglow::vfd_clock::receiver433::init() {
     MCUCR |= _BV(ISC01) | _BV(ISC00);
     GIMSK |= _BV(INT0);
     TIMSK |= _BV(TOIE1);
+
+    TCCR0A = 0;
 
     timerStart();
 }

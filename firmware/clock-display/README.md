@@ -1,4 +1,4 @@
-## BIOWIN BIOTERM Sensor - temperature & moisture
+# BIOWIN BIOTERM Sensor - temperature & moisture
 
 Sensor sends data using is OOK modulation at 433.92 MHz.
 
@@ -22,4 +22,21 @@ Each packet consist of:
 |28-35|8       |Humidity in %.                                                           |
 
 
+# Bus pirate example
+
+Write address *0x20*, read *0x21*.
+
+```
+W - enable power supply
+P - enable pull-up resistors
+
+[ 0x20 2 1 1 ]
+[ 0x20 1 50 51 52 53 255 ]
+
+[ 0x20 4 [ 0x21 r:5 ]
+```
+
+```
+i2cset -y 1 0x10 2 1 1 i
+i2cset -y 1 0x10 1 52 53 54 55 255 i
 
