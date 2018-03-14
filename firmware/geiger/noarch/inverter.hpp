@@ -33,9 +33,9 @@ namespace octoglow {
                 constexpr double EYE_PWM_MAX_DUTY = 0.7;
                 constexpr uint8_t EYE_PWM_STEP = 1;
 
-                constexpr double GEIGER_PWM_MIN_DUTY = 0.47;
+                constexpr double GEIGER_PWM_MIN_DUTY = 0.47;// 0.47;
                 constexpr double GEIGER_PWM_MAX_DUTY = 0.6;
-                constexpr uint8_t GEIGER_PWM_STEP = 2;
+                constexpr uint8_t GEIGER_PWM_STEP = 1;
 
                 constexpr uint16_t cycles(double part) {
                     return part * PWM_PERIOD;
