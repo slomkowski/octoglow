@@ -1,9 +1,8 @@
 EESchema-DOCLIB  Version 2.0
 #
-$CMP LM208
+$CMP MAA725
 D Operational Amplifier, TO-5 8 pin
 K single opamp
-F http://www.mit.edu/~6.301/LM108.pdf
 $ENDCMP
 #
 #End Doc Library

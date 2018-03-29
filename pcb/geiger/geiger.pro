@@ -1,4 +1,4 @@
-update=Mon 16 Oct 2017 21:43:10 CEST
+update=Thu 29 Mar 2018 09:54:50 PM CEST
 version=1
 last_client=kicad
 [pcbnew]
@@ -27,7 +27,7 @@ NetIExt=net
 version=1
 [eeschema]
 version=1
-LibDir=../lib
+LibDir=../lib;../../../../KICAD/libraries
 [eeschema/libraries]
 LibName1=power
 LibName2=device
@@ -60,9 +60,10 @@ LibName28=contrib
 LibName29=valves
 LibName30=L_7x7
 LibName31=relay_dpst
-LibName32=lm208
-LibName33=gm_sbm-20
-LibName34=flyback_trans
-LibName35=eaa91
-LibName36=MSP430G2553-DIP-20
-LibName37=ad558
+LibName32=gm_sbm-20
+LibName33=eaa91
+LibName34=MSP430G2553-DIP-20
+LibName35=ad558
+LibName36=/home/michal/Projects/KICAD/libraries/lm2596
+LibName37=mcp1402
+LibName38=maa725
