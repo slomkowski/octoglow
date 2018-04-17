@@ -15,30 +15,35 @@ namespace octoglow {
              * These methods are not part of the interface.
              */
             namespace _private {
-                constexpr uint32_t PWM_FREQUENCY = 60000; // 60 kHz
-                constexpr uint32_t PWM_PERIOD = F_CPU / PWM_FREQUENCY;
-
                 constexpr double REFERENCE_VOLTAGE = 2.5;
 
                 constexpr double GEIGER_VOLTAGE = 390;
                 constexpr double GEIGER_DIVIDER_UPPER_RESISTOR = 4 * 470;
                 constexpr double GEIGER_DIVIDER_LOWER_RESISTOR = 4.7;
-
-
-                constexpr double EYE_VOLTAGE = 250;
-                constexpr double EYE_DIVIDER_UPPER_RESISTOR = 540;
-                constexpr double EYE_DIVIDER_LOWER_RESISTOR = 4.7;
-
-                constexpr double EYE_PWM_MIN_DUTY = 0.35;
-                constexpr double EYE_PWM_MAX_DUTY = 0.7;
-                constexpr uint8_t EYE_PWM_STEP = 1;
-
-                constexpr double GEIGER_PWM_MIN_DUTY = 0.47;// 0.47;
-                constexpr double GEIGER_PWM_MAX_DUTY = 0.6;
+                constexpr double GEIGER_PWM_MIN_DUTY = 0.05;
+                constexpr double GEIGER_PWM_MAX_DUTY = 0.26;
+                constexpr uint32_t GEIGER_PWM_FREQUENCY = 31000; // 60 kHz
                 constexpr uint8_t GEIGER_PWM_STEP = 1;
 
-                constexpr uint16_t cycles(double part) {
-                    return part * PWM_PERIOD;
+                constexpr double EYE_VOLTAGE = 250 * 1.1;
+                constexpr double EYE_DIVIDER_UPPER_RESISTOR = 540;
+                constexpr double EYE_DIVIDER_LOWER_RESISTOR = 4.7;
+                constexpr double EYE_PWM_MIN_DUTY = 0.35;
+                constexpr double EYE_PWM_MAX_DUTY = 0.7;
+                constexpr uint32_t EYE_PWM_FREQUENCY = 60000; // 60 kHz
+                constexpr uint8_t EYE_PWM_STEP = 1;
+
+
+                constexpr uint32_t GEIGER_PWM_PERIOD = F_CPU / GEIGER_PWM_FREQUENCY;
+                constexpr uint32_t EYE_PWM_PERIOD = F_CPU / EYE_PWM_FREQUENCY;
+
+
+                constexpr uint16_t eyeCycles(double part) {
+                    return part * EYE_PWM_PERIOD;
+                }
+
+                constexpr uint16_t geigerCycles(double part) {
+                    return part * GEIGER_PWM_PERIOD;
                 }
 
                 constexpr static uint16_t desiredAdcReadout(double upperRes, double lowerRes, double inputVoltage) {

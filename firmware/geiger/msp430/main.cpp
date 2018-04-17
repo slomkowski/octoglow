@@ -9,7 +9,11 @@
 
 using namespace octoglow::geiger;
 
-static volatile bool timerTicked = false;
+namespace octoglow {
+    namespace geiger {
+        volatile bool timerTicked = false;
+    }
+}
 
 /**
  * Sets clock source for MCLK and SMCLK to external oscillator. Waits for oscillator fault flag to clear.
@@ -29,19 +33,6 @@ static inline void configureClockSystem() {
     BCSCTL1 = XT2OFF | XTS | DIVA_3;
 }
 
-/**
- * Configures tick timer. Tick ensures that cyclic event have reliable time source.
- */
-static inline void configureTickTimer() {
-    TA0CCR0 = F_CPU / 8 / octoglow::geiger::TICK_TIMER_FREQ; // we set clock divider to 8
-    TA0CCTL0 = CCIE;
-    TA0CTL = TASSEL_2 | ID_3 | MC_1;
-}
-
-__attribute__ ((interrupt(TIMER0_A0_VECTOR))) void TIMER0_A0_ISR() {
-    timerTicked = true;
-}
-
 int main() {
     volatile int i;
 
@@ -55,9 +46,7 @@ int main() {
 
     P1DIR |= BIT0;
 
-    configureTickTimer();
-
-    magiceye::init();
+    //magiceye::init();
     inverter::init();
     i2c::init();
     geiger_counter::init();
@@ -65,7 +54,7 @@ int main() {
     __nop();
     __enable_interrupt();
 
-    //magiceye::setEnabled(true);
+    //magiceye::setEnabled(false);
 
     uint8_t x = 0;
 
@@ -78,10 +67,10 @@ int main() {
             P1OUT ^= BIT0;
 
             inverter::tick();
-            magiceye::tick();
-            geiger_counter::tick();
+            //magiceye::tick();
+            //geiger_counter::tick();
 
-            magiceye::setAdcValue(++x);
+            //magiceye::setAdcValue(++x);
         }
     }
 }

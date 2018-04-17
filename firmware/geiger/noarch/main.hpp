@@ -9,5 +9,7 @@ namespace octoglow {
          * that they are called this often.
          */
         constexpr uint16_t TICK_TIMER_FREQ = 50; // 50 Hz
+
+        extern volatile bool timerTicked;
     }
 }

@@ -45,16 +45,12 @@ void ::octoglow::geiger::magiceye::init() {
     P2SEL2 &= ~(DAC_CE | DAC_IN | DAC_CLK);
     P2DIR |= DAC_CE | DAC_IN | DAC_CLK;
 
-    P2OUT |= DAC_CE;
-
     setAdcValue(127); // set to half value
 }
 
 void ::octoglow::geiger::magiceye::setAdcValue(uint8_t v) {
 
     const uint8_t order[] = {0, 1, 2, 3, 4, 5, 7, 6};
-
-    P2OUT &= ~DAC_CE;
 
     for (uint8_t i = 0; i != 8; ++i) {
 
@@ -77,8 +73,4 @@ void ::octoglow::geiger::magiceye::setAdcValue(uint8_t v) {
     __nop();
     __nop();
     P1OUT &= ~DAC_LATCH;
-
-    __nop();
-    __nop();
-    P2OUT |= DAC_CE;
 }
