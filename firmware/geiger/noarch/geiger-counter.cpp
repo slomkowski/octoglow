@@ -18,6 +18,7 @@ octoglow::geiger::protocol::GeigerState &octoglow::geiger::geiger_counter::getSt
 
 void ::octoglow::geiger::geiger_counter::resetCounters() {
     //todo
+    hd::numOfCountsCurrentCycle = 0;
 }
 
 

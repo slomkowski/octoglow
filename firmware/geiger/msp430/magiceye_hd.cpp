@@ -2,48 +2,39 @@
 
 #include <msp430.h>
 
-#define DAC_CE BIT1
 #define DAC_IN BIT3
-#define DAC_LATCH BIT2
+#define DAC_LATCH BIT4
 #define DAC_CLK BIT5
 
-#define RELAY_PREHEAT BIT1
-#define RELAY_MAIN BIT3
+#define HEATING_1 BIT3
+#define HEATING_2 BIT4
 
 
-void ::octoglow::geiger::magiceye::hd::enablePreheatRelay(bool enabled) {
+void ::octoglow::geiger::magiceye::hd::enableHeater1(bool enabled) {
     if (enabled) {
-        P1OUT |= RELAY_PREHEAT;
+        P1OUT &= ~HEATING_1;
     } else {
-        P1OUT &= ~RELAY_PREHEAT;
+        P1OUT |= HEATING_1;
     }
 }
 
-void ::octoglow::geiger::magiceye::hd::enableMainRelay(bool enabled) {
+void ::octoglow::geiger::magiceye::hd::enableHeater2(bool enabled) {
     if (enabled) {
-        P1OUT |= RELAY_MAIN;
+        P1OUT |= HEATING_2;
     } else {
-        P1OUT &= ~RELAY_MAIN;
+        P1OUT &= ~HEATING_2;
     }
 }
 
 void ::octoglow::geiger::magiceye::init() {
 
-    // init relays
-
-    P1DIR |= RELAY_MAIN | RELAY_PREHEAT;
-    hd::enableMainRelay(false);
-    hd::enablePreheatRelay(false);
+    // init heater
+    P1DIR |= HEATING_1 | HEATING_2;
+    hd::enableHeater2(false);
+    hd::enableHeater1(false);
 
     // init DAC
-
-    P1SEL &= ~DAC_LATCH;
-    P1SEL2 &= ~DAC_LATCH;
-    P1DIR |= DAC_LATCH;
-
-    P2SEL &= ~(DAC_CE | DAC_IN | DAC_CLK);
-    P2SEL2 &= ~(DAC_CE | DAC_IN | DAC_CLK);
-    P2DIR |= DAC_CE | DAC_IN | DAC_CLK;
+    P2DIR |= DAC_LATCH | DAC_IN | DAC_CLK;
 
     setAdcValue(127); // set to half value
 }
@@ -67,10 +58,12 @@ void ::octoglow::geiger::magiceye::setAdcValue(uint8_t v) {
         __nop();
         __nop();
         P2OUT &= ~DAC_CLK;
+        __nop();
     }
 
-    P1OUT |= DAC_LATCH;
+    P2OUT |= DAC_LATCH;
     __nop();
     __nop();
-    P1OUT &= ~DAC_LATCH;
+    P2OUT &= ~DAC_LATCH;
+    __nop();
 }

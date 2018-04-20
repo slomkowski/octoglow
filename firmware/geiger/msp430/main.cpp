@@ -46,7 +46,7 @@ int main() {
 
     P1DIR |= BIT0;
 
-    //magiceye::init();
+    magiceye::init();
     inverter::init();
     i2c::init();
     geiger_counter::init();
@@ -67,10 +67,10 @@ int main() {
             P1OUT ^= BIT0;
 
             inverter::tick();
-            //magiceye::tick();
+            magiceye::tick();
             //geiger_counter::tick();
 
-            //magiceye::setAdcValue(++x);
+            magiceye::setAdcValue(++x);
         }
     }
 }

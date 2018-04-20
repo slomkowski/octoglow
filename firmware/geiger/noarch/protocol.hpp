@@ -8,8 +8,8 @@ namespace octoglow {
 
             enum class EyeInverterState : uint8_t {
                 DISABLED,
-                PREHEATING,
-                POSTHEATING,
+                HEATING_LIMITED,
+                HEATING_FULL,
                 RUNNING
             };
 

@@ -23,9 +23,9 @@ namespace octoglow {
             protocol::EyeInverterState getState();
 
             namespace hd {
-                void enablePreheatRelay(bool enabled);
+                void enableHeater1(bool enabled);
 
-                void enableMainRelay(bool enabled);
+                void enableHeater2(bool enabled);
             }
         }
     }

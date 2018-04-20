@@ -78,7 +78,7 @@ TEST(I2C, Basic) {
     onStart();
     onReceive(0x4);
     onReceive(1);
-    ASSERT_EQ(protocol::EyeInverterState::PREHEATING, magiceye::getState());
+    ASSERT_EQ(protocol::EyeInverterState::HEATING_LIMITED, magiceye::getState());
 
     for (int i = 0; i < 5000 * 2; ++i) {
         magiceye::tick();

@@ -23,7 +23,7 @@ __attribute__ ((interrupt(TIMER0_A0_VECTOR))) void TIMER0_A0_ISR() {
 
     ++ta0cycles;
 
-    if(ta0cycles == octoglow::geiger::inverter::_private::GEIGER_PWM_FREQUENCY / octoglow::geiger::TICK_TIMER_FREQ) {
+    if (ta0cycles == octoglow::geiger::inverter::_private::GEIGER_PWM_FREQUENCY / octoglow::geiger::TICK_TIMER_FREQ) {
         octoglow::geiger::timerTicked = true;
         ta0cycles = 0;
     }
