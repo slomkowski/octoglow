@@ -17,12 +17,12 @@ namespace octoglow {
             namespace _private {
                 constexpr double REFERENCE_VOLTAGE = 2.5;
 
-                constexpr double GEIGER_VOLTAGE = 390;
+                constexpr double GEIGER_VOLTAGE = 400;
                 constexpr double GEIGER_DIVIDER_UPPER_RESISTOR = 4 * 470;
                 constexpr double GEIGER_DIVIDER_LOWER_RESISTOR = 4.7;
                 constexpr double GEIGER_PWM_MIN_DUTY = 0.05;
-                constexpr double GEIGER_PWM_MAX_DUTY = 0.26;
-                constexpr uint32_t GEIGER_PWM_FREQUENCY = 31000; // 60 kHz
+                constexpr double GEIGER_PWM_MAX_DUTY = 0.36;
+                constexpr uint32_t GEIGER_PWM_FREQUENCY = 33000;
                 constexpr uint8_t GEIGER_PWM_STEP = 1;
 
                 constexpr double EYE_VOLTAGE = 250 * 1.1;

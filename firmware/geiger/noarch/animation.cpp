@@ -5,12 +5,12 @@
 constexpr int16_t OSCILLATION_AMPLITUDE = 30;
 constexpr fix16_t GAIN = F16(1.05);
 
-constexpr int16_t OSCILLATION_PERIOD = 200;
-constexpr int16_t NOMINAL_BASE_VALUE = 127;
+constexpr int16_t OSCILLATION_PERIOD = 300;
+constexpr int16_t NOMINAL_BASE_VALUE = 70;
 constexpr int16_t BASE_STEP = 25;
-constexpr int16_t CYCLES_TO_GO_TO_MAX = 5;
-constexpr int16_t CYCLES_TO_STAY_AT_MAX = 20;
-constexpr int16_t CYCLES_TO_BACK_TO_NORMAL = 35;
+constexpr int16_t CYCLES_TO_GO_TO_MAX = 7;
+constexpr int16_t CYCLES_TO_STAY_AT_MAX = 30;
+constexpr int16_t CYCLES_TO_BACK_TO_NORMAL = 50;
 
 inline fix16_t limitedTriangleWave(int16_t cycle) {
     fix16_t outputValue;

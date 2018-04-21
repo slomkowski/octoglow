@@ -5,6 +5,7 @@
 
 #define PWM_BIT_EYE BIT1
 
+
 static uint16_t readAdcValue(uint16_t inch) {
     ADC10CTL0 &= (~ENC);
     ADC10CTL1 = inch | SHS_0 | ADC10DIV_7 | ADC10SSEL_2 | CONSEQ_0;
@@ -33,7 +34,7 @@ void ::octoglow::geiger::inverter::init() {
 
     ADC10AE0 = BIT1 | BIT5;
     ADC10CTL0 &= (~ENC);
-    ADC10CTL0 = SREF_1 | ADC10SHT_1 | REF2_5V | REFON | ADC10ON;
+    ADC10CTL0 = SREF_1 | ADC10SHT_3 | REF2_5V | REFON | ADC10ON;
 
 
     P1DIR |= BIT2;

@@ -34,11 +34,11 @@ static inline void configureClockSystem() {
 }
 
 int main() {
-    volatile int i;
+    volatile uint16_t i;
 
     WDTCTL = WDTPW | WDTHOLD;
 
-    i = 10000;
+    i = 0xfff0;
     do i--;
     while (i != 0);
 
@@ -46,31 +46,35 @@ int main() {
 
     P1DIR |= BIT0;
 
-    magiceye::init();
     inverter::init();
+    magiceye::init();
     i2c::init();
     geiger_counter::init();
 
     __nop();
     __enable_interrupt();
+    __nop();
 
-    //magiceye::setEnabled(false);
+    magiceye::setEnabled(true);
 
-    uint8_t x = 0;
+    //uint8_t x = 0;
 
     while (true) {
         //
         if (timerTicked) {
+            P1OUT |= BIT0;
+
             timerTicked = false;
 
             // code below is executed at frequency TICK_TIMER_FREQ
-            P1OUT ^= BIT0;
 
             inverter::tick();
             magiceye::tick();
             //geiger_counter::tick();
 
-            magiceye::setAdcValue(++x);
+            //magiceye::setAdcValue(++x);
+
+            P1OUT &= ~BIT0;
         }
     }
 }

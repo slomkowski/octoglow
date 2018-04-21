@@ -9,7 +9,9 @@
 using namespace std;
 
 constexpr double STRIPE_WIDTH = 6;
-constexpr double STRIPE_HEIGHT = 35;
+constexpr double STRIPE_MAX_HEIGHT_BOTH = 35;
+constexpr double STRIPE_MIN_HEIGHT = 5;
+
 constexpr double WINDOW_WIDTH = 20;
 constexpr double WINDOW_HEIGHT = 50;
 
@@ -71,11 +73,11 @@ int main(int, char *[]) {
             stripeUpper.x = stripeLower.x = inPx((WINDOW_WIDTH - STRIPE_WIDTH) / 2);
             stripeUpper.w = stripeLower.w = inPx(STRIPE_WIDTH);
 
-            stripeUpper.y = inPx((WINDOW_HEIGHT - STRIPE_HEIGHT) / 2.0);
+            stripeUpper.y = inPx((WINDOW_HEIGHT - STRIPE_MAX_HEIGHT_BOTH) / 2.0);
 
-            stripeUpper.h = stripeLower.h = inPx((((double) adcValue) / 255.0) * STRIPE_HEIGHT / 2.0);
+            stripeUpper.h = stripeLower.h = inPx((((double) adcValue) / 255.0) * (STRIPE_MAX_HEIGHT_BOTH - 2 * STRIPE_MIN_HEIGHT) / 2.0 + STRIPE_MIN_HEIGHT);
 
-            stripeLower.y = inPx((WINDOW_HEIGHT + STRIPE_HEIGHT) / 2.0) - stripeLower.h;
+            stripeLower.y = inPx((WINDOW_HEIGHT + STRIPE_MAX_HEIGHT_BOTH) / 2.0) - stripeLower.h;
 
             SDL_SetRenderDrawColor(renderer, get<0>(BACKGROUND_COLOR), get<1>(BACKGROUND_COLOR), get<2>(BACKGROUND_COLOR), get<3>(BACKGROUND_COLOR));
             SDL_RenderClear(renderer);

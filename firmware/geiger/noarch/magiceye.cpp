@@ -33,14 +33,14 @@ void octoglow::geiger::magiceye::tick() {
         ++cyclesCounter;
     }
 
-//    if (eyeControllerState == EyeControllerState::ANIMATION) {
-//        static uint16_t previousValue = UINT16_MAX;
-//        const uint16_t currentValue = geiger_counter::getState().numOfCountsCurrentCycle;
-//
-//        setAdcValue(_animate(currentValue > previousValue));
-//
-//        previousValue = currentValue;
-//    }
+    if (eyeControllerState == EyeControllerState::ANIMATION) {
+        static uint16_t previousValue = UINT16_MAX;
+        const uint16_t currentValue = geiger_counter::getState().numOfCountsCurrentCycle;
+
+        setAdcValue(_animate(currentValue > previousValue));
+
+        previousValue = currentValue;
+    }
 }
 
 void octoglow::geiger::magiceye::setEnabled(bool enabled) {
