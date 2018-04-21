@@ -6008,7 +6008,7 @@
     (fp_text reference C35 (at 3.75 -2.91) (layer F.SilkS)
       (effects (font (size 1 1) (thickness 0.15)))
     )
-    (fp_text value 82p (at 3.75 2.91) (layer F.Fab)
+    (fp_text value 180p (at 3.75 2.91) (layer F.Fab)
       (effects (font (size 1 1) (thickness 0.15)))
     )
     (fp_line (start -0.75 -1.6) (end -0.75 1.6) (layer F.Fab) (width 0.1))
