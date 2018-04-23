@@ -35,29 +35,6 @@ wartość średnia
 ## I2C protocol specification
 
 
-status:
-napięcie geiger
-status przetwornicy eye
-napięcie przetwornicy eye
-status kontrolera eye: animation, fixed val
-wartość kontrolera eye, jeśli fixed val
-
-
-status geiger:
-ilość zliczeń w bieżącym cyklu
-ilość zliczeń w poprzednim cyklu
-dł. cyklu w s
-
-
-jakie komendy:
-odczyt statusu:
-odczyt statusu geiger
-włączenie/wyłączenie oka
-reset licznika geigera
-tryb pracy oka: tryb + wartość dla fixed
-
-
-
 ## Read device status
 
 Send *0x1* then read 8 bytes. Structure `DeviceState` is returned.
@@ -65,13 +42,21 @@ Send *0x1* then read 8 bytes. Structure `DeviceState` is returned.
 
 ## Read Geiger counter status
 
-Send *0x2* then read 6 bytes. Structure `GeigerState` is returned.
+Send *0x2* then read 7 bytes. Structure `GeigerState` is returned.
 
+## Set Geiger counter configuration
+
+Send *0x3* todo
 
 ## Clean Geiger counter status
 
-Clears all counters. Send `0x3`.
+Clears all counters. Send *0x3*
 
+## Set Geiger cycle length
+
+In seconds, default 300 (5 minutes).
+
+TODO
 
 ## Enable/disable magic eye 
 

@@ -12,19 +12,21 @@ using namespace octoglow::geiger;
 using namespace octoglow::geiger::magiceye;
 using namespace octoglow::geiger::protocol;
 
-static EyeInverterState eyeState = EyeInverterState::DISABLED;
-static EyeControllerState eyeControllerState = EyeControllerState::ANIMATION;
-static uint16_t cyclesCounter = UINT16_MAX;
+namespace octoglow::geiger::magiceye {
+    EyeInverterState state = EyeInverterState::DISABLED;
+    EyeDisplayMode animationMode = EyeDisplayMode::ANIMATION;
+}
 
+static uint16_t cyclesCounter = UINT16_MAX;
 
 void octoglow::geiger::magiceye::tick() {
 
-    if (eyeState == EyeInverterState::HEATING_LIMITED and cyclesCounter >= PREHEAT_TIME_SECONDS * TICK_TIMER_FREQ) {
+    if (state == EyeInverterState::HEATING_LIMITED and cyclesCounter >= PREHEAT_TIME_SECONDS * TICK_TIMER_FREQ) {
         hd::enableHeater2(true);
-        eyeState = EyeInverterState::HEATING_FULL;
+        state = EyeInverterState::HEATING_FULL;
         cyclesCounter = 0;
-    } else if (eyeState == EyeInverterState::HEATING_FULL and cyclesCounter >= POSTHEAT_TIME_SECONDS * TICK_TIMER_FREQ) {
-        eyeState = EyeInverterState::RUNNING;
+    } else if (state == EyeInverterState::HEATING_FULL and cyclesCounter >= POSTHEAT_TIME_SECONDS * TICK_TIMER_FREQ) {
+        state = EyeInverterState::RUNNING;
         cyclesCounter = 0;
         inverter::setEyeEnabled(true);
     }
@@ -33,7 +35,7 @@ void octoglow::geiger::magiceye::tick() {
         ++cyclesCounter;
     }
 
-    if (eyeControllerState == EyeControllerState::ANIMATION) {
+    if (animationMode == EyeDisplayMode::ANIMATION) {
         static uint16_t previousValue = UINT16_MAX;
         const uint16_t currentValue = geiger_counter::getState().numOfCountsCurrentCycle;
 
@@ -45,33 +47,29 @@ void octoglow::geiger::magiceye::tick() {
 
 void octoglow::geiger::magiceye::setEnabled(bool enabled) {
 
-    if (enabled and eyeState == EyeInverterState::DISABLED) {
+    if (enabled and state == EyeInverterState::DISABLED) {
         if (cyclesCounter < MAX_SECONDS_WITHOUT_PREHEAT * TICK_TIMER_FREQ) {
             hd::enableHeater1(true);
             hd::enableHeater2(true);
-            eyeState = EyeInverterState::HEATING_FULL;
+            state = EyeInverterState::HEATING_FULL;
         } else {
             hd::enableHeater1(true);
-            eyeState = EyeInverterState::HEATING_LIMITED;
+            state = EyeInverterState::HEATING_LIMITED;
         }
         cyclesCounter = 0;
-    } else if (!enabled and eyeState != EyeInverterState::DISABLED) {
+    } else if (!enabled and state != EyeInverterState::DISABLED) {
         inverter::setEyeEnabled(false);
-        eyeState = EyeInverterState::DISABLED;
+        state = EyeInverterState::DISABLED;
         cyclesCounter = 0;
         hd::enableHeater1(false);
         hd::enableHeater2(false);
     }
 }
 
-octoglow::geiger::protocol::EyeInverterState octoglow::geiger::magiceye::getState() {
-    return eyeState;
+void octoglow::geiger::magiceye::configure(protocol::EyeConfiguration &configuration) {
+    setEnabled(configuration.enabled);
+    animationMode = configuration.mode;
+
+    //todo set brightness
 }
 
-void ::octoglow::geiger::magiceye::setControllerState(octoglow::geiger::protocol::EyeControllerState state) {
-    eyeControllerState = state;
-}
-
-protocol::EyeControllerState octoglow::geiger::magiceye::getControllerState() {
-    return eyeControllerState;
-}

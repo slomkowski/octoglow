@@ -12,15 +12,14 @@ namespace octoglow {
 
             void tick();
 
-            void setEnabled(bool enabled);
+            void configure(protocol::EyeConfiguration &configuration);
 
             void setAdcValue(uint8_t v);
 
-            void setControllerState(protocol::EyeControllerState state);
+            void setEnabled(bool enabled);
 
-            protocol::EyeControllerState getControllerState();
-
-            protocol::EyeInverterState getState();
+            extern protocol::EyeInverterState state;
+            extern protocol::EyeDisplayMode animationMode;
 
             namespace hd {
                 void enableHeater1(bool enabled);

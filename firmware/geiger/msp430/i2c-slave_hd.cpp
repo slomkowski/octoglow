@@ -34,10 +34,11 @@ __attribute__ ((interrupt(USCIAB0RX_VECTOR))) void USCIAB0RX_ISR() {
 
 protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
     static protocol::DeviceState state;
-    state.eyeInverterState = magiceye::getState();
-    state.eyeControllerState = magiceye::getControllerState();
-    state.eyePwmValue = TA1CCR2;
-    state.geigerPwmValue = TA1CCR1;
+
+    state.eyeState = magiceye::state;
+    state.eyeAnimationMode = magiceye::animationMode;
+    state.eyePwmValue = TA1CCR1;
+    state.geigerPwmValue = TA0CCR1;
     state.geigerVoltage = 0x1234;
     state.eyeVoltage = 0x5678;
 

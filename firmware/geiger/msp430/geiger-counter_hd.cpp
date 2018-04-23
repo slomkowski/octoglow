@@ -2,19 +2,10 @@
 
 #include <msp430.h>
 
-/*
- * todo
- * konfiguracja wejścia i przerwania dla zwiększania licznika
- * obsługa przerwania, które inkrementuje licznik
- */
-
 using namespace octoglow::geiger::geiger_counter;
 
-
 void octoglow::geiger::geiger_counter::init() {
-    //todo init geiger counter
-
-    // geiger jest na P2.2
+    _state.cycleLength = GEIGER_CYCLE_DEFAULT_LENGTH;
 
     P2IE |= BIT2;
 }

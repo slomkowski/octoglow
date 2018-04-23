@@ -38,18 +38,18 @@ int main() {
 
     WDTCTL = WDTPW | WDTHOLD;
 
-    i = 0xfff0;
-    do i--;
-    while (i != 0);
-
-    configureClockSystem();
-
     P1DIR |= BIT0;
 
     inverter::init();
     magiceye::init();
     i2c::init();
     geiger_counter::init();
+
+    i = 0xfff0;
+    do i--;
+    while (i != 0);
+
+    configureClockSystem();
 
     __nop();
     __enable_interrupt();
@@ -70,7 +70,7 @@ int main() {
 
             inverter::tick();
             magiceye::tick();
-            //geiger_counter::tick();
+            geiger_counter::tick();
 
             //magiceye::setAdcValue(++x);
 

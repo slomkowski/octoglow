@@ -62,7 +62,7 @@ int main() {
 
 #if WATCHD0G_ENABLE
     wdt_enable(WDTO_120MS);
-#endif
+#endif.
 
     sei();
 
@@ -74,7 +74,7 @@ int main() {
 
         processI2cCommands();
 
-        if(receiver433::currentWeatherSensorState.temperature !=0) {
+        if (receiver433::currentWeatherSensorState.temperature != 0) {
             char text[5];
 
             sprintf(text, "%2d %d", receiver433::currentWeatherSensorState.temperature / 10, receiver433::currentWeatherSensorState.temperature % 10);
