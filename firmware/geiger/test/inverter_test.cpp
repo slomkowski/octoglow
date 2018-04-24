@@ -18,7 +18,7 @@ void ::octoglow::geiger::inverter::setEyeEnabled(bool enabled) {
 
 TEST(Inverter, AdcValues) {
     cout << "\nADC Geiger desired output: " << _private::GEIGER_DESIRED_ADC_READOUT << endl;
-    cout << "ADC eye desired output: " << _private::EYE_DESIRED_ADC_READOUT << endl;
+    cout << "ADC eye desired output: " << desiredEyeAdcValue << endl;
 }
 
 TEST(Inverter, EyeRegulation) {

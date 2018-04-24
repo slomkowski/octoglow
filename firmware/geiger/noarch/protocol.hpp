@@ -6,6 +6,8 @@ namespace octoglow {
     namespace geiger {
         namespace protocol {
 
+            constexpr uint8_t MAX_BRIGHTNESS = 5;
+
             enum class EyeInverterState : uint8_t {
                 DISABLED,
                 HEATING_LIMITED,

@@ -55,7 +55,7 @@ int main() {
     __enable_interrupt();
     __nop();
 
-    magiceye::setEnabled(true);
+    //magiceye::setEnabled(true);
 
     //uint8_t x = 0;
 

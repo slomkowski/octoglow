@@ -1,4 +1,5 @@
 #include "magiceye.hpp"
+#include "inverter.hpp"
 
 #include <msp430.h>
 
@@ -35,6 +36,8 @@ void ::octoglow::geiger::magiceye::init() {
 
     // init DAC
     P2DIR |= DAC_LATCH | DAC_IN | DAC_CLK;
+
+    inverter::desiredEyeAdcValue = _private::desiredAdcValues[protocol::MAX_BRIGHTNESS - 1];
 
     setAdcValue(127); // set to half value
 }

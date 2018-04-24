@@ -15,8 +15,8 @@ constexpr double STRIPE_MIN_HEIGHT = 5;
 constexpr double WINDOW_WIDTH = 20;
 constexpr double WINDOW_HEIGHT = 50;
 
-constexpr tuple <uint8_t, uint8_t, uint8_t, uint8_t> BACKGROUND_COLOR(0x24, 0x24, 0x24, 0xff);
-constexpr tuple <uint8_t, uint8_t, uint8_t, uint8_t> STRIPE_COLOR(0x42, 0xf4, 0xdc, 0xff);
+constexpr tuple<uint8_t, uint8_t, uint8_t, uint8_t> BACKGROUND_COLOR(0x24, 0x24, 0x24, 0xff);
+constexpr tuple<uint8_t, uint8_t, uint8_t, uint8_t> STRIPE_COLOR(0x42, 0xf4, 0xdc, 0xff);
 
 
 int main(int, char *[]) {

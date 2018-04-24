@@ -2,10 +2,13 @@
 
 using namespace octoglow::geiger::inverter::_private;
 
+namespace octoglow::geiger::inverter {
+    uint16_t desiredEyeAdcValue;
+}
 
 void octoglow::geiger::inverter::_private::regulateEyeInverter(const uint16_t adcReadout, uint16_t *const pwmValue) {
 
-    const int16_t diff = adcReadout - EYE_DESIRED_ADC_READOUT;
+    const int16_t diff = adcReadout - desiredEyeAdcValue;
 
     *pwmValue = eyeCycles((EYE_PWM_MAX_DUTY + EYE_PWM_MIN_DUTY) / 2) + diff / 30;
 
