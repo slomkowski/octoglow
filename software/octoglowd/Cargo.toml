@@ -1,0 +1,7 @@
+[package]
+name = "octoglowd"
+version = "0.1.0"
+authors = ["Michał Słomkowski <m.slomkowski@gmail.com>"]
+
+[dependencies]
+i2cdev = "0.4.0"
