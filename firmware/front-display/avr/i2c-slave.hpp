@@ -23,7 +23,7 @@
 #ifndef _I2C_SLAVE_H_
 #define _I2C_SLAVE_H_
 
-#include "../src/global.hpp"
+#include "main.hpp"
 
 /****************************************************************************
   Global definitions
@@ -31,14 +31,13 @@
 
 union TWI_statusReg_t // Status byte holding flags.
 {
-	unsigned char all;
-	struct
-	{
-		unsigned char lastTransOK:1;
-		unsigned char RxDataInBuf:1;
-		unsigned char genAddressCall:1; // TRUE = General call, FALSE = TWI Address;
-		unsigned char unusedBits:5;
-	};
+    unsigned char all;
+    struct {
+        unsigned char lastTransOK:1;
+        unsigned char RxDataInBuf:1;
+        unsigned char genAddressCall:1; // TRUE = General call, FALSE = TWI Address;
+        unsigned char unusedBits:5;
+    };
 };
 
 extern union TWI_statusReg_t TWI_statusReg;
@@ -48,11 +47,15 @@ extern union TWI_statusReg_t TWI_statusReg;
 /****************************************************************************
   Function definitions
 ****************************************************************************/
-void TWI_Slave_Initialise(unsigned char, void (*process_func)(uint8_t*, uint8_t*));
+void TWI_Slave_Initialise(unsigned char, void (*process_func)(uint8_t *, uint8_t *));
+
 unsigned char TWI_Transceiver_Busy(void);
+
 //unsigned char TWI_Get_State_Info(void);
 void TWI_Start_Transceiver_With_Data(unsigned char *, unsigned char);
-void TWI_Start_Transceiver( void );
+
+void TWI_Start_Transceiver(void);
+
 unsigned char TWI_Get_Data_From_Transceiver(unsigned char *, unsigned char);
 
 void TWI_Interrupt_Routine();

@@ -1,8 +1,6 @@
-#include "display-lowlevel.hpp"
 #include "Font5x7.hpp"
-#include "global.hpp"
-
-#include <avr/io.h>
+#include "display.hpp"
+#include "main.hpp"
 
 #define CK_PORT D
 #define CK_PIN 7
@@ -19,26 +17,18 @@
 #define S_IN_PORT B
 #define S_IN_PIN 0
 
-using namespace octoglow::vfd_front::display_lowlevel;
+using namespace octoglow::front_display::display;
+using namespace octoglow::front_display::display::hd;
 
-uint8_t octoglow::vfd_front::display_lowlevel::frameBuffer[NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER];
-
-uint32_t octoglow::vfd_front::display_lowlevel::upperBarBuffer = 0l;
-
-static uint8_t brightness = MAX_BRIGHTNESS;
 static uint8_t currentPosition = 0;
 
-void ::octoglow::vfd_front::display_lowlevel::init() {
+void octoglow::front_display::display::init() {
     // all connectors are outputs
     DDR(CK_PORT) |= _BV(CK_PIN);
     DDR(CHG_PORT) |= _BV(CHG_PIN);
     DDR(CL_PORT) |= _BV(CL_PIN);
     DDR(STB_PORT) |= _BV(STB_PIN);
     DDR(S_IN_PORT) |= _BV(S_IN_PIN);
-}
-
-void ::octoglow::vfd_front::display_lowlevel::setBrightness(const uint8_t b) {
-    brightness = b > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : b;
 }
 
 static inline __attribute((always_inline)) void ckPulse() {
@@ -92,8 +82,8 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
 
     PORT(CL_PORT) |= _BV(CL_PIN);
 
-    const uint8_t *characterPtr = &frameBuffer[(COLUMNS_IN_CHARACTER * position) %
-                                               (NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER)];
+    const uint8_t *characterPtr = &_frameBuffer[(COLUMNS_IN_CHARACTER * position) %
+                                                (NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER)];
 
     if ((position >= 10) and (position <= 19)) {
         position += 20;
@@ -116,7 +106,7 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
         }
     }
 
-    if (brightness == 1) {
+    if (_brightness == 1) {
         PORT(CL_PORT) &= ~_BV(CL_PIN);
     }
 
@@ -151,7 +141,7 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
     ckPulse();
     ckPulse();
 
-    if (brightness == 2) {
+    if (_brightness == 2) {
         PORT(CL_PORT) &= ~_BV(CL_PIN);
     }
 
@@ -199,13 +189,13 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
         ckPulse();
     }
 
-    if (brightness == 3) {
+    if (_brightness == 3) {
         PORT(CL_PORT) &= ~_BV(CL_PIN);
     }
 
     // a36 - upper bar
-    if ((position < 10 and upperBarBuffer & (1L << position))
-        or (position >= 30 and position < 40 and upperBarBuffer & (1L << (position - 20)))) {
+    if ((position < 10 and _upperBarBuffer & (1L << position))
+        or (position >= 30 and position < 40 and _upperBarBuffer & (1L << (position - 20)))) {
         PORT(S_IN_PORT) |= _BV(S_IN_PIN);
     } else {
         PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
@@ -229,7 +219,7 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
 }
 
 
-void ::octoglow::vfd_front::display_lowlevel::displayPool() {
+void octoglow::front_display::display::hd::displayPool() {
 
     holdCharacterOnDisplayInputs(currentPosition);
 
