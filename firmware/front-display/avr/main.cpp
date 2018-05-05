@@ -9,10 +9,9 @@
 
 #include <stdlib.h>
 
-using namespace octoglow::front_display;
+constexpr bool WATCHDOG_ENABLE = false;
 
-static void processCommands(uint8_t *rxbuf, uint8_t *txbuf) {
-}
+using namespace octoglow::front_display;
 
 static const uint8_t GRAPHICS_HEART[] PROGMEM = {0x00, 0x06, 0x09, 0x11, 0x22, 0x22, 0x11, 0x09, 0x06, 0x00};
 static const uint8_t GRAPHICS_STRIKETHROUGH[] PROGMEM = {0x01};
@@ -26,8 +25,8 @@ static void showDemoOnDisplay() {
     display::setUpperBarContent(0b111101101110000000u);
 
     display::writeScrollingText_P(0, 21, 10, PSTR("Zażółć gęślą jaźń! ū \"no i ja się pytam człowieku dumny "
-                                                          "ty jesteś z siebie zdajesz sobie sprawę z tego "
-                                                          "co robisz?masz ty wogóle rozum i godnośc człowieka?\""));
+                                                  "ty jesteś z siebie zdajesz sobie sprawę z tego "
+                                                  "co robisz?masz ty wogóle rozum i godnośc człowieka?\""));
 
     for (uint8_t c = 5; c < 25; ++c) {
         display::drawGraphics_P(c, 1, true, GRAPHICS_STRIKETHROUGH);
@@ -62,13 +61,11 @@ int main() {
     encoder::init();
     display::init();
 
-    // i2c
-    TWI_Slave_Initialise((unsigned char) ((I2C_SLAVE_ADDRESS << TWI_ADR_BITS) | (1 << TWI_GEN_BIT)), processCommands);
-    TWI_Start_Transceiver();
+    i2c::init();
 
-#if WATCHD0G_ENABLE
-    wdt_enable(WDTO_120MS);
-#endif
+    if (WATCHDOG_ENABLE) {
+        wdt_enable(WDTO_120MS);
+    }
 
     sei();
 
@@ -82,8 +79,8 @@ int main() {
 
         showEncoderValue();
 
-#if WATCHD0G_ENABLE
-        wdt_reset();
-#endif
+        if (WATCHDOG_ENABLE) {
+            wdt_reset();
+        }
     }
 }

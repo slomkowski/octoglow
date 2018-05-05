@@ -11,6 +11,8 @@
 #include <string.h>
 #include <stdio.h>
 
+constexpr bool WATCHD0G_ENABLE = true;
+
 using namespace octoglow::vfd_clock;
 
 static inline void processI2cCommands() {
@@ -60,9 +62,9 @@ int main() {
     relay::init();
     receiver433::init();
 
-#if WATCHD0G_ENABLE
-    wdt_enable(WDTO_120MS);
-#endif.
+    if (WATCHD0G_ENABLE) {
+        wdt_enable(WDTO_250MS);
+    }
 
     sei();
 
@@ -74,16 +76,16 @@ int main() {
 
         processI2cCommands();
 
-        if (receiver433::currentWeatherSensorState.temperature != 0) {
-            char text[5];
+//        if (receiver433::currentWeatherSensorState.temperature != 0) {
+//            char text[5];
+//
+//            sprintf(text, "%2d %d", receiver433::currentWeatherSensorState.temperature / 10, receiver433::currentWeatherSensorState.temperature % 10);
+//            display::setAllCharacters(text);
+//            display::setDots(protocol::LOWER_DOT);
+//        }
 
-            sprintf(text, "%2d %d", receiver433::currentWeatherSensorState.temperature / 10, receiver433::currentWeatherSensorState.temperature % 10);
-            display::setAllCharacters(text);
-            display::setDots(protocol::LOWER_DOT);
+        if (WATCHD0G_ENABLE) {
+            wdt_reset();
         }
-
-#if WATCHD0G_ENABLE
-        wdt_reset();
-#endif
     }
 }

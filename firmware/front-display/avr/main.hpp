@@ -9,11 +9,6 @@
    #######
 */
 
-#define I2C_SLAVE_ADDRESS 0x40
-#define I2C_BUFFER_SIZE 10      // Reserves memory for the drivers transceiver buffer.
-
-#define WATCHDOG_ENABLE 0
-
 #include <stdint.h>
 
 /*

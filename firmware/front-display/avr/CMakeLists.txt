@@ -14,7 +14,7 @@ include_directories(../noarch ../avr)
 
 SET(SOURCES
         main.cpp main.hpp
-        i2c-slave.cpp i2c-slave.hpp
+        i2c-slave_hd.cpp
         display_hd.cpp
         encoder_hd.cpp)
 

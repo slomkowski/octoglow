@@ -4,6 +4,16 @@
 
 namespace octoglow::front_display::protocol {
 
+    enum class Command : uint8_t {
+        GET_BUTTONS_STATE = 1,
+        CLEAR,
+        SET_BRIGHTNESS,
+        WRITE_STATIC_TEXT,
+        WRITE_SCROLLING_TEXT,
+        DRAW_GRAPHICS,
+        SET_UPPER_BAR
+    };
+
     namespace text {
         constexpr uint8_t MODE = 't';
     }
