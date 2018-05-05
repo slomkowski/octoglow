@@ -1,16 +1,20 @@
-#include "display.hpp"
-
-#include "global.hpp"
 #include "protocol.hpp"
-#include "display-lowlevel.hpp"
 #include "Font5x7.hpp"
+#include "display.hpp"
+#include "main.hpp"
 
-#include <avr/pgmspace.h>
 #include <string.h>
+
+using namespace octoglow::front_display::display;
+using namespace octoglow::front_display::protocol;
 
 constexpr uint8_t LOOP_NUMBER_OF_SPACES = 2;
 
-using namespace octoglow::vfd_front;
+namespace octoglow::front_display::display {
+    uint8_t _frameBuffer[NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER];
+    uint32_t _upperBarBuffer = 0l;
+    uint8_t _brightness = MAX_BRIGHTNESS;
+}
 
 struct ScrollingSlot {
 
@@ -40,11 +44,11 @@ void ScrollingSlot::scrollAndLoadIntoFramebuffer() {
         return;
     }
 
-    uint8_t characterOffset = this->currentShift / display_lowlevel::COLUMNS_IN_CHARACTER;
-    uint8_t columnOffset = this->currentShift % display_lowlevel::COLUMNS_IN_CHARACTER;
+    uint8_t characterOffset = this->currentShift / COLUMNS_IN_CHARACTER;
+    uint8_t columnOffset = this->currentShift % COLUMNS_IN_CHARACTER;
     uint8_t charactersSkpLines = 0;
 
-    for (uint16_t p = 0; p < this->length * display_lowlevel::COLUMNS_IN_CHARACTER; ++p) {
+    for (uint16_t p = 0; p < this->length * COLUMNS_IN_CHARACTER; ++p) {
 
         const uint8_t op = characterOffset;
         uint8_t character;
@@ -57,15 +61,15 @@ void ScrollingSlot::scrollAndLoadIntoFramebuffer() {
             character = this->convertedText[(op - LOOP_NUMBER_OF_SPACES) % this->textLength];
         }
 
-        const uint8_t frameBufferColumn = display_lowlevel::COLUMNS_IN_CHARACTER * this->startPosition + p;
+        const uint8_t frameBufferColumn = COLUMNS_IN_CHARACTER * this->startPosition + p;
 
-        display_lowlevel::frameBuffer[frameBufferColumn + charactersSkpLines]
-                = pgm_read_byte(Font5x7 + display_lowlevel::COLUMNS_IN_CHARACTER * (character - ' ') + columnOffset);
+        _frameBuffer[frameBufferColumn + charactersSkpLines]
+                = pgm_read_byte(Font5x7 + COLUMNS_IN_CHARACTER * (character - ' ') + columnOffset);
 
         ++columnOffset;
 
-        if (columnOffset == display_lowlevel::COLUMNS_IN_CHARACTER) {
-            display_lowlevel::frameBuffer[frameBufferColumn + charactersSkpLines + 1] = 0;
+        if (columnOffset == COLUMNS_IN_CHARACTER) {
+            _frameBuffer[frameBufferColumn + charactersSkpLines + 1] = 0;
             columnOffset = 0;
             ++characterOffset;
             ++charactersSkpLines;
@@ -74,7 +78,7 @@ void ScrollingSlot::scrollAndLoadIntoFramebuffer() {
 
     this->currentShift++;
 
-    if (this->currentShift == display_lowlevel::COLUMNS_IN_CHARACTER * (this->textLength + 2u)) {
+    if (this->currentShift == COLUMNS_IN_CHARACTER * (this->textLength + 2u)) {
         this->currentShift = 0;
     }
 }
@@ -127,8 +131,7 @@ static void forEachUtf8character(const char *str,
         if (singleAsciiValue < 0x80) {
             strIdx++;
             callback(userData, currPos, singleAsciiValue);
-        }
-        else {
+        } else {
             const uint8_t secondByteValue = stringInProgramSpace
                                             ? pgm_read_byte(str + strIdx + 1)
                                             : reinterpret_cast<const uint8_t & >(str[strIdx + 1]);
@@ -155,40 +158,37 @@ static void forEachUtf8character(const char *str,
 }
 
 
-void ::octoglow::vfd_front::display::writeStaticText(const uint8_t position,
-                                                     const uint8_t maxLength,
-                                                     char *const text,
-                                                     const bool textInProgramSpace) {
+void octoglow::front_display::display::writeStaticText(const uint8_t position,
+                                                       const uint8_t maxLength,
+                                                       char *const text,
+                                                       const bool textInProgramSpace) {
     struct LocalData {
         uint8_t startPosition;
         uint8_t lastPos;
-    } local;
-
-    local.startPosition = position;
-    local.lastPos = 0;
+    } local{position, 0};
 
     forEachUtf8character(text, textInProgramSpace, maxLength, &local,
                          [](void *s, uint8_t curPos, uint8_t code) -> void {
                              const auto ld = static_cast<LocalData *>(s);
 
-                             memcpy_P(display_lowlevel::frameBuffer +
-                                      display_lowlevel::COLUMNS_IN_CHARACTER * (ld->startPosition + curPos),
-                                      Font5x7 + display_lowlevel::COLUMNS_IN_CHARACTER * (code - ' '),
-                                      display_lowlevel::COLUMNS_IN_CHARACTER);
+                             memcpy_P(_frameBuffer +
+                                      COLUMNS_IN_CHARACTER * (ld->startPosition + curPos),
+                                      Font5x7 + COLUMNS_IN_CHARACTER * (code - ' '),
+                                      COLUMNS_IN_CHARACTER);
 
                              ld->lastPos = curPos;
                          });
 
-    memset(display_lowlevel::frameBuffer + display_lowlevel::COLUMNS_IN_CHARACTER * (position + local.lastPos + 1),
+    memset(_frameBuffer + COLUMNS_IN_CHARACTER * (position + local.lastPos + 1),
            0,
-           display_lowlevel::COLUMNS_IN_CHARACTER * (maxLength - local.lastPos));
+           COLUMNS_IN_CHARACTER * (maxLength - local.lastPos));
 }
 
-void ::octoglow::vfd_front::display::writeScrollingText(const uint8_t slotNumber,
-                                                        const uint8_t position,
-                                                        const uint8_t windowLength,
-                                                        char *const text,
-                                                        const bool textInProgramSpace) {
+void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumber,
+                                                          const uint8_t position,
+                                                          const uint8_t windowLength,
+                                                          char *const text,
+                                                          const bool textInProgramSpace) {
 
     ScrollingSlot &slot = scrollingSlots[slotNumber % scroll::NUMBER_OF_SLOTS];
     slot.startPosition = position;
@@ -211,31 +211,25 @@ void ::octoglow::vfd_front::display::writeScrollingText(const uint8_t slotNumber
     }
 }
 
-
-void ::octoglow::vfd_front::display::init() {
-    display_lowlevel::init();
-    clear();
-}
-
-void ::octoglow::vfd_front::display::clear() {
-    for (uint8_t s = 0; s < scroll::NUMBER_OF_SLOTS; ++s) {
-        scrollingSlots[s].clear();
+void octoglow::front_display::display::clear() {
+    for (auto &scrollingSlot : scrollingSlots) {
+        scrollingSlot.clear();
     }
 
     scrollingWaitCounter = 0;
 
-    display_lowlevel::upperBarBuffer = 0;
+    _upperBarBuffer = 0;
 
-    memset(display_lowlevel::frameBuffer, 0,
-           display_lowlevel::COLUMNS_IN_CHARACTER * display_lowlevel::NUM_OF_CHARACTERS);
+    memset(_frameBuffer, 0,
+           COLUMNS_IN_CHARACTER * NUM_OF_CHARACTERS);
 }
 
-void ::octoglow::vfd_front::display::pool() {
+void octoglow::front_display::display::pool() {
 
     if (scrollingWaitCounter == 300) {
 
-        for (uint8_t s = 0; s < scroll::NUMBER_OF_SLOTS; ++s) {
-            scrollingSlots[s].scrollAndLoadIntoFramebuffer();
+        for (auto &scrollingSlot : scrollingSlots) {
+            scrollingSlot.scrollAndLoadIntoFramebuffer();
         }
 
         scrollingWaitCounter = 0;
@@ -243,18 +237,18 @@ void ::octoglow::vfd_front::display::pool() {
 
     ++scrollingWaitCounter;
 
-    display_lowlevel::displayPool();
+    hd::displayPool();
 }
 
-void ::octoglow::vfd_front::display::setBrightness(const uint8_t brightness) {
-    display_lowlevel::setBrightness(brightness);
+void octoglow::front_display::display::setBrightness(const uint8_t b) {
+    _brightness = b > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : b;
 }
 
-void ::octoglow::vfd_front::display::drawGraphics(const uint8_t columnPosition,
-                                                  const uint8_t columnLength,
-                                                  const bool sumWithText,
-                                                  uint8_t *const columnBuffer,
-                                                  const bool bufferInProgramSpace) {
+void octoglow::front_display::display::drawGraphics(const uint8_t columnPosition,
+                                                    const uint8_t columnLength,
+                                                    const bool sumWithText,
+                                                    uint8_t *const columnBuffer,
+                                                    const bool bufferInProgramSpace) {
     for (uint8_t p = 0; p < columnLength; ++p) {
         //todo sum with text
         const uint8_t columnContent = bufferInProgramSpace
@@ -262,39 +256,13 @@ void ::octoglow::vfd_front::display::drawGraphics(const uint8_t columnPosition,
                                       : columnBuffer[p];
 
         if (sumWithText) {
-            display_lowlevel::frameBuffer[columnPosition + p] |= columnContent;
+            _frameBuffer[columnPosition + p] |= columnContent;
         } else {
-            display_lowlevel::frameBuffer[columnPosition + p] = columnContent;
+            _frameBuffer[columnPosition + p] = columnContent;
         }
     }
 }
 
-void ::octoglow::vfd_front::display::setUpperBarContent(uint32_t content) {
-    display_lowlevel::upperBarBuffer = 0b11111111111111111111l & content;
+void octoglow::front_display::display::setUpperBarContent(uint32_t content) {
+    _upperBarBuffer = 0b11111111111111111111ul & content;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,6 +1,7 @@
 #include "Font5x7.hpp"
+#include "main.hpp"
 
-const uint8_t octoglow::vfd_front::Font5x7[] PROGMEM = {
+const uint8_t octoglow::front_display::display::Font5x7[] PROGMEM = {
         0x00, 0x00, 0x00, 0x00, 0x00,            // Code for char
         0x00, 0x00, 0x5F, 0x00, 0x00,            // Code for char !
         0x00, 0x07, 0x00, 0x07, 0x00,            // Code for char "

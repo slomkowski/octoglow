@@ -1,5 +1,8 @@
 #pragma once
 
+#include <avr/io.h>
+#include <avr/pgmspace.h>
+
 /*
    #######
    ####### Configuration
@@ -11,7 +14,7 @@
 
 #define WATCHDOG_ENABLE 0
 
-#include <inttypes.h>
+#include <stdint.h>
 
 /*
    #######
