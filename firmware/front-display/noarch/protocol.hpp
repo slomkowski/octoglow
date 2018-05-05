@@ -1,18 +1,27 @@
 #pragma once
 
+#include "encoder.hpp"
+
 #include <stdint.h>
+
 
 namespace octoglow::front_display::protocol {
 
     enum class Command : uint8_t {
-        GET_BUTTONS_STATE = 1,
-        CLEAR,
+        GET_ENCODER_STATE = 1,
+        CLEAR_DISPLAY,
         SET_BRIGHTNESS,
         WRITE_STATIC_TEXT,
         WRITE_SCROLLING_TEXT,
         DRAW_GRAPHICS,
         SET_UPPER_BAR
     };
+
+    struct EncoderState {
+        int8_t encoderValue;
+        encoder::ButtonState buttonValue;
+    }__attribute__((packed));
+    static_assert(sizeof(EncoderState) == 2, "invalid size");
 
     namespace text {
         constexpr uint8_t MODE = 't';
