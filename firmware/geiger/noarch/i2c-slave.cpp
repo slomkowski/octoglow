@@ -9,10 +9,10 @@ constexpr uint8_t BUFFER_SIZE = 8;
 using namespace octoglow::geiger::protocol;
 using namespace octoglow::geiger;
 
-static char buffer[BUFFER_SIZE];
+static uint8_t buffer[BUFFER_SIZE];
 static uint8_t bytesProcessed;
 
-static volatile char *transmittedDataPointer = nullptr;
+static volatile uint8_t *transmittedDataPointer = nullptr;
 
 void ::octoglow::geiger::i2c::onTransmit(uint8_t volatile *value) {
     *value = *reinterpret_cast<volatile uint8_t *>(transmittedDataPointer);
@@ -42,7 +42,7 @@ void ::octoglow::geiger::i2c::onReceive(uint8_t value) {
             transmittedDataPointer = buffer;
             state->hasNewCycleStarted = false;
         } else if (cmd == Command::GET_DEVICE_STATE) {
-            transmittedDataPointer = reinterpret_cast<char *>(&hd::getDeviceState());
+            transmittedDataPointer = reinterpret_cast<uint8_t *>(&hd::getDeviceState());
         }
     } else if (bytesProcessed == 2) {
         if (cmd == Command::SET_EYE_DISPLAY_VALUE) {

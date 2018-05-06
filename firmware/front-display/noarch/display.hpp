@@ -63,6 +63,25 @@ namespace octoglow::front_display::display {
 
     extern uint8_t _brightness;
 
+    struct _ScrollingSlot {
+
+        uint8_t startPosition;
+        uint8_t length;
+
+        uint16_t currentShift;
+
+        uint8_t textLength;
+        const uint8_t maxTextLength;
+        uint8_t *const convertedText;
+
+    public:
+        void clear();
+
+        void scrollAndLoadIntoFramebuffer();
+    };
+
+    extern _ScrollingSlot _scrollingSlots[];
+
     namespace hd {
         void displayPool();
     }

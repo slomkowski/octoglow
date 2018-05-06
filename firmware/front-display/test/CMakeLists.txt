@@ -7,7 +7,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 SET(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -DF_CPU=${FREQ}UL -Wall -Wextra -pedantic")
 include_directories(../noarch ../test)
 
-SET(SOURCES main.hpp display_test.cpp)
+SET(SOURCES main.hpp display_test.cpp i2c-slave_test.cpp)
 
 enable_testing()
 

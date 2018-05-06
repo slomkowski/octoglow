@@ -2,6 +2,8 @@
 
 #include "main.hpp"
 
+#include <stdint.h>
+
 namespace octoglow {
     namespace front_display {
         namespace i2c {

@@ -21,7 +21,6 @@ namespace octoglow {
             };
 
             enum class Command : uint8_t {
-                _UNDEFINED, // this is only used by state machine
                 GET_DEVICE_STATE = 0x1,
                 GET_GEIGER_STATE,
                 SET_GEIGER_CONFIGURATION,

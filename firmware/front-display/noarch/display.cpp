@@ -10,36 +10,35 @@ using namespace octoglow::front_display::protocol;
 
 constexpr uint8_t LOOP_NUMBER_OF_SPACES = 2;
 
+static uint16_t scrollingWaitCounter = 0;
+
+static uint8_t scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH];
+static uint8_t scrolTextBuffer1[scroll::SLOT1_MAX_LENGTH];
+static uint8_t scrolTextBuffer2[scroll::SLOT2_MAX_LENGTH];
+
 namespace octoglow::front_display::display {
     uint8_t _frameBuffer[NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER];
     uint32_t _upperBarBuffer = 0l;
     uint8_t _brightness = MAX_BRIGHTNESS;
+
+    _ScrollingSlot _scrollingSlots[3] = {
+            {0, 0, 0, 0, scroll::SLOT0_MAX_LENGTH, scrolTextBuffer0},
+            {0, 0, 0, 0, scroll::SLOT1_MAX_LENGTH, scrolTextBuffer1},
+            {0, 0, 0, 0, scroll::SLOT2_MAX_LENGTH, scrolTextBuffer2}
+    };
+
+    static_assert(sizeof(_scrollingSlots) / sizeof(_scrollingSlots[0]) == scroll::NUMBER_OF_SLOTS,
+                  "slot number doesn't match");
 }
 
-struct ScrollingSlot {
 
-    uint8_t startPosition;
-    uint8_t length;
-
-    uint16_t currentShift;
-
-    uint8_t textLength;
-    const uint8_t maxTextLength;
-    uint8_t *const convertedText;
-
-public:
-    void clear();
-
-    void scrollAndLoadIntoFramebuffer();
-};
-
-void ScrollingSlot::clear() {
+void _ScrollingSlot::clear() {
     startPosition = 0;
     length = 0;
     textLength = 0;
 }
 
-void ScrollingSlot::scrollAndLoadIntoFramebuffer() {
+void _ScrollingSlot::scrollAndLoadIntoFramebuffer() {
     if (this->textLength == 0 or this->length == 0) {
         return;
     }
@@ -82,22 +81,6 @@ void ScrollingSlot::scrollAndLoadIntoFramebuffer() {
         this->currentShift = 0;
     }
 }
-
-
-static uint16_t scrollingWaitCounter = 0;
-
-static uint8_t scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH];
-static uint8_t scrolTextBuffer1[scroll::SLOT1_MAX_LENGTH];
-static uint8_t scrolTextBuffer2[scroll::SLOT2_MAX_LENGTH];
-
-static ScrollingSlot scrollingSlots[3] = {
-        {0, 0, 0, 0, scroll::SLOT0_MAX_LENGTH, scrolTextBuffer0},
-        {0, 0, 0, 0, scroll::SLOT1_MAX_LENGTH, scrolTextBuffer1},
-        {0, 0, 0, 0, scroll::SLOT2_MAX_LENGTH, scrolTextBuffer2}
-};
-
-static_assert(sizeof(scrollingSlots) / sizeof(scrollingSlots[0]) == scroll::NUMBER_OF_SLOTS,
-              "slot number doesn't match");
 
 static const uint16_t utfMappings[] PROGMEM = {
         0x104, 0x105,
@@ -190,15 +173,15 @@ void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumb
                                                           char *const text,
                                                           const bool textInProgramSpace) {
 
-    ScrollingSlot &slot = scrollingSlots[slotNumber % scroll::NUMBER_OF_SLOTS];
+    _ScrollingSlot &slot = _scrollingSlots[slotNumber % scroll::NUMBER_OF_SLOTS];
     slot.startPosition = position;
     slot.length = windowLength;
     slot.currentShift = 0;
 
     forEachUtf8character(text, textInProgramSpace, slot.maxTextLength, &slot,
                          [](void *s, uint8_t curPos, uint8_t code) -> void {
-                             static_cast<ScrollingSlot *>(s)->convertedText[curPos] = code;
-                             static_cast<ScrollingSlot *>(s)->textLength = curPos + 1;
+                             static_cast<_ScrollingSlot *>(s)->convertedText[curPos] = code;
+                             static_cast<_ScrollingSlot *>(s)->textLength = curPos + 1;
                          });
 
     if (slot.textLength <= slot.length) {
@@ -212,7 +195,7 @@ void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumb
 }
 
 void octoglow::front_display::display::clear() {
-    for (auto &scrollingSlot : scrollingSlots) {
+    for (auto &scrollingSlot : _scrollingSlots) {
         scrollingSlot.clear();
     }
 
@@ -228,7 +211,7 @@ void octoglow::front_display::display::pool() {
 
     if (scrollingWaitCounter == 300) {
 
-        for (auto &scrollingSlot : scrollingSlots) {
+        for (auto &scrollingSlot : _scrollingSlots) {
             scrollingSlot.scrollAndLoadIntoFramebuffer();
         }
 
