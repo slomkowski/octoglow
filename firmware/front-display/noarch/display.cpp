@@ -47,7 +47,7 @@ void _ScrollingSlot::scrollAndLoadIntoFramebuffer() {
     uint8_t columnOffset = this->currentShift % COLUMNS_IN_CHARACTER;
     uint8_t charactersSkpLines = 0;
 
-    for (uint16_t p = 0; p < this->length * COLUMNS_IN_CHARACTER; ++p) {
+    for (uint8_t p = 0; p + charactersSkpLines < this->length * COLUMNS_IN_CHARACTER; ++p) {
 
         const uint8_t op = characterOffset;
         uint8_t character;
