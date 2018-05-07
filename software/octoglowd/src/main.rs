@@ -46,15 +46,15 @@ impl Handler<SecondElapsedMessage> for TimerActor {
     }
 }
 
-struct ClockDisplayActor {
-    i2c_actor_addr: Addr<Unsync, i2c::I2CRunner>
+struct ClockDisplayActor<'a> {
+    i2c_actor_addr: &'a Addr<Unsync, i2c::I2CRunner>
 }
 
-impl Actor for ClockDisplayActor {
+impl<'a> Actor for ClockDisplayActor<'a> {
     type Context = Context<Self>;
 }
 
-impl Handler<SecondElapsedMessage> for ClockDisplayActor {
+impl<'a> Handler<SecondElapsedMessage> for ClockDisplayActor<'a> {
     type Result = ();
 
     fn handle(&mut self, msg: SecondElapsedMessage, ctx: &mut Context<Self>) {
@@ -73,9 +73,12 @@ fn main() {
 
     let i2c_addr: Addr<Unsync, _> = i2c::I2CRunner::new().start();
 
-    let clock_display_addr: Addr<Unsync, _> = ClockDisplayActor { i2c_actor_addr: i2c_addr }.start();
+    let clock_display_addr: Addr<Unsync, _> = ClockDisplayActor { i2c_actor_addr: &i2c_addr }.start();
 
     let timer_addr: Addr<Unsync, _> = TimerActor::new(vec![clock_display_addr.recipient()].as_slice());
+
+    i2c_addr.do_send(message::FrontDisplayClear);
+    i2c_addr.do_send(message::FrontDisplayStaticText::new(5, "mądry pies"));
 
     system.run();
 }
