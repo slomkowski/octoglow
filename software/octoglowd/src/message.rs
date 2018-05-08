@@ -75,9 +75,57 @@ pub struct FrontDisplayStaticText {
 impl FrontDisplayStaticText {
     pub fn new(position: u32, text: &str) -> FrontDisplayStaticText {
         let text_length = text.chars().count() as u32;
+        let last_position = position + text_length;
         assert!(position < 40, "position has to be between 0 and 39, {} provided", position);
-        assert!(position + text_length < 40, "end of the string cannot exceed position 39");
+        assert!(text_length > 0, "text length has to be at least 1");
+        assert!(last_position < 40, "end of the string cannot exceed position 39, but has length {} and position {}, which sums to {}", text_length, position, last_position);
 
-        FrontDisplayStaticText { position:position as u8, max_length: text_length as u8, text: text.to_string() }
+        FrontDisplayStaticText { position: position as u8, max_length: text_length as u8, text: text.to_string() }
+    }
+}
+
+#[derive(Debug)]
+pub enum ScrollingTextSlot {
+    SLOT0,
+    SLOT1,
+    SLOT2,
+}
+
+impl ScrollingTextSlot {
+    fn number(&self) -> u8 {
+        match *self {
+            ScrollingTextSlot::SLOT0 => 0,
+            ScrollingTextSlot::SLOT1 => 1,
+            ScrollingTextSlot::SLOT2 => 2
+        }
+    }
+
+    fn capacity(&self) -> u8 {
+        match *self {
+            ScrollingTextSlot::SLOT0 => 150,
+            ScrollingTextSlot::SLOT1 => 70,
+            ScrollingTextSlot::SLOT2 => 30
+        }
+    }
+}
+
+#[derive(Message)]
+pub struct FrontDisplayScrollingText {
+    pub slot_number: u8,
+    pub position: u8,
+    pub length: u8,
+    pub text: String,
+}
+
+impl FrontDisplayScrollingText {
+    pub fn new(slot: ScrollingTextSlot, position: u32, length: u32, text: &str) -> FrontDisplayScrollingText {
+        let text_length = text.len() as u32;
+        let last_position = position + length;
+        assert!(slot.capacity() as u32 > text_length, "UTF-8 text length ({} bytes) cannot exceed the capacity of the selected slot {:?}, which is {}", text_length, slot, slot.capacity());
+        assert!(position < 40, "position has to be between 0 and 39, {} provided", position);
+        assert!(text_length > 0, "text length has to be at least 1");
+        assert!(last_position < 40, "end of the string cannot exceed position 39, but has length {} and position {}, which sums to {}", length, position, last_position);
+
+        FrontDisplayScrollingText { slot_number: slot.number(), position: position as u8, length: length as u8, text: text.to_string() }
     }
 }

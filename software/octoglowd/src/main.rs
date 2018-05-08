@@ -2,12 +2,14 @@
 extern crate actix;
 extern crate chrono;
 
+use actix::actors::signal;
 use actix::prelude::*;
 use chrono::prelude::*;
-use message::{ClockDisplayContent, SecondElapsedMessage};
+use message::*;
 use std::fmt;
 use std::thread;
 use std::time::Duration;
+
 
 mod i2c;
 mod message;
@@ -46,15 +48,13 @@ impl Handler<SecondElapsedMessage> for TimerActor {
     }
 }
 
-struct ClockDisplayActor<'a> {
-    i2c_actor_addr: &'a Addr<Unsync, i2c::I2CRunner>
-}
+struct ClockDisplayActor;
 
-impl<'a> Actor for ClockDisplayActor<'a> {
+impl Actor for ClockDisplayActor {
     type Context = Context<Self>;
 }
 
-impl<'a> Handler<SecondElapsedMessage> for ClockDisplayActor<'a> {
+impl<'a> Handler<SecondElapsedMessage> for ClockDisplayActor {
     type Result = ();
 
     fn handle(&mut self, msg: SecondElapsedMessage, ctx: &mut Context<Self>) {
@@ -63,22 +63,60 @@ impl<'a> Handler<SecondElapsedMessage> for ClockDisplayActor<'a> {
         let lower_dot = now.second() < 20 || now.second() > 40;
         let cdc = ClockDisplayContent::new(now.hour() as u8, now.minute() as u8, upper_dot, lower_dot);
 
-        self.i2c_actor_addr.do_send(cdc)
+        let i2c_actor = Arbiter::registry().get::<i2c::I2CRunner>();
+        i2c_actor.do_send(cdc)
     }
 }
 
+struct Signals;
+
+impl Actor for Signals {
+    type Context = Context<Self>;
+}
+
+// Shutdown system on and of `SIGINT`, `SIGTERM`, `SIGQUIT` signals
+impl Handler<signal::Signal> for Signals {
+    type Result = ();
+
+    fn handle(&mut self, msg: signal::Signal, _: &mut Context<Self>) {
+        match msg.0 {
+            signal::SignalType::Int => {
+                println!("SIGINT received, exiting");
+                Arbiter::system().do_send(actix::msgs::SystemExit(0));
+            }
+            signal::SignalType::Hup => {
+                println!("SIGHUP received, reloading");
+            }
+            signal::SignalType::Term => {
+                println!("SIGTERM received, stopping");
+                Arbiter::system().do_send(actix::msgs::SystemExit(0));
+            }
+            signal::SignalType::Quit => {
+                println!("SIGQUIT received, exiting");
+                Arbiter::system().do_send(actix::msgs::SystemExit(0));
+            }
+            _ => (),
+        }
+    }
+}
 
 fn main() {
     let system = System::new("test");
 
+    let _: Addr<Syn, _> = Signals.start();
+
     let i2c_addr: Addr<Unsync, _> = i2c::I2CRunner::new().start();
 
-    let clock_display_addr: Addr<Unsync, _> = ClockDisplayActor { i2c_actor_addr: &i2c_addr }.start();
+    let clock_display_addr: Addr<Unsync, _> = ClockDisplayActor {}.start();
 
     let timer_addr: Addr<Unsync, _> = TimerActor::new(vec![clock_display_addr.recipient()].as_slice());
 
     i2c_addr.do_send(message::FrontDisplayClear);
     i2c_addr.do_send(message::FrontDisplayStaticText::new(5, "mądry pies"));
+    i2c_addr.do_send(message::FrontDisplayStaticText::new(1, "ąęłść mieć"));
 
-    system.run();
+    i2c_addr.do_send(message::FrontDisplayScrollingText::new(ScrollingTextSlot::SLOT1, 20, 5, "Misje transportowe, sprzątające, elektryczne, elektryczne."));
+
+    let code = system.run();
+    std::process::exit(code);
 }

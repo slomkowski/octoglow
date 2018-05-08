@@ -1,7 +1,7 @@
 extern crate actix;
 extern crate i2cdev;
 
-use i2c::actix::{Actor, Addr, Arbiter, Context, Handler, msgs, Syn, System};
+use i2c::actix::prelude::*;
 use i2c::i2cdev::core::*;
 use i2c::i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
 use message::*;
@@ -22,8 +22,8 @@ pub struct I2CRunner {
     geiger_device: LinuxI2CDevice,
 }
 
-impl I2CRunner {
-    pub fn new() -> I2CRunner {
+impl Default for I2CRunner {
+    fn default() -> I2CRunner {
         let bus_path = "/dev/i2c-1";
 
         I2CRunner {
@@ -34,9 +34,19 @@ impl I2CRunner {
     }
 }
 
+impl I2CRunner {
+    pub fn new() -> I2CRunner {
+        return Default::default();
+    }
+}
+
+impl actix::Supervised for I2CRunner {}
+
 impl Actor for I2CRunner {
     type Context = Context<Self>;
 }
+
+impl ArbiterService for I2CRunner {}
 
 impl Handler<ClockDisplayContent> for I2CRunner {
     type Result = ();
@@ -90,8 +100,20 @@ impl Handler<FrontDisplayStaticText> for I2CRunner {
     type Result = ();
 
     fn handle(&mut self, st: FrontDisplayStaticText, ctx: &mut Context<Self>) {
-        let cmd = vec![4, st.position, st.max_length];
+        let mut cmd = vec![4, st.position, st.max_length];
+        cmd.extend(st.text.as_bytes().iter());
+        cmd.push(0);
         self.front_display_device.write(&cmd);
     }
 }
 
+impl Handler<FrontDisplayScrollingText> for I2CRunner {
+    type Result = ();
+
+    fn handle(&mut self, st: FrontDisplayScrollingText, ctx: &mut Context<Self>) {
+        let mut cmd = vec![5, st.slot_number, st.position, st.length];
+        cmd.extend(st.text.as_bytes().iter());
+        cmd.push(0);
+        self.front_display_device.write(&cmd);
+    }
+}
