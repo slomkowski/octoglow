@@ -38,6 +38,12 @@ impl I2CRunner {
     pub fn new() -> I2CRunner {
         return Default::default();
     }
+
+    fn write_graphics(&mut self, position: u8, sum_with_existing_text: bool, content: &[u8]) {
+        let mut cmd = vec![6, position, content.len() as u8, sum_with_existing_text as u8];
+        cmd.extend(content.iter());
+        self.front_display_device.write(&cmd);
+    }
 }
 
 impl actix::Supervised for I2CRunner {}
@@ -115,5 +121,16 @@ impl Handler<FrontDisplayScrollingText> for I2CRunner {
         cmd.extend(st.text.as_bytes().iter());
         cmd.push(0);
         self.front_display_device.write(&cmd);
+    }
+}
+
+impl Handler<FrontDisplayGraphics> for I2CRunner {
+    type Result = ();
+
+    fn handle(&mut self, g: FrontDisplayGraphics, ctx: &mut Context<Self>) {
+        self.write_graphics(g.position, g.sum_with_existing_content, g.image_bytes_line1.as_slice());
+        if let Some(v) = g.image_bytes_line2 {
+            self.write_graphics(g.position + 5 * 20, g.sum_with_existing_content, v.as_slice());
+        }
     }
 }

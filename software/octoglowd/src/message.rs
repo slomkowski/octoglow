@@ -1,4 +1,7 @@
+extern crate image;
+
 use actix::{Actor, Addr, Arbiter, Context, Message, msgs, Syn, System};
+use image::*;
 use std::fmt;
 use std::io;
 use std::string;
@@ -127,5 +130,53 @@ impl FrontDisplayScrollingText {
         assert!(last_position < 40, "end of the string cannot exceed position 39, but has length {} and position {}, which sums to {}", length, position, last_position);
 
         FrontDisplayScrollingText { slot_number: slot.number(), position: position as u8, length: length as u8, text: text.to_string() }
+    }
+}
+
+#[derive(Message)]
+pub struct FrontDisplayGraphics {
+    pub position: u8,
+    pub sum_with_existing_content: bool,
+    pub image_bytes_line1: Vec<u8>,
+    pub image_bytes_line2: Option<Vec<u8>>,
+}
+
+impl FrontDisplayGraphics {
+    pub fn new(position: u32, sum_with_existing_content: bool, img: &GrayImage, invert_colors: bool) -> FrontDisplayGraphics {
+        match img.height() {
+            7 => { // single line
+                assert!(position < 5 * 40, "position cannot exceed {}", 5 * 40 - 1);
+                FrontDisplayGraphics {
+                    position: position as u8,
+                    sum_with_existing_content,
+                    image_bytes_line1: FrontDisplayGraphics::image_to_vec(img, 0, invert_colors),
+                    image_bytes_line2: None,
+                }
+            }
+            14 => { // two line
+                assert!(position < 5 * 20, "position cannot exceed {}", 5 * 20 - 1);
+                FrontDisplayGraphics {
+                    position: position as u8,
+                    sum_with_existing_content,
+                    image_bytes_line1: FrontDisplayGraphics::image_to_vec(img, 0, invert_colors),
+                    image_bytes_line2: Some(FrontDisplayGraphics::image_to_vec(img, 7, invert_colors)),
+                }
+            }
+            _ => panic!("image has to have height of 7 or 14")
+        }
+    }
+
+    fn image_to_vec(img: &GrayImage, offset: u32, invert_colors: bool) -> Vec<u8> {
+        let mut columns: Vec<u8> = Vec::new();
+        for x in 0..(img.width()) {
+            let c: u8 = (0..7).fold(0, |column_byte, y| {
+                column_byte | (if img.get_pixel(x, y + offset).data[0] > 0 { 1 } else { 0 } << y)
+            });
+            columns.push(match invert_colors {
+                true => !c,
+                _ => c
+            })
+        }
+        columns
     }
 }

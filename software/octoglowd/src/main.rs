@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate actix;
 extern crate chrono;
+extern crate image;
 
 use actix::actors::signal;
 use actix::prelude::*;
@@ -116,6 +117,15 @@ fn main() {
     i2c_addr.do_send(message::FrontDisplayStaticText::new(1, "ąęłść mieć"));
 
     i2c_addr.do_send(message::FrontDisplayScrollingText::new(ScrollingTextSlot::SLOT1, 20, 5, "Misje transportowe, sprzątające, elektryczne, elektryczne."));
+
+    i2c_addr.do_send(message::FrontDisplayClear);
+
+    let img = image::open("/home/michal/x.png").unwrap();
+    i2c_addr.do_send(message::FrontDisplayGraphics::new(5 * 35, false, img.grayscale().as_luma8().unwrap(), true));
+
+    let img2 = image::open("/home/michal/y.png").unwrap();
+    i2c_addr.do_send(message::FrontDisplayGraphics::new(5 * 2, false, img2.grayscale().as_luma8().unwrap(), true));
+
 
     let code = system.run();
     std::process::exit(code);
