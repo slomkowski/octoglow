@@ -8,6 +8,7 @@ use message::*;
 use std::io;
 use std::thread;
 use std::time::Duration;
+use std::mem::transmute;
 
 const CLOCK_DISPLAY_ADDR: u16 = 0x10;
 const GEIGER_ADDR: u16 = 0x12;
@@ -76,10 +77,10 @@ impl Handler<SetBrightness> for I2CRunner {
     }
 }
 
-impl Handler<GetWeatherSensorReport> for I2CRunner {
+impl Handler<ClockDisplayGetWeatherReport> for I2CRunner {
     type Result = Result<WeatherSensorReport, io::Error>;
 
-    fn handle(&mut self, _: GetWeatherSensorReport, ctx: &mut Context<Self>) -> <Self as Handler<GetWeatherSensorReport>>::Result {
+    fn handle(&mut self, _: ClockDisplayGetWeatherReport, ctx: &mut Context<Self>) -> <Self as Handler<ClockDisplayGetWeatherReport>>::Result {
         let mut buf: [u8; 5] = [0; 5];
         self.clock_display_device.write(&[0x04]);
         self.clock_display_device.read(&mut buf);
@@ -132,5 +133,42 @@ impl Handler<FrontDisplayGraphics> for I2CRunner {
         if let Some(v) = g.image_bytes_line2 {
             self.write_graphics(g.position + 5 * 20, g.sum_with_existing_content, v.as_slice());
         }
+    }
+}
+
+
+impl Handler<FrontDisplayUpperBar> for I2CRunner {
+    type Result = ();
+
+    fn handle(&mut self, ub: FrontDisplayUpperBar, ctx: &mut Context<Self>) {
+        let mut cmd = vec![7];
+        let c: u32 = ub.content.iter().enumerate().fold(0, |acc, (index, value)| { if *value { acc | 1 << index } else { acc } });
+        let c_bytes: [u8; 4] = unsafe { transmute(c.to_le()) };
+
+        cmd.extend(c_bytes.iter());
+        self.front_display_device.write(&cmd);
+    }
+}
+
+impl Handler<FrontDisplayGetButtonState> for I2CRunner {
+    type Result = Result<ButtonReport, io::Error>;
+
+    fn handle(&mut self, _: FrontDisplayGetButtonState, _: &mut Context<Self>) -> <Self as Handler<FrontDisplayGetButtonState>>::Result {
+        let mut buf: [u8; 2] = [0; 2];
+        self.front_display_device.write(&[1]);
+        self.front_display_device.read(&mut buf);
+
+        let button = match buf[1] {
+            0 => ButtonState::NoChange,
+            1 => ButtonState::JustPressed,
+            255 => ButtonState::JustReleased,
+            _ => panic!("Invalid button state value {}.", buf[1])
+        };
+
+        let encoder_value: i32 = unsafe { transmute::<u8, i8>(buf[0]) } as i32;
+
+        let report = ButtonReport { button, encoder_value };
+
+        Ok(report)
     }
 }

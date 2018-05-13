@@ -1,10 +1,13 @@
 #[macro_use]
 extern crate actix;
+extern crate futures;
 extern crate chrono;
 extern crate image;
 
-use actix::actors::signal;
-use actix::prelude::*;
+
+use futures::{future, Future};
+use actix::*;
+
 use chrono::prelude::*;
 use message::*;
 use std::fmt;
@@ -65,46 +68,14 @@ impl<'a> Handler<SecondElapsedMessage> for ClockDisplayActor {
         let cdc = ClockDisplayContent::new(now.hour() as u8, now.minute() as u8, upper_dot, lower_dot);
 
         let i2c_actor = Arbiter::registry().get::<i2c::I2CRunner>();
-        i2c_actor.do_send(cdc)
-    }
-}
+        i2c_actor.do_send(cdc);
 
-struct Signals;
-
-impl Actor for Signals {
-    type Context = Context<Self>;
-}
-
-// Shutdown system on and of `SIGINT`, `SIGTERM`, `SIGQUIT` signals
-impl Handler<signal::Signal> for Signals {
-    type Result = ();
-
-    fn handle(&mut self, msg: signal::Signal, _: &mut Context<Self>) {
-        match msg.0 {
-            signal::SignalType::Int => {
-                println!("SIGINT received, exiting");
-                Arbiter::system().do_send(actix::msgs::SystemExit(0));
-            }
-            signal::SignalType::Hup => {
-                println!("SIGHUP received, reloading");
-            }
-            signal::SignalType::Term => {
-                println!("SIGTERM received, stopping");
-                Arbiter::system().do_send(actix::msgs::SystemExit(0));
-            }
-            signal::SignalType::Quit => {
-                println!("SIGQUIT received, exiting");
-                Arbiter::system().do_send(actix::msgs::SystemExit(0));
-            }
-            _ => (),
-        }
+        i2c_actor.do_send(message::FrontDisplayGetButtonState {});
     }
 }
 
 fn main() {
     let system = System::new("test");
-
-    let _: Addr<Syn, _> = Signals.start();
 
     let i2c_addr: Addr<Unsync, _> = i2c::I2CRunner::new().start();
 
@@ -125,7 +96,17 @@ fn main() {
 
     let img2 = image::open("/home/michal/y.png").unwrap();
     i2c_addr.do_send(message::FrontDisplayGraphics::new(5 * 2, false, img2.grayscale().as_luma8().unwrap(), true));
+    i2c_addr.do_send(message::FrontDisplayUpperBar::new([true, true, false, true, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, true]));
 
+    i2c_addr.do_send(message::FrontDisplayUpperBar::enabled_positions(&[0, 1, 19]));
+
+
+    let r = i2c_addr.send(message::FrontDisplayGetButtonState {});
+
+
+//    system.handle().spawn(r.then(|report| {
+//        println!("Button state: {:?}", report.unwrap());
+//    }));
 
     let code = system.run();
     std::process::exit(code);

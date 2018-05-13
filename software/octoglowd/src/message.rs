@@ -9,9 +9,9 @@ use std::string;
 #[derive(Message)]
 pub struct SecondElapsedMessage;
 
-pub struct GetWeatherSensorReport;
+pub struct ClockDisplayGetWeatherReport;
 
-impl Message for GetWeatherSensorReport {
+impl Message for ClockDisplayGetWeatherReport {
     type Result = Result<WeatherSensorReport, io::Error>;
 }
 
@@ -28,6 +28,25 @@ impl fmt::Debug for WeatherSensorReport {
             false => "batt OK"
         })
     }
+}
+
+pub struct FrontDisplayGetButtonState;
+
+impl Message for FrontDisplayGetButtonState {
+    type Result = Result<ButtonReport, io::Error>;
+}
+
+#[derive(Debug)]
+pub enum ButtonState {
+    NoChange,
+    JustPressed,
+    JustReleased,
+}
+
+#[derive(Debug)]
+pub struct ButtonReport {
+    pub button: ButtonState,
+    pub encoder_value: i32,
 }
 
 #[derive(Message)]
@@ -178,5 +197,28 @@ impl FrontDisplayGraphics {
             })
         }
         columns
+    }
+}
+
+#[derive(Message)]
+pub struct FrontDisplayUpperBar {
+    pub content: [bool; 20]
+}
+
+impl FrontDisplayUpperBar {
+    pub fn new(content: [bool; 20]) -> FrontDisplayUpperBar {
+        FrontDisplayUpperBar { content }
+    }
+
+    pub fn enabled_positions(enabled_positions: &[i32]) -> FrontDisplayUpperBar {
+        let mut content: [bool; 20] = [false; 20];
+
+        for pos in 0..20 {
+            if enabled_positions.contains(&pos) {
+                content[pos as usize] = true;
+            }
+        }
+
+        FrontDisplayUpperBar { content }
     }
 }
