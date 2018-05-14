@@ -5,6 +5,7 @@ use image::*;
 use std::fmt;
 use std::io;
 use std::string;
+use std::error::Error;
 
 #[derive(Message)]
 pub struct SecondElapsedMessage;
@@ -12,28 +13,33 @@ pub struct SecondElapsedMessage;
 pub struct ClockDisplayGetWeatherReport;
 
 impl Message for ClockDisplayGetWeatherReport {
-    type Result = Result<WeatherSensorReport, io::Error>;
+    type Result = Result<OutsideWeatherSensorReport, io::Error>;
 }
 
-pub struct WeatherSensorReport {
+#[derive(Debug)]
+pub struct OutsideWeatherSensorReport {
     pub temperature: f32,
-    pub humidity: u8,
+    pub humidity: f32,
     pub battery_is_weak: bool,
-}
-
-impl fmt::Debug for WeatherSensorReport {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[Temp: {} \u{00B0C}, humidity: {}%, {}]", self.temperature, self.humidity, match self.battery_is_weak {
-            true => "batt weak",
-            false => "batt OK"
-        })
-    }
 }
 
 pub struct FrontDisplayGetButtonState;
 
 impl Message for FrontDisplayGetButtonState {
     type Result = Result<ButtonReport, io::Error>;
+}
+
+#[derive(Debug)]
+pub struct InsideWeatherSensorReport {
+    pub temperature: f32,
+    pub humidity: f32,
+    pub pressure: f32,
+}
+
+pub struct GetInsideWeatherReport;
+
+impl Message for GetInsideWeatherReport {
+    type Result = Result<InsideWeatherSensorReport, io::Error>;
 }
 
 #[derive(Debug)]

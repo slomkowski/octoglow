@@ -25,7 +25,7 @@ void octoglow::front_display::encoder::pool() {
     static bool prevButtonState = false;
     static uint8_t currentDebounceIterations = 0;
 
-    if ((PIN(ENC_PORT) & _BV(ENC_BTN_PIN)) and !prevButtonState) {
+    if (!(PIN(ENC_PORT) & _BV(ENC_BTN_PIN)) and !prevButtonState) {
         ++currentDebounceIterations;
 
         if (currentDebounceIterations == DEBOUNCE_ITERATIONS) {
@@ -33,7 +33,7 @@ void octoglow::front_display::encoder::pool() {
             prevButtonState = true;
             _currentButtonState = ButtonState::JUST_PRESSED;
         }
-    } else if (!(PIN(ENC_PORT) & _BV(ENC_BTN_PIN)) and prevButtonState) {
+    } else if ((PIN(ENC_PORT) & _BV(ENC_BTN_PIN)) and prevButtonState) {
         ++currentDebounceIterations;
 
         if (currentDebounceIterations == DEBOUNCE_ITERATIONS) {

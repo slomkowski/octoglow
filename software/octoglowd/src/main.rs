@@ -3,6 +3,7 @@ extern crate actix;
 extern crate futures;
 extern crate chrono;
 extern crate image;
+extern crate byteorder;
 
 
 use futures::{future, Future};
@@ -70,6 +71,8 @@ impl<'a> Handler<SecondElapsedMessage> for ClockDisplayActor {
         let i2c_actor = Arbiter::registry().get::<i2c::I2CRunner>();
         i2c_actor.do_send(cdc);
 
+        i2c_actor.do_send(message::GetInsideWeatherReport {});
+
         i2c_actor.do_send(message::FrontDisplayGetButtonState {});
     }
 }
@@ -100,8 +103,7 @@ fn main() {
 
     i2c_addr.do_send(message::FrontDisplayUpperBar::enabled_positions(&[0, 1, 19]));
 
-
-    let r = i2c_addr.send(message::FrontDisplayGetButtonState {});
+    i2c_addr.do_send(message::FrontDisplayGetButtonState {});
 
 
 //    system.handle().spawn(r.then(|report| {
