@@ -4,20 +4,19 @@ extern crate futures;
 extern crate chrono;
 extern crate image;
 extern crate byteorder;
-
+extern crate i2cdev;
 
 use futures::{future, Future};
 use actix::*;
-
 use chrono::prelude::*;
 use message::*;
 use std::fmt;
 use std::thread;
 use std::time::Duration;
 
-
 mod i2c;
 mod message;
+mod database;
 
 struct TimerActor {
     recipients: Vec<Recipient<Unsync, SecondElapsedMessage>>
@@ -78,7 +77,7 @@ impl<'a> Handler<SecondElapsedMessage> for ClockDisplayActor {
 }
 
 fn main() {
-    let system = System::new("test");
+    let system = System::new("octoglowd");
 
     let i2c_addr: Addr<Unsync, _> = i2c::I2CRunner::new().start();
 
@@ -103,12 +102,12 @@ fn main() {
 
     i2c_addr.do_send(message::FrontDisplayUpperBar::enabled_positions(&[0, 1, 19]));
 
-    i2c_addr.do_send(message::FrontDisplayGetButtonState {});
+    let r = i2c_addr.send(message::FrontDisplayGetButtonState {});
 
-
-//    system.handle().spawn(r.then(|report| {
-//        println!("Button state: {:?}", report.unwrap());
-//    }));
+    system.handle().spawn(r.then(|report| {
+        println!("Button state: {:?}", report.unwrap());
+        future::result(Ok(()))
+    }));
 
     let code = system.run();
     std::process::exit(code);

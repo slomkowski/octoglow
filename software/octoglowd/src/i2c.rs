@@ -1,10 +1,6 @@
-extern crate actix;
-extern crate i2cdev;
-extern crate byteorder;
-
-use i2c::actix::prelude::*;
-use i2c::i2cdev::core::*;
-use i2c::i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
+use actix::prelude::*;
+use i2cdev::core::*;
+use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
 use message::*;
 use std::io;
 use std::thread;
