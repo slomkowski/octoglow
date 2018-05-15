@@ -1,14 +1,17 @@
 extern crate image;
 
-use actix::{Actor, Addr, Arbiter, Context, Message, msgs, Syn, System};
+use actix::prelude::*;
 use image::*;
 use std::fmt;
 use std::io;
-use std::string;
-use std::error::Error;
 
 #[derive(Message)]
-pub struct SecondElapsedMessage;
+pub struct EverySecondMessage;
+
+#[derive(Message)]
+pub struct SubscribeForEverySecondMessage {
+    pub recipient: Recipient<Unsync, EverySecondMessage>
+}
 
 pub struct ClockDisplayGetWeatherReport;
 
