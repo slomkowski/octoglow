@@ -8,6 +8,9 @@ extern crate image;
 #[macro_use]
 extern crate log;
 extern crate simplelog;
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 
 use simplelog::*;
 use actix::prelude::*;
@@ -16,6 +19,7 @@ use message::*;
 use std::time::Duration;
 use std::io;
 
+pub mod schema;
 mod i2c;
 mod message;
 mod database;

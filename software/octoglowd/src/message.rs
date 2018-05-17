@@ -19,7 +19,7 @@ impl Message for ClockDisplayGetWeatherReport {
     type Result = Result<OutsideWeatherSensorReport, io::Error>;
 }
 
-#[derive(Debug)]
+#[derive(Message, Debug)]
 pub struct OutsideWeatherSensorReport {
     pub temperature: f32,
     pub humidity: f32,
@@ -32,7 +32,7 @@ impl Message for FrontDisplayGetButtonState {
     type Result = Result<ButtonReport, io::Error>;
 }
 
-#[derive(Debug)]
+#[derive(Message, Debug)]
 pub struct InsideWeatherSensorReport {
     pub temperature: f32,
     pub humidity: f32,

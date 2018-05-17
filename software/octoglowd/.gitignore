@@ -10,6 +10,9 @@ Cargo.lock
 **/*.rs.bk
 /build
 
+.env
+*.db
+
 # for IntelliJ
 .idea/
 *.iml
