@@ -2,23 +2,35 @@
 extern crate actix;
 extern crate byteorder;
 extern crate chrono;
+extern crate config;
 extern crate futures;
 extern crate i2cdev;
 extern crate image;
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate log;
 extern crate simplelog;
 
-use simplelog::*;
 use actix::prelude::*;
 use chrono::prelude::*;
 use message::*;
-use std::time::Duration;
 use std::io;
+use std::sync::RwLock;
+use std::time::Duration;
 
 mod i2c;
 mod message;
 mod database;
+
+lazy_static! {
+	static ref SETTINGS: RwLock<config::Config> = RwLock::new({
+	    let mut s = config::Config::default();
+	    s.merge(config::File::with_name("config")).unwrap();
+        s.merge(config::Environment::with_prefix("APP")).unwrap();
+        s
+        });
+}
 
 #[derive(Default)]
 struct TimerActor {
@@ -91,7 +103,8 @@ impl<'a> Handler<EverySecondMessage> for ClockDisplayActor {
 }
 
 fn main() {
-    CombinedLogger::init(vec![TermLogger::new(LevelFilter::Info, Config::default()).unwrap()]).unwrap();
+    simplelog::CombinedLogger::init(vec![simplelog::TermLogger::new(simplelog::LevelFilter::Info,
+                                                                    simplelog::Config::default()).unwrap()]).unwrap();
 
     let system = System::new("octoglowd");
 
