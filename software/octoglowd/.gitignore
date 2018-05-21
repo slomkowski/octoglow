@@ -16,3 +16,5 @@ Cargo.lock
 # for IntelliJ
 .idea/
 *.iml
+
+config.yml

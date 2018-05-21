@@ -3,6 +3,7 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use i2cdev::core::*;
 use i2cdev::linux::LinuxI2CDevice;
 use message::*;
+use SETTINGS;
 use std::io;
 use std::mem::transmute;
 
@@ -42,9 +43,9 @@ pub struct I2CActor {
 
 impl Default for I2CActor {
     fn default() -> I2CActor {
-        let bus_path = "/dev/i2c-1";
+        let bus_path = SETTINGS.read().unwrap().get_str("i2c.bus-device-file").unwrap();
 
-        let mut bme280_device = LinuxI2CDevice::new(bus_path, BME280_ADDR).unwrap();
+        let mut bme280_device = LinuxI2CDevice::new(&bus_path, BME280_ADDR).unwrap();
 
         bme280_device.write(&[0xe0, 0xb6]).unwrap();
 
@@ -72,9 +73,9 @@ impl Default for I2CActor {
         }
 
         I2CActor {
-            clock_display_device: LinuxI2CDevice::new(bus_path, CLOCK_DISPLAY_ADDR).unwrap(),
-            front_display_device: LinuxI2CDevice::new(bus_path, FRONT_DISPLAY_ADDR).unwrap(),
-            geiger_device: LinuxI2CDevice::new(bus_path, GEIGER_ADDR).unwrap(),
+            clock_display_device: LinuxI2CDevice::new(&bus_path, CLOCK_DISPLAY_ADDR).unwrap(),
+            front_display_device: LinuxI2CDevice::new(&bus_path, FRONT_DISPLAY_ADDR).unwrap(),
+            geiger_device: LinuxI2CDevice::new(&bus_path, GEIGER_ADDR).unwrap(),
             bme280_device,
             bme280_dig_t1: (&calibration1[0..2]).read_u16::<LittleEndian>().unwrap(),
             bme280_dig_t2: (&calibration1[2..4]).read_i16::<LittleEndian>().unwrap(),
