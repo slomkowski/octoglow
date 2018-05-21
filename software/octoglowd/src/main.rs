@@ -16,54 +16,15 @@ use simplelog::*;
 use actix::prelude::*;
 use chrono::prelude::*;
 use message::*;
-use std::time::Duration;
+
 use std::io;
 
-pub mod schema;
+mod schema;
+mod timer;
 mod i2c;
 mod message;
 mod database;
-
-#[derive(Default)]
-struct TimerActor {
-    recipients: Vec<Recipient<Unsync, EverySecondMessage>>
-}
-
-impl Actor for TimerActor {
-    type Context = Context<Self>;
-
-    fn started(&mut self, ctx: &mut <Self as Actor>::Context) {
-        let own_addr: Addr<Unsync, _> = ctx.address();
-        own_addr.do_send(EverySecondMessage {});
-    }
-}
-
-impl ArbiterService for TimerActor {}
-
-impl Supervised for TimerActor {}
-
-impl Handler<SubscribeForEverySecondMessage> for TimerActor {
-    type Result = ();
-
-    fn handle(&mut self, msg: SubscribeForEverySecondMessage, _: &mut Context<Self>) {
-        self.recipients.push(msg.recipient);
-    }
-}
-
-impl Handler<EverySecondMessage> for TimerActor {
-    type Result = ();
-
-    fn handle(&mut self, _: EverySecondMessage, ctx: &mut Context<Self>) {
-        ctx.run_later(Duration::new(1, 0), move |act, ctx2| {
-            let own_addr: Addr<Unsync, _> = ctx2.address();
-            own_addr.do_send(EverySecondMessage {});
-
-            for recipient in &act.recipients {
-                recipient.do_send(EverySecondMessage {});
-            }
-        });
-    }
-}
+mod views;
 
 struct ClockDisplayActor;
 
@@ -71,19 +32,22 @@ impl Actor for ClockDisplayActor {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut <Self as Actor>::Context) {
-        let timer_actor = Arbiter::registry().get::<TimerActor>();
+        let timer_actor = Arbiter::registry().get::<timer::TimerActor>();
         let addr: Addr<Unsync, ClockDisplayActor> = ctx.address();
-        timer_actor.send(message::SubscribeForEverySecondMessage { recipient: addr.recipient() })
+        timer_actor.send(message::SubscribeForTimerMessage {
+            msg_type: TimerMessageType::EverySecond,
+            recipient: addr.recipient(),
+        })
             .into_actor(self)
             .then(|_, _, _| { actix::fut::ok(()) })
             .wait(ctx);
     }
 }
 
-impl<'a> Handler<EverySecondMessage> for ClockDisplayActor {
+impl<'a> Handler<TimerMessage> for ClockDisplayActor {
     type Result = ();
 
-    fn handle(&mut self, _: EverySecondMessage, _: &mut Context<Self>) {
+    fn handle(&mut self, _: TimerMessage, _: &mut Context<Self>) {
         let now: DateTime<Local> = Local::now();
         let upper_dot = now.second() >= 20;
         let lower_dot = now.second() < 20 || now.second() > 40;
@@ -100,6 +64,7 @@ fn main() {
     let system = System::new("octoglowd");
 
     let _: () = ClockDisplayActor.start();
+    let _: () = views::weather_inside_view::WeatherInsideViewActor.start();
 
     let code = system.run();
     std::process::exit(code);

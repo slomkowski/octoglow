@@ -4,13 +4,32 @@ use actix::prelude::*;
 use image::*;
 use std::fmt;
 use std::io;
+use std::time;
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum TimerMessageType {
+    UserInteractionPool,
+    EverySecond,
+    EveryMinute,
+}
+
+impl TimerMessageType {
+    pub fn duration(&self) -> time::Duration {
+        match *self {
+            TimerMessageType::UserInteractionPool => time::Duration::from_millis(20),
+            TimerMessageType::EverySecond => time::Duration::from_secs(1),
+            TimerMessageType::EveryMinute => time::Duration::from_secs(60),
+        }
+    }
+}
 
 #[derive(Message)]
-pub struct EverySecondMessage;
+pub struct TimerMessage(pub TimerMessageType);
 
 #[derive(Message)]
-pub struct SubscribeForEverySecondMessage {
-    pub recipient: Recipient<Unsync, EverySecondMessage>
+pub struct SubscribeForTimerMessage {
+    pub msg_type: TimerMessageType,
+    pub recipient: Recipient<Unsync, TimerMessage>,
 }
 
 pub struct ClockDisplayGetWeatherReport;

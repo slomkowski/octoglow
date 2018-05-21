@@ -1,5 +1,5 @@
 CREATE TABLE inside_weather_report (
-  id          BIGINT PRIMARY KEY,
+  id          INTEGER  NOT NULL PRIMARY KEY,
   timestamp   DATETIME NOT NULL UNIQUE,
   temperature FLOAT    NOT NULL,
   humidity    FLOAT    NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE inside_weather_report (
 );
 
 CREATE TABLE outside_weather_report (
-  id           BIGINT PRIMARY KEY,
+  id           INTEGER  NOT NULL PRIMARY KEY,
   timestamp    DATETIME NOT NULL UNIQUE,
   temperature  FLOAT    NOT NULL,
   humidity     FLOAT    NOT NULL,

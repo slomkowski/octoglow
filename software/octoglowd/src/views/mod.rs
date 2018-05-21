@@ -1,0 +1,1 @@
+pub mod weather_inside_view;
