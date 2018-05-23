@@ -14,6 +14,7 @@ extern crate simplelog;
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
+extern crate num_traits;
 
 use actix::prelude::*;
 use chrono::prelude::*;

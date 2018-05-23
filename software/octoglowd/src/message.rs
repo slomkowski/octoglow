@@ -2,6 +2,8 @@ extern crate image;
 
 use actix::prelude::*;
 use image::*;
+use num_traits;
+use std::cmp;
 use std::fmt;
 use std::io;
 use std::time;
@@ -210,6 +212,68 @@ impl FrontDisplayGraphics {
                 }
             }
             _ => panic!("image has to have height of 7 or 14")
+        }
+    }
+
+    pub fn from_diff_chart_1line<T: num_traits::Num + num_traits::ToPrimitive + Copy>(position: u32, values: &[T], unit: T) -> FrontDisplayGraphics {
+        // we assume last value as pivot
+        const MAX_VALUES: usize = 5 * 20;
+        assert!(values.len() < MAX_VALUES, "number of values cannot exceed {}", MAX_VALUES);
+        assert!(values.len() > 0, "there has to be at least one value");
+        let max_position: u32 = 5 * 40 - values.len() as u32;
+        assert!(position < max_position, "position cannot exceed {}", max_position);
+
+        let img_vec = values.into_iter()
+            .map(|v| ((*v - *values.last().unwrap()).to_f32().unwrap() / unit.to_f32().unwrap()).round() as i32)
+            .map(|v| cmp::min(3, cmp::max(-3, v)))
+            .map(|v| match v {
+                -3 => 0b1111000,
+                -2 => 0b0111000,
+                -1 => 0b0011000,
+                0 => 0b0001000,
+                1 => 0b1100,
+                2 => 0b1110,
+                3 => 0b1111,
+                _ => panic!("value outside range")
+            })
+            .collect();
+
+        FrontDisplayGraphics {
+            position: position as u8,
+            sum_with_existing_content: false,
+            image_bytes_line1: img_vec,
+            image_bytes_line2: None,
+        }
+    }
+
+    pub fn from_diff_chart_2lines<T: num_traits::Num + num_traits::ToPrimitive + Copy>(position: u32, values: &[T], unit: T) -> FrontDisplayGraphics {
+        // we assume last value as pivot
+        const MAX_VALUES: usize = 5 * 20;
+        assert!(values.len() < MAX_VALUES, "number of values cannot exceed {}", MAX_VALUES);
+        assert!(values.len() > 0, "there has to be at least one value");
+        let max_position: u32 = 5 * 20 - values.len() as u32;
+        assert!(position < max_position, "position cannot exceed {}", max_position);
+
+        let (current, past_vals) = values.split_last().unwrap();
+
+        let (mut upper_vec, mut lower_vec): (Vec<u8>, Vec<u8>) = past_vals.into_iter()
+            .map(|v| ((*v - *current).to_f32().unwrap() / unit.to_f32().unwrap()).round() as i32)
+            .map(|v| if v == 0 { (0, 0) } else if v > 0 { (cmp::min(7, v), 0) } else { (0, cmp::max(-7, v)) })
+            .map(|(upper_v, lower_v)| {
+                let upper_c: u8 = (0..upper_v).fold(0, |column_byte, y| (column_byte | (0b1000000 >> y)));
+                let lower_c: u8 = (0..(-lower_v)).fold(0, |column_byte, y| (column_byte | (1 << y)));
+                (upper_c, lower_c)
+            })
+            .unzip();
+
+        lower_vec.push(0b1);
+        upper_vec.push(0b1000000);
+
+        FrontDisplayGraphics {
+            position: position as u8,
+            sum_with_existing_content: false,
+            image_bytes_line1: upper_vec,
+            image_bytes_line2: Some(lower_vec),
         }
     }
 

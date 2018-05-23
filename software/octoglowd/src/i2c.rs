@@ -452,7 +452,13 @@ mod tests {
                 i2c_addr.do_send(FrontDisplayGraphics::new(5 * 1, true, img14.grayscale().as_luma8().unwrap(), true));
 
                 let img7 = image::open(test_data_dir.join("img7.png")).unwrap();
-                i2c_addr.do_send(FrontDisplayGraphics::new(5 * 35, false, img7.grayscale().as_luma8().unwrap(), false));
+                i2c_addr.do_send(FrontDisplayGraphics::new(5 * 28, false, img7.grayscale().as_luma8().unwrap(), false));
+
+                i2c_addr.do_send(FrontDisplayGraphics::from_diff_chart_1line(5 * 23, &[0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4], 1));
+
+                i2c_addr.do_send(FrontDisplayGraphics::from_diff_chart_1line(5 * 26, &[16.0, 21.0, 84.3, 152.0, 79.6, 61.3, 68.2], 31.5));
+
+                i2c_addr.do_send(FrontDisplayGraphics::from_diff_chart_2lines(5 * 13, &[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 26, 24, 22, 20, 18, 16, 14, 14], 2));
             });
 
             ctx.run_later(Duration::from_secs(10), |_, _| {
