@@ -57,6 +57,12 @@ namespace octoglow::front_display::display {
 
     void setUpperBarContent(uint32_t content);
 
+    void _forEachUtf8character(const char *str,
+                               bool stringInProgramSpace,
+                               uint8_t maxLength,
+                               void *userData,
+                               void (*callback)(void *, uint8_t, uint8_t));
+
     extern uint8_t _frameBuffer[];
 
     extern uint32_t _upperBarBuffer;

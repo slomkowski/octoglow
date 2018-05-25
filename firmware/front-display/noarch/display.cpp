@@ -91,14 +91,15 @@ static const uint16_t utfMappings[] PROGMEM = {
         0x0d3, 0x0f3,
         0x15a, 0x15b,
         0x179, 0x17a,
-        0x17b, 0x17c
+        0x17b, 0x17c,
+        0xb0 // degree sign
 };
 
-static void forEachUtf8character(const char *str,
+void octoglow::front_display::display::_forEachUtf8character(const char *str,
                                  const bool stringInProgramSpace,
                                  const uint8_t maxLength,
                                  void *const userData,
-                                 void (*callback)(void *userData, uint8_t currentPosition, uint8_t characterCode)) {
+                                 void (*callback)(void *, uint8_t, uint8_t)) {
     uint8_t strIdx = 0;
     uint8_t currPos = 0;
 
@@ -150,7 +151,7 @@ void octoglow::front_display::display::writeStaticText(const uint8_t position,
         uint8_t lastPos;
     } local{position, 0};
 
-    forEachUtf8character(text, textInProgramSpace, maxLength, &local,
+    _forEachUtf8character(text, textInProgramSpace, maxLength, &local,
                          [](void *s, uint8_t curPos, uint8_t code) -> void {
                              const auto ld = static_cast<LocalData *>(s);
 
@@ -162,9 +163,11 @@ void octoglow::front_display::display::writeStaticText(const uint8_t position,
                              ld->lastPos = curPos;
                          });
 
-    memset(_frameBuffer + COLUMNS_IN_CHARACTER * (position + local.lastPos + 1),
-           0,
-           COLUMNS_IN_CHARACTER * (maxLength - local.lastPos));
+    if(maxLength > local.lastPos + 1) {
+        memset(_frameBuffer + COLUMNS_IN_CHARACTER * (position + local.lastPos + 1),
+               0,
+               COLUMNS_IN_CHARACTER * (maxLength - local.lastPos));
+    }
 }
 
 void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumber,
@@ -178,7 +181,7 @@ void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumb
     slot.length = windowLength;
     slot.currentShift = 0;
 
-    forEachUtf8character(text, textInProgramSpace, slot.maxTextLength, &slot,
+    _forEachUtf8character(text, textInProgramSpace, slot.maxTextLength, &slot,
                          [](void *s, uint8_t curPos, uint8_t code) -> void {
                              static_cast<_ScrollingSlot *>(s)->convertedText[curPos] = code;
                              static_cast<_ScrollingSlot *>(s)->textLength = curPos + 1;

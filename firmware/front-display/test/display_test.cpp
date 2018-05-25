@@ -20,3 +20,27 @@ TEST(Display, Clear) {
         ASSERT_EQ(0, display::_frameBuffer[i]);
     }
 }
+
+TEST(Display, ForEachUtf8character) {
+
+    int numOfCalls = 0;
+    display::_forEachUtf8character("lorem", false, 5, &numOfCalls,
+                                   [](void *s, uint8_t curPos, uint8_t code) -> void {
+                                       *reinterpret_cast<int *>(s) += 1;
+                                   });
+    ASSERT_EQ(5, numOfCalls);
+
+    numOfCalls = 0;
+    display::_forEachUtf8character("lorem", false, 9, &numOfCalls,
+                                   [](void *s, uint8_t curPos, uint8_t code) -> void {
+                                       *reinterpret_cast<int *>(s) += 1;
+                                   });
+    ASSERT_EQ(5, numOfCalls);
+
+    numOfCalls = 0;
+    display::_forEachUtf8character("lorąę", false, 9, &numOfCalls,
+                                   [](void *s, uint8_t curPos, uint8_t code) -> void {
+                                       *reinterpret_cast<int *>(s) += 1;
+                                   });
+    ASSERT_EQ(5, numOfCalls);
+}
