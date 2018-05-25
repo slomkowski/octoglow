@@ -78,7 +78,7 @@ fn main() {
     let system = System::new("octoglowd");
 
     let _: () = ClockDisplayActor.start();
-    let _: () = views::weather_inside_view::WeatherInsideViewActor.start();
+    let _: () = views::weather_inside_view::WeatherInsideViewActor::default().start();
 
     let code = system.run();
     std::process::exit(code);

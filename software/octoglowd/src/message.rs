@@ -9,6 +9,15 @@ use std::io;
 use std::time;
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum DrawViewOnScreenType {
+    First,
+    Update,
+}
+
+#[derive(Message)]
+pub struct DrawViewOnScreen(pub DrawViewOnScreenType);
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum TimerMessageType {
     UserInteractionPool,
     EverySecond,
@@ -40,7 +49,7 @@ impl Message for ClockDisplayGetWeatherReport {
     type Result = Result<OutsideWeatherSensorReport, io::Error>;
 }
 
-#[derive(Message, Debug)]
+#[derive(Message, Debug, Clone)]
 pub struct OutsideWeatherSensorReport {
     pub temperature: f32,
     pub humidity: f32,
@@ -53,7 +62,7 @@ impl Message for FrontDisplayGetButtonState {
     type Result = Result<ButtonReport, io::Error>;
 }
 
-#[derive(Message, Debug)]
+#[derive(Message, Debug, Clone)]
 pub struct InsideWeatherSensorReport {
     pub temperature: f32,
     pub humidity: f32,

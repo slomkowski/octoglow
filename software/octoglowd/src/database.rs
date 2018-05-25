@@ -8,11 +8,19 @@ use chrono;
 use schema::*;
 use diesel::prelude::*;
 use diesel;
+use diesel::expression::sql_literal::sql;
 
 #[derive(Queryable)]
 struct InsideWeatherReportModel {
     id: i64,
     timestamp: chrono::NaiveDateTime,
+    temperature: f32,
+    humidity: f32,
+    pressure: f32,
+}
+
+#[derive(Queryable)]
+struct BareInsideWeatherReportModel {
     temperature: f32,
     humidity: f32,
     pressure: f32,
@@ -96,11 +104,29 @@ impl Handler<InsideWeatherSensorReport> for DatabaseActor {
     type Result = ();
 
     fn handle(&mut self, report: InsideWeatherSensorReport, ctx: &mut Context<Self>) {
+        use diesel::dsl::avg;
+
         let model = NewInsideWeatherReportModel::new(&Local::now(), &report);
         diesel::insert_into(inside_weather_report::table)
             .values(&model)
             .execute(&self.connection)
             .expect("Cannot save inside weather report to DB");
+
+
+        let query = sql(r#"
+SELECT
+  avg(temperature) AS temperature,
+  avg(humidity)    AS humidity,
+  avg(pressure)    AS pressure
+FROM inside_weather_report
+GROUP BY strftime('%Y-%m-%dT%H', timestamp)
+ORDER BY timestamp
+  DESC
+LIMIT 5;"#);
+
+        let results = query.get_results::<BareInsideWeatherReportModel>(&self.connection)
+            .expect("cannot retrieve previous inside weather reports");
+
     }
 }
 
