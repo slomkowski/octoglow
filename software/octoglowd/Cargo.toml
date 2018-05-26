@@ -4,15 +4,14 @@ version = "0.1.0"
 authors = ["Michał Słomkowski <m.slomkowski@gmail.com>"]
 
 [dependencies]
-actix = "0.5"
-futures = "0.1"
+futures-await="0.1"
 i2cdev = "0.4.0"
 chrono = "0.4"
 image = "0.19"
 byteorder = "1.2"
 log = "0.4"
 simplelog = "0.5"
-diesel = { version = "^1.1.0", features = ["sqlite", "chrono"] }
+#diesel = { version = "^1.1.0", features = ["sqlite", "chrono"] }
 dotenv = "0.9.0"
 config = "0.7"
 lazy_static = "0.2"

@@ -1,9 +1,11 @@
-use actix::prelude::*;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
+use futures::prelude::*;
 use i2cdev::core::*;
 use i2cdev::linux::LinuxI2CDevice;
-use message::*;
+use image;
+use num_traits;
 use SETTINGS;
+use std::cmp;
 use std::io;
 use std::mem::transmute;
 
@@ -15,7 +17,59 @@ const BME280_ADDR: u16 = 0x76;
 const CLOCK_DISPLAY_UPPER_DOT: u8 = 1 << (14 % 8);
 const CLOCK_DISPLAY_LOWER_DOT: u8 = 1 << (13 % 8);
 
-pub struct I2CActor {
+#[derive(Debug)]
+pub struct InsideWeatherSensorReport {
+    pub temperature: f32,
+    pub humidity: f32,
+    pub pressure: f32,
+}
+
+#[derive(Debug)]
+pub struct OutsideWeatherSensorReport {
+    pub temperature: f32,
+    pub humidity: f32,
+    pub battery_is_weak: bool,
+}
+
+#[derive(Debug)]
+pub enum ButtonState {
+    NoChange,
+    JustPressed,
+    JustReleased,
+}
+
+#[derive(Debug)]
+pub struct ButtonReport {
+    pub button: ButtonState,
+    pub encoder_value: i32,
+}
+
+#[derive(Debug)]
+pub enum ScrollingTextSlot {
+    SLOT0,
+    SLOT1,
+    SLOT2,
+}
+
+impl ScrollingTextSlot {
+    fn number(&self) -> u8 {
+        match *self {
+            ScrollingTextSlot::SLOT0 => 0,
+            ScrollingTextSlot::SLOT1 => 1,
+            ScrollingTextSlot::SLOT2 => 2
+        }
+    }
+
+    fn capacity(&self) -> u8 {
+        match *self {
+            ScrollingTextSlot::SLOT0 => 150,
+            ScrollingTextSlot::SLOT1 => 70,
+            ScrollingTextSlot::SLOT2 => 30
+        }
+    }
+}
+
+pub struct Interface {
     clock_display_device: LinuxI2CDevice,
     front_display_device: LinuxI2CDevice,
     geiger_device: LinuxI2CDevice,
@@ -41,8 +95,8 @@ pub struct I2CActor {
     bme280_dig_h6: i8,
 }
 
-impl Default for I2CActor {
-    fn default() -> I2CActor {
+impl Interface {
+    pub fn new() -> Interface {
         let bus_path = SETTINGS.read().unwrap().get_str("i2c.bus-device-file").unwrap();
 
         let mut bme280_device = LinuxI2CDevice::new(&bus_path, BME280_ADDR).unwrap();
@@ -72,7 +126,7 @@ impl Default for I2CActor {
             assert_ne!(calibration2, all_zeroes[0..8]);
         }
 
-        I2CActor {
+        Interface {
             clock_display_device: LinuxI2CDevice::new(&bus_path, CLOCK_DISPLAY_ADDR).unwrap(),
             front_display_device: LinuxI2CDevice::new(&bus_path, FRONT_DISPLAY_ADDR).unwrap(),
             geiger_device: LinuxI2CDevice::new(&bus_path, GEIGER_ADDR).unwrap(),
@@ -97,13 +151,238 @@ impl Default for I2CActor {
             bme280_dig_h6: (&calibration2[7..8]).read_i8().unwrap(),
         }
     }
-}
 
-impl I2CActor {
-    fn write_graphics(&mut self, position: u8, sum_with_existing_text: bool, content: &[u8]) {
-        let mut cmd = vec![6, position, content.len() as u8, sum_with_existing_text as u8];
-        cmd.extend(content.iter());
-        self.front_display_device.write(&cmd).unwrap();
+    pub fn set_brightness<'a>(&'a mut self, brightness: u32) -> impl Future<Item=(), Error=io::Error> + 'a {
+        assert!(brightness <= 5, "brightness has max value 5, {} provided", brightness);
+
+        async_block! {
+            self.clock_display_device.write(&[3, brightness as u8])?;
+            self.front_display_device.write(&[3, brightness as u8])?;
+            Ok(())
+        }
+    }
+
+    pub fn set_front_display_upper_bar_content<'a>(&'a mut self, content: &[bool; 20]) -> impl Future<Item=(), Error=io::Error> + 'a {
+        let mut cmd = vec![7];
+        let c: u32 = content.iter().enumerate().fold(0, |acc, (index, value)| { if *value { acc | 1 << index } else { acc } });
+        let c_bytes: [u8; 4] = unsafe { transmute(c.to_le()) };
+
+        cmd.extend(c_bytes.iter());
+
+        async_block! {
+            self.front_display_device.write(&cmd)?;
+            Ok(())
+        }
+    }
+
+    pub fn set_front_display_upper_bar_active_positions<'a>(&'a mut self, active_positions: &[u32]) -> impl Future<Item=(), Error=io::Error> + 'a {
+        let mut content: [bool; 20] = [false; 20];
+
+        for pos in 0..20 {
+            if active_positions.contains(&pos) {
+                content[pos as usize] = true;
+            }
+        }
+        self.set_front_display_upper_bar_content(&content)
+    }
+
+    pub fn front_display_clear<'a>(&'a mut self) -> impl Future<Item=(), Error=io::Error> + 'a {
+        async_block! {
+            self.front_display_device.write(&[2])?;
+            Ok(())
+        }
+    }
+
+    pub fn front_display_static_text<'a>(&'a mut self, position: u32, text: &str) -> impl Future<Item=(), Error=io::Error> + 'a {
+        let text_length = text.chars().count() as u32;
+        let last_position = position + text_length;
+        assert!(position < 40, "position has to be between 0 and 39, {} provided", position);
+        assert!(text_length > 0, "text length has to be at least 1");
+        assert!(last_position < 40, "end of the string cannot exceed position 39, but has length {} and position {}, which sums to {}", text_length, position, last_position);
+
+        let mut cmd = vec![4, position as u8, text_length as u8];
+        cmd.extend(text.as_bytes().iter());
+        cmd.push(0);
+
+        async_block! {
+            self.front_display_device.write(&cmd)?;
+            Ok(())
+        }
+    }
+
+    pub fn front_display_scrolling_text<'a>(&'a mut self, slot: ScrollingTextSlot, position: u32, length: u32, text: &str) -> impl Future<Item=(), Error=io::Error> + 'a {
+        let text_length = text.len() as u32;
+        let last_position = position + length;
+        assert!(slot.capacity() as u32 > text_length, "UTF-8 text length ({} bytes) cannot exceed the capacity of the selected slot {:?}, which is {}", text_length, slot, slot.capacity());
+        assert!(position < 40, "position has to be between 0 and 39, {} provided", position);
+        assert!(text_length > 0, "text length has to be at least 1");
+        assert!(last_position < 40, "end of the string cannot exceed position 39, but has length {} and position {}, which sums to {}", length, position, last_position);
+
+        let mut cmd = vec![5, slot.number(), position as u8, length as u8];
+        cmd.extend(text.as_bytes().iter());
+        cmd.push(0);
+
+        async_block! {
+            self.front_display_device.write(&cmd)?;
+            Ok(())
+        }
+    }
+
+    pub fn front_display_image<'a>(&'a mut self, position: u32, sum_with_existing_content: bool, img: &'a image::GrayImage, invert_colors: bool)
+                                   -> impl Future<Item=(), Error=io::Error> + 'a {
+        let (line1, line2) = match img.height() {
+            7 => { // single line
+                assert!(position < 5 * 40, "position cannot exceed {}", 5 * 40 - 1);
+                (Interface::image_to_vec(img, 0, invert_colors), None)
+            }
+            14 => { // two line
+                assert!(position < 5 * 20, "position cannot exceed {}", 5 * 20 - 1);
+                (Interface::image_to_vec(img, 0, invert_colors), Some(Interface::image_to_vec(img, 7, invert_colors)))
+            }
+            _ => panic!("image has to have height of 7 or 14")
+        };
+
+        async_block! {
+            self.write_graphics_low_level(position as u8, sum_with_existing_content, &line1)?;
+            if let Some(l2) = line2 {
+                self.write_graphics_low_level((5 * 20 + position) as u8, sum_with_existing_content, &l2)?;
+            }
+            Ok(())
+        }
+    }
+
+    pub fn front_display_diff_chart_1line<'a, T: num_traits::Num + num_traits::ToPrimitive + Copy>(&'a mut self, position: u32, values: &[T], unit: T)
+                                                                                                   -> impl Future<Item=(), Error=io::Error> + 'a {
+        // we assume last value as pivot
+        const MAX_VALUES: usize = 5 * 20;
+        assert!(values.len() < MAX_VALUES, "number of values cannot exceed {}", MAX_VALUES);
+        assert!(values.len() > 0, "there has to be at least one value");
+        let max_position: u32 = 5 * 40 - values.len() as u32;
+        assert!(position < max_position, "position cannot exceed {}", max_position);
+
+        let img_vec: Vec<u8> = values.iter().map(|v| ((*v - *values.last().unwrap()).to_f32().unwrap() / unit.to_f32().unwrap()).round() as i32)
+            .map(|v| cmp::min(3, cmp::max(-3, v)))
+            .map(|v| match v {
+                -3 => 0b1111000,
+                -2 => 0b0111000,
+                -1 => 0b0011000,
+                0 => 0b0001000,
+                1 => 0b1100,
+                2 => 0b1110,
+                3 => 0b1111,
+                _ => panic!("value outside range")
+            })
+            .collect();
+
+        async_block! {
+            self.write_graphics_low_level(position as u8, false, &img_vec)?;
+            Ok(())
+        }
+    }
+
+    pub fn front_display_diff_chart_2lines<'a, T: num_traits::Num + num_traits::ToPrimitive + Copy>(&'a mut self, position: u32, values: &[T], unit: T)
+                                                                                                    -> impl Future<Item=(), Error=io::Error> + 'a {
+        // we assume last value as pivot
+        const MAX_VALUES: usize = 5 * 20;
+        assert!(values.len() < MAX_VALUES, "number of values cannot exceed {}", MAX_VALUES);
+        assert!(values.len() > 0, "there has to be at least one value");
+        let max_position: u32 = 5 * 20 - values.len() as u32;
+        assert!(position < max_position, "position cannot exceed {}", max_position);
+
+        let (current, past_vals) = values.split_last().unwrap();
+
+        let (mut upper_vec, mut lower_vec): (Vec<u8>, Vec<u8>) = past_vals.into_iter()
+            .map(|v| ((*v - *current).to_f32().unwrap() / unit.to_f32().unwrap()).round() as i32)
+            .map(|v| if v == 0 { (0, 0) } else if v > 0 { (cmp::min(7, v), 0) } else { (0, cmp::max(-7, v)) })
+            .map(|(upper_v, lower_v)| {
+                let upper_c: u8 = (0..upper_v).fold(0, |column_byte, y| (column_byte | (0b1000000 >> y)));
+                let lower_c: u8 = (0..(-lower_v)).fold(0, |column_byte, y| (column_byte | (1 << y)));
+                (upper_c, lower_c)
+            })
+            .unzip();
+
+        lower_vec.push(0b1);
+        upper_vec.push(0b1000000);
+
+        async_block! {
+            self.write_graphics_low_level(position as u8, false, &upper_vec)?;
+            self.write_graphics_low_level((5 * 20 + position) as u8, false, &lower_vec)?;
+            Ok(())
+        }
+    }
+
+    pub fn get_button_report(&mut self) -> Result<ButtonReport, io::Error> {
+        let mut buf: [u8; 2] = [0; 2];
+        self.front_display_device.write(&[1])?;
+        self.front_display_device.read(&mut buf)?;
+
+        let button = match buf[1] {
+            0 => ButtonState::NoChange,
+            1 => ButtonState::JustPressed,
+            255 => ButtonState::JustReleased,
+            _ => panic!("Invalid button state value {}.", buf[1])
+        };
+
+        let encoder_value: i32 = unsafe { transmute::<u8, i8>(buf[0]) } as i32;
+
+        let report = ButtonReport { button, encoder_value };
+
+        trace!("Received {:?}.", report);
+
+        Ok(report)
+    }
+
+    pub fn get_inside_weather_report(&mut self) -> Result<InsideWeatherSensorReport, io::Error> {
+        let mut buf: [u8; 8] = [0; 8];
+        self.bme280_device.write(&[0xf7])?;
+        self.bme280_device.read(&mut buf)?;
+
+        if buf == [128, 0, 0, 128, 0, 0, 128, 0] {
+            return Err(io::Error::new(io::ErrorKind::Other, "sensor is not initialized"));
+        }
+
+        let adc_p: u32 = (&buf[0..4]).read_u32::<BigEndian>().unwrap() >> 12;
+        let adc_t: u32 = (&buf[3..7]).read_u32::<BigEndian>().unwrap() >> 12;
+        let adc_h: u32 = (&buf[6..8]).read_u16::<BigEndian>().unwrap() as u32;
+
+        let t_fine = self.bme280_calculate_t_fine(adc_t);
+
+        let report = InsideWeatherSensorReport {
+            humidity: self.bme280_calculate_humidity(adc_h, t_fine),
+            temperature: self.bme280_calculate_temperature(t_fine),
+            pressure: self.bme280_calculate_pressure(adc_p, t_fine),
+        };
+
+        debug!("Received {:?}.", report);
+
+        Ok(report)
+    }
+
+    pub fn get_outside_weather_report(&mut self) -> Result<OutsideWeatherSensorReport, io::Error> {
+        let mut buf: [u8; 5] = [0; 5];
+        self.clock_display_device.write(&[0x04])?;
+        self.clock_display_device.read(&mut buf)?;
+
+        let report = OutsideWeatherSensorReport {
+            temperature: (256.0 * buf[2] as f32 + buf[1] as f32) / 10.0,
+            humidity: buf[3] as f32,
+            battery_is_weak: (buf[4] == 1),
+        };
+
+        debug!("Received {:?}.", report);
+
+        Ok(report)
+    }
+
+    pub fn set_clock_display_content<'a>(&'a mut self, hours: u8, minutes: u8, upper_dot: bool, lower_dot: bool) -> impl Future<Item=(), Error=io::Error> + 'a {
+        let digits = [hours / 10, hours % 10, minutes / 10, minutes % 10];
+        let dots = (if upper_dot { CLOCK_DISPLAY_UPPER_DOT } else { 0 }) | (if lower_dot { CLOCK_DISPLAY_LOWER_DOT } else { 0 });
+        let buf: [u8; 6] = [0x1, digits[0] + 0x30, digits[1] + 0x30, digits[2] + 0x30, digits[3] + 0x30, dots];
+
+        async_block! {
+            self.clock_display_device.write(&buf)?;
+            Ok(())
+        }
     }
 
     /// Calculation is based on sample code from BME280 datasheet.
@@ -205,279 +484,25 @@ impl I2CActor {
 
         return pressure as f32 / 100.0 / 100.0; // result in hPa
     }
-}
 
-impl actix::Supervised for I2CActor {}
-
-impl Actor for I2CActor {
-    type Context = Context<Self>;
-}
-
-impl ArbiterService for I2CActor {}
-
-impl Handler<ClockDisplayContent> for I2CActor {
-    type Result = ();
-
-    fn handle(&mut self, dc: ClockDisplayContent, _: &mut Context<Self>) {
-        let dots = (if dc.upper_dot { CLOCK_DISPLAY_UPPER_DOT } else { 0 }) | (if dc.lower_dot { CLOCK_DISPLAY_LOWER_DOT } else { 0 });
-        let buf: [u8; 6] = [0x1, dc.digits[0] + 0x30, dc.digits[1] + 0x30, dc.digits[2] + 0x30, dc.digits[3] + 0x30, dots];
-
-        self.clock_display_device.write(&buf).unwrap();
+    fn write_graphics_low_level(&mut self, position: u8, sum_with_existing_text: bool, content: &[u8]) -> Result<(), io::Error> {
+        let mut cmd = vec![6, position, content.len() as u8, sum_with_existing_text as u8];
+        cmd.extend(content.iter());
+        self.front_display_device.write(&cmd)?;
+        Ok(())
     }
-}
 
-impl Handler<SetBrightness> for I2CActor {
-    type Result = ();
-
-    fn handle(&mut self, br: SetBrightness, _: &mut Context<Self>) {
-        self.clock_display_device.write(&[3, br.brightness]).unwrap();
-        self.front_display_device.write(&[3, br.brightness]).unwrap();
-
-        // todo make command using saved state
-    }
-}
-
-impl Handler<ClockDisplayGetWeatherReport> for I2CActor {
-    type Result = Result<OutsideWeatherSensorReport, io::Error>;
-
-    fn handle(&mut self, _: ClockDisplayGetWeatherReport, _: &mut Context<Self>) -> Self::Result {
-        let mut buf: [u8; 5] = [0; 5];
-        self.clock_display_device.write(&[0x04])?;
-        self.clock_display_device.read(&mut buf)?;
-
-        let report = OutsideWeatherSensorReport {
-            temperature: (256.0 * buf[2] as f32 + buf[1] as f32) / 10.0,
-            humidity: buf[3] as f32,
-            battery_is_weak: (buf[4] == 1),
-        };
-
-        debug!("Received {:?}.", report);
-
-        Ok(report)
-    }
-}
-
-impl Handler<FrontDisplayClear> for I2CActor {
-    type Result = ();
-
-    fn handle(&mut self, _: FrontDisplayClear, _: &mut Context<Self>) {
-        self.front_display_device.write(&[2]).unwrap();
-    }
-}
-
-impl Handler<FrontDisplayStaticText> for I2CActor {
-    type Result = ();
-
-    fn handle(&mut self, st: FrontDisplayStaticText, _: &mut Context<Self>) {
-        let mut cmd = vec![4, st.position, st.max_length];
-        cmd.extend(st.text.as_bytes().iter());
-        cmd.push(0);
-        self.front_display_device.write(&cmd).unwrap();
-    }
-}
-
-impl Handler<FrontDisplayScrollingText> for I2CActor {
-    type Result = ();
-
-    fn handle(&mut self, st: FrontDisplayScrollingText, _: &mut Context<Self>) {
-        let mut cmd = vec![5, st.slot_number, st.position, st.length];
-        cmd.extend(st.text.as_bytes().iter());
-        cmd.push(0);
-        self.front_display_device.write(&cmd).unwrap();
-    }
-}
-
-impl Handler<FrontDisplayGraphics> for I2CActor {
-    type Result = ();
-
-    fn handle(&mut self, g: FrontDisplayGraphics, _: &mut Context<Self>) {
-        self.write_graphics(g.position, g.sum_with_existing_content, g.image_bytes_line1.as_slice());
-        if let Some(v) = g.image_bytes_line2 {
-            self.write_graphics(g.position + 5 * 20, g.sum_with_existing_content, v.as_slice());
+    fn image_to_vec(img: &image::GrayImage, offset: u32, invert_colors: bool) -> Vec<u8> {
+        let mut columns: Vec<u8> = Vec::new();
+        for x in 0..(img.width()) {
+            let c: u8 = (0..7).fold(0, |column_byte, y| {
+                column_byte | (if img.get_pixel(x, y + offset).data[0] > 0 { 1 } else { 0 } << y)
+            });
+            columns.push(match invert_colors {
+                true => !c,
+                _ => c
+            })
         }
-    }
-}
-
-
-impl Handler<FrontDisplayUpperBar> for I2CActor {
-    type Result = ();
-
-    fn handle(&mut self, ub: FrontDisplayUpperBar, _: &mut Context<Self>) {
-        let mut cmd = vec![7];
-        let c: u32 = ub.content.iter().enumerate().fold(0, |acc, (index, value)| { if *value { acc | 1 << index } else { acc } });
-        let c_bytes: [u8; 4] = unsafe { transmute(c.to_le()) };
-
-        cmd.extend(c_bytes.iter());
-        self.front_display_device.write(&cmd).unwrap();
-    }
-}
-
-impl Handler<FrontDisplayGetButtonState> for I2CActor {
-    type Result = Result<ButtonReport, io::Error>;
-
-    fn handle(&mut self, _: FrontDisplayGetButtonState, _: &mut Context<Self>) -> <Self as Handler<FrontDisplayGetButtonState>>::Result {
-        let mut buf: [u8; 2] = [0; 2];
-        self.front_display_device.write(&[1])?;
-        self.front_display_device.read(&mut buf)?;
-
-        let button = match buf[1] {
-            0 => ButtonState::NoChange,
-            1 => ButtonState::JustPressed,
-            255 => ButtonState::JustReleased,
-            _ => panic!("Invalid button state value {}.", buf[1])
-        };
-
-        let encoder_value: i32 = unsafe { transmute::<u8, i8>(buf[0]) } as i32;
-
-        let report = ButtonReport { button, encoder_value };
-
-        trace!("Received {:?}.", report);
-
-        Ok(report)
-    }
-}
-
-impl Handler<GetInsideWeatherReport> for I2CActor {
-    type Result = Result<InsideWeatherSensorReport, io::Error>;
-
-    fn handle(&mut self, _: GetInsideWeatherReport, _: &mut Context<Self>) -> Result<InsideWeatherSensorReport, io::Error> {
-        let mut buf: [u8; 8] = [0; 8];
-        self.bme280_device.write(&[0xf7])?;
-        self.bme280_device.read(&mut buf)?;
-
-        if buf == [128, 0, 0, 128, 0, 0, 128, 0] {
-            return Err(io::Error::new(io::ErrorKind::Other, "sensor is not initialized"));
-        }
-
-        let adc_p: u32 = (&buf[0..4]).read_u32::<BigEndian>().unwrap() >> 12;
-        let adc_t: u32 = (&buf[3..7]).read_u32::<BigEndian>().unwrap() >> 12;
-        let adc_h: u32 = (&buf[6..8]).read_u16::<BigEndian>().unwrap() as u32;
-
-        let t_fine = self.bme280_calculate_t_fine(adc_t);
-
-        let report = InsideWeatherSensorReport {
-            humidity: self.bme280_calculate_humidity(adc_h, t_fine),
-            temperature: self.bme280_calculate_temperature(t_fine),
-            pressure: self.bme280_calculate_pressure(adc_p, t_fine),
-        };
-
-        debug!("Received {:?}.", report);
-
-        Ok(report)
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-    use actix::prelude::*;
-    use actix::{Arbiter, System, msgs};
-    use std::time::Duration;
-    use std::path::PathBuf;
-    use image;
-    use super::*;
-
-    struct I2CTestActor;
-
-    impl Actor for I2CTestActor {
-        type Context = Context<Self>;
-
-        fn started(&mut self, ctx: &mut <Self as Actor>::Context) {
-
-            // sensor module should be in reset state, read should return Err
-            let i2c_addr_i = Arbiter::registry().get::<I2CActor>();
-
-            i2c_addr_i.send(GetInsideWeatherReport).into_actor(self)
-                .then(|res, _, _| {
-                    match res {
-                        Ok(result) => {
-                            match result {
-                                Err(msg) => assert_eq!("sensor is not initialized", msg.to_string()),
-                                _ => panic!("response should be an error since sensor is not initialized yet")
-                            }
-                        }
-                        _ => panic!("error when receiving message")
-                    }
-                    actix::fut::ok(())
-                }).wait(ctx);
-
-            ctx.run_later(Duration::from_secs(1), |_, _| {
-                let i2c_addr = Arbiter::registry().get::<I2CActor>();
-                i2c_addr.do_send(FrontDisplayClear);
-                i2c_addr.do_send(FrontDisplayUpperBar::enabled_positions(&[0, 1, 19]));
-                i2c_addr.do_send(FrontDisplayScrollingText::new(ScrollingTextSlot::SLOT0, 34, 5, "The quick brown fox jumps over the lazy dog. Dość gróźb fuzją, klnę, pych i małżeństw!"));
-                i2c_addr.do_send(FrontDisplayStaticText::new(1, "Znajdź pchły, wróżko! Film \"Teść\"."));
-            });
-
-            ctx.run_later(Duration::from_secs(4), move |act, ctx2| {
-                let i2c_addr = Arbiter::registry().get::<I2CActor>();
-                i2c_addr.do_send(FrontDisplayClear);
-                i2c_addr.do_send(FrontDisplayScrollingText::new(ScrollingTextSlot::SLOT0, 0, 18, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eere"));
-                i2c_addr.do_send(FrontDisplayScrollingText::new(ScrollingTextSlot::SLOT1, 19, 7, "!@#$%^&*()_+-={}[];:\",<>.?"));
-                i2c_addr.do_send(FrontDisplayScrollingText::new(ScrollingTextSlot::SLOT2, 34, 5, "Strząść puch nimfy w łój"));
-
-                i2c_addr.do_send(FrontDisplayUpperBar::new([
-                    true, true, false, true, false,
-                    false, false, false, false, false,
-                    false, false, true, false, false,
-                    false, false, false, false, true]));
-
-                i2c_addr.send(GetInsideWeatherReport).into_actor(act)
-                    .then(|res, _, _| {
-                        match res {
-                            Ok(Ok(report)) => {
-                                println!("Sensor report: {:?}", report);
-                                assert!(report.temperature > 10.0);
-                                assert!(report.temperature < 50.0);
-                                assert!(report.humidity > 5.0);
-                                assert!(report.humidity < 95.0);
-                                assert!(report.pressure > 950.0);
-                                assert!(report.pressure < 1070.0);
-                            }
-                            _ => panic!("error when receiving message or not Ok")
-                        }
-                        actix::fut::ok(())
-                    }).wait(ctx2);
-            });
-
-            ctx.run_later(Duration::from_secs(8), |_, _| {
-                let test_data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/test");
-
-                let i2c_addr = Arbiter::registry().get::<I2CActor>();
-                i2c_addr.do_send(FrontDisplayClear);
-
-                i2c_addr.do_send(FrontDisplayStaticText::new(0, "Foo bar text."));
-
-                let img14 = image::open(test_data_dir.join("img14.png")).unwrap();
-                i2c_addr.do_send(FrontDisplayGraphics::new(5 * 1, true, img14.grayscale().as_luma8().unwrap(), true));
-
-                let img7 = image::open(test_data_dir.join("img7.png")).unwrap();
-                i2c_addr.do_send(FrontDisplayGraphics::new(5 * 28, false, img7.grayscale().as_luma8().unwrap(), false));
-
-                i2c_addr.do_send(FrontDisplayGraphics::from_diff_chart_1line(5 * 23, &[0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4], 1));
-
-                i2c_addr.do_send(FrontDisplayGraphics::from_diff_chart_1line(5 * 26, &[16.0, 21.0, 84.3, 152.0, 79.6, 61.3, 68.2], 31.5));
-
-                i2c_addr.do_send(FrontDisplayGraphics::from_diff_chart_2lines(5 * 13, &[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 26, 24, 22, 20, 18, 16, 14, 14], 2));
-            });
-
-            ctx.run_later(Duration::from_secs(10), |_, _| {
-                let i2c_addr = Arbiter::registry().get::<I2CActor>();
-                i2c_addr.do_send(FrontDisplayClear);
-            });
-
-            ctx.run_later(Duration::from_secs(11), |_, _| {
-                Arbiter::system().do_send(msgs::SystemExit(0));
-            });
-        }
-    }
-
-    #[test]
-    fn test_all_i2c_commands() {
-        let system = System::new("octoglowd");
-
-        let _: Addr<Unsync, _> = I2CTestActor.start();
-
-        system.run();
+        columns
     }
 }
