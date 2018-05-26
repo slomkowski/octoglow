@@ -1,5 +1,4 @@
 #![feature(proc_macro, proc_macro_non_items, generators)]
-#[macro_use]
 extern crate futures_await as futures;
 extern crate byteorder;
 extern crate chrono;
@@ -17,10 +16,7 @@ extern crate dotenv;
 extern crate num_traits;
 
 use futures::prelude::*;
-use chrono::prelude::*;
-use std::io;
 use std::sync::RwLock;
-use std::time::Duration;
 
 
 mod i2c;
@@ -41,6 +37,6 @@ fn main() {
     let mut interface = i2c::Interface::new();
     interface.front_display_clear().wait().unwrap();
     interface.set_brightness(1).wait().unwrap();
-    interface.set_front_display_upper_bar_active_positions(&[1, 3, 5, 15]).wait().unwrap();
+    interface.front_display_upper_bar_active_positions(&[1, 3, 5, 15]).wait().unwrap();
 
 }

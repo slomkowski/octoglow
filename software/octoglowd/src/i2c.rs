@@ -162,7 +162,7 @@ impl Interface {
         }
     }
 
-    pub fn set_front_display_upper_bar_content<'a>(&'a mut self, content: &[bool; 20]) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn front_display_upper_bar_content<'a>(&'a mut self, content: &[bool; 20]) -> impl Future<Item=(), Error=io::Error> + 'a {
         let mut cmd = vec![7];
         let c: u32 = content.iter().enumerate().fold(0, |acc, (index, value)| { if *value { acc | 1 << index } else { acc } });
         let c_bytes: [u8; 4] = unsafe { transmute(c.to_le()) };
@@ -175,7 +175,7 @@ impl Interface {
         }
     }
 
-    pub fn set_front_display_upper_bar_active_positions<'a>(&'a mut self, active_positions: &[u32]) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn front_display_upper_bar_active_positions<'a>(&'a mut self, active_positions: &[u32]) -> impl Future<Item=(), Error=io::Error> + 'a {
         let mut content: [bool; 20] = [false; 20];
 
         for pos in 0..20 {
@@ -183,7 +183,7 @@ impl Interface {
                 content[pos as usize] = true;
             }
         }
-        self.set_front_display_upper_bar_content(&content)
+        self.front_display_upper_bar_content(&content)
     }
 
     pub fn front_display_clear<'a>(&'a mut self) -> impl Future<Item=(), Error=io::Error> + 'a {
@@ -228,7 +228,7 @@ impl Interface {
         }
     }
 
-    pub fn front_display_image<'a>(&'a mut self, position: u32, sum_with_existing_content: bool, img: &'a image::GrayImage, invert_colors: bool)
+    pub fn front_display_image<'a>(&'a mut self, position: u32, sum_with_existing_content: bool, img: &image::GrayImage, invert_colors: bool)
                                    -> impl Future<Item=(), Error=io::Error> + 'a {
         let (line1, line2) = match img.height() {
             7 => { // single line
@@ -311,67 +311,76 @@ impl Interface {
         }
     }
 
-    pub fn get_button_report(&mut self) -> Result<ButtonReport, io::Error> {
+    pub fn get_button_report<'a>(&'a mut self) -> impl Future<Item=ButtonReport, Error=io::Error> + 'a {
         let mut buf: [u8; 2] = [0; 2];
-        self.front_display_device.write(&[1])?;
-        self.front_display_device.read(&mut buf)?;
 
-        let button = match buf[1] {
-            0 => ButtonState::NoChange,
-            1 => ButtonState::JustPressed,
-            255 => ButtonState::JustReleased,
-            _ => panic!("Invalid button state value {}.", buf[1])
-        };
+        async_block! {
+            self.front_display_device.write(&[1])?;
+            self.front_display_device.read(&mut buf)?;
 
-        let encoder_value: i32 = unsafe { transmute::<u8, i8>(buf[0]) } as i32;
+            let button = match buf[1] {
+                0 => ButtonState::NoChange,
+                1 => ButtonState::JustPressed,
+                255 => ButtonState::JustReleased,
+                _ => panic!("Invalid button state value {}.", buf[1])
+            };
 
-        let report = ButtonReport { button, encoder_value };
+            let encoder_value: i32 = unsafe { transmute::<u8, i8>(buf[0]) } as i32;
 
-        trace!("Received {:?}.", report);
+            let report = ButtonReport { button, encoder_value };
 
-        Ok(report)
-    }
+            trace!("Received {:?}.", report);
 
-    pub fn get_inside_weather_report(&mut self) -> Result<InsideWeatherSensorReport, io::Error> {
-        let mut buf: [u8; 8] = [0; 8];
-        self.bme280_device.write(&[0xf7])?;
-        self.bme280_device.read(&mut buf)?;
-
-        if buf == [128, 0, 0, 128, 0, 0, 128, 0] {
-            return Err(io::Error::new(io::ErrorKind::Other, "sensor is not initialized"));
+            Ok(report)
         }
-
-        let adc_p: u32 = (&buf[0..4]).read_u32::<BigEndian>().unwrap() >> 12;
-        let adc_t: u32 = (&buf[3..7]).read_u32::<BigEndian>().unwrap() >> 12;
-        let adc_h: u32 = (&buf[6..8]).read_u16::<BigEndian>().unwrap() as u32;
-
-        let t_fine = self.bme280_calculate_t_fine(adc_t);
-
-        let report = InsideWeatherSensorReport {
-            humidity: self.bme280_calculate_humidity(adc_h, t_fine),
-            temperature: self.bme280_calculate_temperature(t_fine),
-            pressure: self.bme280_calculate_pressure(adc_p, t_fine),
-        };
-
-        debug!("Received {:?}.", report);
-
-        Ok(report)
     }
 
-    pub fn get_outside_weather_report(&mut self) -> Result<OutsideWeatherSensorReport, io::Error> {
+    pub fn get_inside_weather_report<'a>(&'a mut self) -> impl Future<Item=InsideWeatherSensorReport, Error=io::Error> + 'a {
+        let mut buf: [u8; 8] = [0; 8];
+
+        async_block! {
+            self.bme280_device.write(&[0xf7])?;
+            self.bme280_device.read(&mut buf)?;
+
+            if buf == [128, 0, 0, 128, 0, 0, 128, 0] {
+                return Err(io::Error::new(io::ErrorKind::Other, "sensor is not initialized"));
+            }
+
+            let adc_p: u32 = (&buf[0..4]).read_u32::<BigEndian>().unwrap() >> 12;
+            let adc_t: u32 = (&buf[3..7]).read_u32::<BigEndian>().unwrap() >> 12;
+            let adc_h: u32 = (&buf[6..8]).read_u16::<BigEndian>().unwrap() as u32;
+
+            let t_fine = self.bme280_calculate_t_fine(adc_t);
+
+            let report = InsideWeatherSensorReport {
+                humidity: self.bme280_calculate_humidity(adc_h, t_fine),
+                temperature: self.bme280_calculate_temperature(t_fine),
+                pressure: self.bme280_calculate_pressure(adc_p, t_fine),
+            };
+
+            debug!("Received {:?}.", report);
+
+            Ok(report)
+        }
+    }
+
+    pub fn get_outside_weather_report<'a>(&'a mut self) -> impl Future<Item=OutsideWeatherSensorReport, Error=io::Error> + 'a {
         let mut buf: [u8; 5] = [0; 5];
-        self.clock_display_device.write(&[0x04])?;
-        self.clock_display_device.read(&mut buf)?;
 
-        let report = OutsideWeatherSensorReport {
-            temperature: (256.0 * buf[2] as f32 + buf[1] as f32) / 10.0,
-            humidity: buf[3] as f32,
-            battery_is_weak: (buf[4] == 1),
-        };
+        async_block! {
+            self.clock_display_device.write(&[0x04])?;
+            self.clock_display_device.read(&mut buf)?;
 
-        debug!("Received {:?}.", report);
+            let report = OutsideWeatherSensorReport {
+                temperature: (256.0 * buf[2] as f32 + buf[1] as f32) / 10.0,
+                humidity: buf[3] as f32,
+                battery_is_weak: (buf[4] == 1),
+            };
 
-        Ok(report)
+            debug!("Received {:?}.", report);
+
+            Ok(report)
+        }
     }
 
     pub fn set_clock_display_content<'a>(&'a mut self, hours: u8, minutes: u8, upper_dot: bool, lower_dot: bool) -> impl Future<Item=(), Error=io::Error> + 'a {
@@ -504,5 +513,97 @@ impl Interface {
             })
         }
         columns
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{thread, time};
+    use std::path::PathBuf;
+
+    fn set_stage_1<'a>(i2c: &'a mut Interface) -> impl Future<Item=(), Error=io::Error> + 'a {
+        async_block! {
+            await!(i2c.front_display_clear())?;
+            await!(i2c.set_clock_display_content(3, 58, true, false))?;
+            await!(i2c.front_display_upper_bar_active_positions(&[0, 1, 19]))?;
+            await!(i2c.front_display_static_text(1, "Znajdź pchły, wróżko! Film \"Teść\"."))?;
+            await!(i2c.front_display_scrolling_text(ScrollingTextSlot::SLOT0, 34, 5,
+                                                  "The quick brown fox jumps over the lazy dog. 20\u{00B0}C Dość gróźb fuzją, klnę, pych i małżeństw!"))?;
+            Ok(())
+        }
+    }
+
+    fn set_stage_2<'a>(i2c: &'a mut Interface) -> impl Future<Item=(), Error=io::Error> + 'a {
+        async_block! {
+            await!(i2c.front_display_clear())?;
+            await!(i2c.set_clock_display_content(21, 2, false, true))?;
+            await!(i2c.front_display_scrolling_text(ScrollingTextSlot::SLOT0, 0, 18, concat!("Lorem ipsum dolor sit amet, consectetur adipiscing elit,",
+            " sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eere")))?;
+            await!(i2c.front_display_scrolling_text(ScrollingTextSlot::SLOT1, 19, 7, "!@#$%^&*()_+-={}[];:\",<>.?"))?;
+            await!(i2c.front_display_scrolling_text(ScrollingTextSlot::SLOT2, 34, 5, "Strząść puch nimfy w łój"))?;
+            await!(i2c.front_display_upper_bar_content(&[
+                true, true, false, true, false,
+                false, false, false, false, false,
+                false, false, true, false, false,
+                false, false, false, false, true]))?;
+
+            let report_result = await!(i2c.get_inside_weather_report());
+            match report_result {
+                Ok(report) => {
+                    println!("Sensor report: {:?}", report);
+                    assert!(report.temperature > 10.0);
+                    assert!(report.temperature < 50.0);
+                    assert!(report.humidity > 5.0);
+                    assert!(report.humidity < 95.0);
+                    assert!(report.pressure > 950.0);
+                    assert!(report.pressure < 1070.0);
+                }
+                _ => panic!("not OK")
+            }
+            Ok(())
+        }
+    }
+
+    fn set_stage_3<'a>(i2c: &'a mut Interface) -> impl Future<Item=(), Error=io::Error> + 'a {
+        let test_data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/test");
+        let img14 = image::open(test_data_dir.join("img14.png")).unwrap();
+        let img7 = image::open(test_data_dir.join("img7.png")).unwrap();
+
+        async_block! {
+            await!(i2c.front_display_clear())?;
+            await!(i2c.set_clock_display_content(12, 34, true, true))?;
+            await!(i2c.front_display_static_text(0, "Foo bar text."))?;
+            await!(i2c.front_display_image(5 * 1, true, img14.grayscale().as_luma8().unwrap(), true))?;
+            await!(i2c.front_display_image(5 * 28, false, img7.grayscale().as_luma8().unwrap(), false))?;
+
+            await!(i2c.front_display_diff_chart_1line(5 * 23, &[0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4], 1))?;
+            await!(i2c.front_display_diff_chart_1line(5 * 26, &[16.0, 21.0, 84.3, 152.0, 79.6, 61.3, 68.2], 31.5))?;
+            await!(i2c.front_display_diff_chart_2lines(5 * 13, &[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 26, 24, 22, 20, 18, 16, 14, 14], 2))?;
+
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_all_i2c_commands() {
+        let mut i2c = Interface::new();
+
+        match i2c.get_inside_weather_report().wait() {
+            Err(msg) => assert_eq!("sensor is not initialized", msg.to_string()),
+            _ => panic!("response should be an error since sensor is not initialized yet")
+        }
+
+        thread::sleep(time::Duration::from_secs(1));
+        set_stage_1(&mut i2c).wait().unwrap();
+
+        thread::sleep(time::Duration::from_secs(5));
+        set_stage_2(&mut i2c).wait().unwrap();
+
+        thread::sleep(time::Duration::from_secs(4));
+        set_stage_3(&mut i2c).wait().unwrap();
+
+        thread::sleep(time::Duration::from_secs(4));
+        i2c.front_display_clear().wait().unwrap();
     }
 }
