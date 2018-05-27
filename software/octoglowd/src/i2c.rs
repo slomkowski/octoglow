@@ -4,7 +4,6 @@ use i2cdev::core::*;
 use i2cdev::linux::LinuxI2CDevice;
 use image;
 use num_traits;
-use SETTINGS;
 use std::cmp;
 use std::io;
 use std::mem::transmute;
@@ -19,15 +18,15 @@ const CLOCK_DISPLAY_LOWER_DOT: u8 = 1 << (13 % 8);
 
 #[derive(Debug)]
 pub struct InsideWeatherSensorReport {
-    pub temperature: f32,
-    pub humidity: f32,
-    pub pressure: f32,
+    pub temperature: f64,
+    pub humidity: f64,
+    pub pressure: f64,
 }
 
 #[derive(Debug)]
 pub struct OutsideWeatherSensorReport {
-    pub temperature: f32,
-    pub humidity: f32,
+    pub temperature: f64,
+    pub humidity: f64,
     pub battery_is_weak: bool,
 }
 
@@ -96,10 +95,8 @@ pub struct Interface {
 }
 
 impl Interface {
-    pub fn new() -> Interface {
-        let bus_path = SETTINGS.read().unwrap().get_str("i2c.bus-device-file").unwrap();
-
-        let mut bme280_device = LinuxI2CDevice::new(&bus_path, BME280_ADDR).unwrap();
+    pub fn new(bus_device_file: &str) -> Interface {
+        let mut bme280_device = LinuxI2CDevice::new(bus_device_file, BME280_ADDR).unwrap();
 
         bme280_device.write(&[0xe0, 0xb6]).unwrap();
 
@@ -127,9 +124,9 @@ impl Interface {
         }
 
         Interface {
-            clock_display_device: LinuxI2CDevice::new(&bus_path, CLOCK_DISPLAY_ADDR).unwrap(),
-            front_display_device: LinuxI2CDevice::new(&bus_path, FRONT_DISPLAY_ADDR).unwrap(),
-            geiger_device: LinuxI2CDevice::new(&bus_path, GEIGER_ADDR).unwrap(),
+            clock_display_device: LinuxI2CDevice::new(&bus_device_file, CLOCK_DISPLAY_ADDR).unwrap(),
+            front_display_device: LinuxI2CDevice::new(&bus_device_file, FRONT_DISPLAY_ADDR).unwrap(),
+            geiger_device: LinuxI2CDevice::new(&bus_device_file, GEIGER_ADDR).unwrap(),
             bme280_device,
             bme280_dig_t1: (&calibration1[0..2]).read_u16::<LittleEndian>().unwrap(),
             bme280_dig_t2: (&calibration1[2..4]).read_i16::<LittleEndian>().unwrap(),
@@ -372,8 +369,8 @@ impl Interface {
             self.clock_display_device.read(&mut buf)?;
 
             let report = OutsideWeatherSensorReport {
-                temperature: (256.0 * buf[2] as f32 + buf[1] as f32) / 10.0,
-                humidity: buf[3] as f32,
+                temperature: (256.0 * buf[2] as f64 + buf[1] as f64) / 10.0,
+                humidity: buf[3] as f64,
                 battery_is_weak: (buf[4] == 1),
             };
 
@@ -395,7 +392,7 @@ impl Interface {
     }
 
     /// Calculation is based on sample code from BME280 datasheet.
-    fn bme280_calculate_temperature(&self, t_fine: i32) -> f32 {
+    fn bme280_calculate_temperature(&self, t_fine: i32) -> f64 {
         const TEMPERATURE_MIN: i32 = -4000;
         const TEMPERATURE_MAX: i32 = 8500;
 
@@ -409,7 +406,7 @@ impl Interface {
             temperature_unbound
         };
 
-        return temperature as f32 / 100.0;
+        return temperature as f64 / 100.0;
     }
 
     /// Temperature is used in humidity calculation
@@ -426,7 +423,7 @@ impl Interface {
         var1 + var2
     }
 
-    fn bme280_calculate_humidity(&self, adc_h: u32, t_fine: i32) -> f32 {
+    fn bme280_calculate_humidity(&self, adc_h: u32, t_fine: i32) -> f64 {
         let mut var2: i32;
         let mut var3: i32;
         let mut var4: i32;
@@ -454,10 +451,10 @@ impl Interface {
             humidity = HUMIDITY_MAX;
         }
 
-        return humidity as f32 / 1024.0;
+        return humidity as f64 / 1024.0;
     }
 
-    fn bme280_calculate_pressure(&self, adc_p: u32, t_fine: i32) -> f32 {
+    fn bme280_calculate_pressure(&self, adc_p: u32, t_fine: i32) -> f64 {
         let mut var1: i64;
         let mut var2: i64;
         let mut var4: i64;
@@ -491,7 +488,7 @@ impl Interface {
             pressure = PRESSURE_MIN;
         }
 
-        return pressure as f32 / 100.0 / 100.0; // result in hPa
+        return pressure as f64 / 100.0 / 100.0; // result in hPa
     }
 
     fn write_graphics_low_level(&mut self, position: u8, sum_with_existing_text: bool, content: &[u8]) -> Result<(), io::Error> {
@@ -587,7 +584,7 @@ mod tests {
 
     #[test]
     fn test_all_i2c_commands() {
-        let mut i2c = Interface::new();
+        let mut i2c = Interface::new("/dev/i2c-1");
 
         match i2c.get_inside_weather_report().wait() {
             Err(msg) => assert_eq!("sensor is not initialized", msg.to_string()),
