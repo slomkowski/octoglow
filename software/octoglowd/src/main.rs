@@ -13,9 +13,11 @@ extern crate rusqlite;
 extern crate num_traits;
 
 use futures::prelude::*;
+use std::{thread, time};
 
 mod database;
 mod i2c;
+mod views;
 
 
 fn main() {
@@ -29,7 +31,10 @@ fn main() {
     };
 
     let database = database::Database::new(&config.get_str("database.file").unwrap());
-    let mut interface = i2c::Interface::new(&config.get_str("i2c.bus-device-file").unwrap());
+    let interface = i2c::Interface::new(&config.get_str("i2c.bus-device-file").unwrap());
+
+    thread::sleep(time::Duration::from_secs(2));
+
     interface.front_display_clear().wait().unwrap();
     interface.set_brightness(1).wait().unwrap();
     interface.front_display_upper_bar_active_positions(&[1, 3, 5, 15]).wait().unwrap();
@@ -39,6 +44,11 @@ fn main() {
         humidity: 15.2,
         pressure: 1001.3,
     }).wait().unwrap();
+
+    let i = views::WeatherInsideView::new(&interface, &database);
+
+    i.update_state().wait().unwrap();
+    i.draw_on_front_screen(views::DrawViewOnScreenMode::First).wait().unwrap();
 
     database.get_last_inside_weather_reports_by_hour(4).wait().unwrap();
     database.get_last_outside_weather_reports_by_hour(4).wait().unwrap();

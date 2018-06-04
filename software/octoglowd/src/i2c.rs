@@ -7,6 +7,7 @@ use num_traits;
 use std::cmp;
 use std::io;
 use std::mem::transmute;
+use std::cell::RefCell;
 
 const CLOCK_DISPLAY_ADDR: u16 = 0x10;
 const GEIGER_ADDR: u16 = 0x12;
@@ -16,7 +17,7 @@ const BME280_ADDR: u16 = 0x76;
 const CLOCK_DISPLAY_UPPER_DOT: u8 = 1 << (14 % 8);
 const CLOCK_DISPLAY_LOWER_DOT: u8 = 1 << (13 % 8);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct InsideWeatherSensorReport {
     pub temperature: f64,
     pub humidity: f64,
@@ -69,10 +70,10 @@ impl ScrollingTextSlot {
 }
 
 pub struct Interface {
-    clock_display_device: LinuxI2CDevice,
-    front_display_device: LinuxI2CDevice,
-    geiger_device: LinuxI2CDevice,
-    bme280_device: LinuxI2CDevice,
+    clock_display_device: RefCell<LinuxI2CDevice>,
+    front_display_device: RefCell<LinuxI2CDevice>,
+    geiger_device: RefCell<LinuxI2CDevice>,
+    bme280_device: RefCell<LinuxI2CDevice>,
 
     bme280_dig_t1: u16,
     bme280_dig_t2: i16,
@@ -96,7 +97,7 @@ pub struct Interface {
 
 impl Interface {
     pub fn new(bus_device_file: &str) -> Interface {
-        let mut bme280_device = LinuxI2CDevice::new(bus_device_file, BME280_ADDR).unwrap();
+        let mut bme280_device = LinuxI2CDevice::new(bus_device_file, BME280_ADDR).expect("cannot initialize BME280 I2C device");
 
         bme280_device.write(&[0xe0, 0xb6]).unwrap();
 
@@ -124,10 +125,10 @@ impl Interface {
         }
 
         Interface {
-            clock_display_device: LinuxI2CDevice::new(&bus_device_file, CLOCK_DISPLAY_ADDR).unwrap(),
-            front_display_device: LinuxI2CDevice::new(&bus_device_file, FRONT_DISPLAY_ADDR).unwrap(),
-            geiger_device: LinuxI2CDevice::new(&bus_device_file, GEIGER_ADDR).unwrap(),
-            bme280_device,
+            clock_display_device: RefCell::new(LinuxI2CDevice::new(&bus_device_file, CLOCK_DISPLAY_ADDR).expect("cannot initialize clock display I2C device")),
+            front_display_device: RefCell::new(LinuxI2CDevice::new(&bus_device_file, FRONT_DISPLAY_ADDR).expect("cannot initialize front display I2C device")),
+            geiger_device: RefCell::new(LinuxI2CDevice::new(&bus_device_file, GEIGER_ADDR).expect("cannot initialize geiger I2C device")),
+            bme280_device: RefCell::new(bme280_device),
             bme280_dig_t1: (&calibration1[0..2]).read_u16::<LittleEndian>().unwrap(),
             bme280_dig_t2: (&calibration1[2..4]).read_i16::<LittleEndian>().unwrap(),
             bme280_dig_t3: (&calibration1[4..6]).read_i16::<LittleEndian>().unwrap(),
@@ -149,17 +150,17 @@ impl Interface {
         }
     }
 
-    pub fn set_brightness<'a>(&'a mut self, brightness: u32) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn set_brightness<'a>(&'a self, brightness: u32) -> impl Future<Item=(), Error=io::Error> + 'a {
         assert!(brightness <= 5, "brightness has max value 5, {} provided", brightness);
 
         async_block! {
-            self.clock_display_device.write(&[3, brightness as u8])?;
-            self.front_display_device.write(&[3, brightness as u8])?;
+            self.clock_display_device.borrow_mut().write(&[3, brightness as u8])?;
+            self.front_display_device.borrow_mut().write(&[3, brightness as u8])?;
             Ok(())
         }
     }
 
-    pub fn front_display_upper_bar_content<'a>(&'a mut self, content: &[bool; 20]) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn front_display_upper_bar_content<'a>(&'a self, content: &[bool; 20]) -> impl Future<Item=(), Error=io::Error> + 'a {
         let mut cmd = vec![7];
         let c: u32 = content.iter().enumerate().fold(0, |acc, (index, value)| { if *value { acc | 1 << index } else { acc } });
         let c_bytes: [u8; 4] = unsafe { transmute(c.to_le()) };
@@ -167,12 +168,12 @@ impl Interface {
         cmd.extend(c_bytes.iter());
 
         async_block! {
-            self.front_display_device.write(&cmd)?;
+            self.front_display_device.borrow_mut().write(&cmd)?;
             Ok(())
         }
     }
 
-    pub fn front_display_upper_bar_active_positions<'a>(&'a mut self, active_positions: &[u32]) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn front_display_upper_bar_active_positions<'a>(&'a self, active_positions: &[u32]) -> impl Future<Item=(), Error=io::Error> + 'a {
         let mut content: [bool; 20] = [false; 20];
 
         for pos in 0..20 {
@@ -183,14 +184,14 @@ impl Interface {
         self.front_display_upper_bar_content(&content)
     }
 
-    pub fn front_display_clear<'a>(&'a mut self) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn front_display_clear<'a>(&'a self) -> impl Future<Item=(), Error=io::Error> + 'a {
         async_block! {
-            self.front_display_device.write(&[2])?;
+            self.front_display_device.borrow_mut().write(&[2])?;
             Ok(())
         }
     }
 
-    pub fn front_display_static_text<'a>(&'a mut self, position: u32, text: &str) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn front_display_static_text<'a>(&'a self, position: u32, text: &str) -> impl Future<Item=(), Error=io::Error> + 'a {
         let text_length = text.chars().count() as u32;
         let last_position = position + text_length;
         assert!(position < 40, "position has to be between 0 and 39, {} provided", position);
@@ -202,12 +203,12 @@ impl Interface {
         cmd.push(0);
 
         async_block! {
-            self.front_display_device.write(&cmd)?;
+            self.front_display_device.borrow_mut().write(&cmd)?;
             Ok(())
         }
     }
 
-    pub fn front_display_scrolling_text<'a>(&'a mut self, slot: ScrollingTextSlot, position: u32, length: u32, text: &str) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn front_display_scrolling_text<'a>(&'a self, slot: ScrollingTextSlot, position: u32, length: u32, text: &str) -> impl Future<Item=(), Error=io::Error> + 'a {
         let text_length = text.len() as u32;
         let last_position = position + length;
         assert!(slot.capacity() as u32 > text_length, "UTF-8 text length ({} bytes) cannot exceed the capacity of the selected slot {:?}, which is {}", text_length, slot, slot.capacity());
@@ -220,12 +221,12 @@ impl Interface {
         cmd.push(0);
 
         async_block! {
-            self.front_display_device.write(&cmd)?;
+            self.front_display_device.borrow_mut().write(&cmd)?;
             Ok(())
         }
     }
 
-    pub fn front_display_image<'a>(&'a mut self, position: u32, sum_with_existing_content: bool, img: &image::GrayImage, invert_colors: bool)
+    pub fn front_display_image<'a>(&'a self, position: u32, sum_with_existing_content: bool, img: &image::GrayImage, invert_colors: bool)
                                    -> impl Future<Item=(), Error=io::Error> + 'a {
         let (line1, line2) = match img.height() {
             7 => { // single line
@@ -248,7 +249,7 @@ impl Interface {
         }
     }
 
-    pub fn front_display_diff_chart_1line<'a, T: num_traits::Num + num_traits::ToPrimitive + Copy>(&'a mut self, position: u32, values: &[T], unit: T)
+    pub fn front_display_diff_chart_1line<'a, T: num_traits::Num + num_traits::ToPrimitive + Copy>(&'a self, position: u32, values: &[T], unit: T)
                                                                                                    -> impl Future<Item=(), Error=io::Error> + 'a {
         // we assume last value as pivot
         const MAX_VALUES: usize = 5 * 20;
@@ -277,7 +278,7 @@ impl Interface {
         }
     }
 
-    pub fn front_display_diff_chart_2lines<'a, T: num_traits::Num + num_traits::ToPrimitive + Copy>(&'a mut self, position: u32, values: &[T], unit: T)
+    pub fn front_display_diff_chart_2lines<'a, T: num_traits::Num + num_traits::ToPrimitive + Copy>(&'a self, position: u32, values: &[T], unit: T)
                                                                                                     -> impl Future<Item=(), Error=io::Error> + 'a {
         // we assume last value as pivot
         const MAX_VALUES: usize = 5 * 20;
@@ -308,12 +309,12 @@ impl Interface {
         }
     }
 
-    pub fn get_button_report<'a>(&'a mut self) -> impl Future<Item=ButtonReport, Error=io::Error> + 'a {
+    pub fn get_button_report<'a>(&'a self) -> impl Future<Item=ButtonReport, Error=io::Error> + 'a {
         let mut buf: [u8; 2] = [0; 2];
 
         async_block! {
-            self.front_display_device.write(&[1])?;
-            self.front_display_device.read(&mut buf)?;
+            self.front_display_device.borrow_mut().write(&[1])?;
+            self.front_display_device.borrow_mut().read(&mut buf)?;
 
             let button = match buf[1] {
                 0 => ButtonState::NoChange,
@@ -332,12 +333,12 @@ impl Interface {
         }
     }
 
-    pub fn get_inside_weather_report<'a>(&'a mut self) -> impl Future<Item=InsideWeatherSensorReport, Error=io::Error> + 'a {
+    pub fn get_inside_weather_report<'a>(&'a self) -> impl Future<Item=InsideWeatherSensorReport, Error=io::Error> + 'a {
         let mut buf: [u8; 8] = [0; 8];
 
         async_block! {
-            self.bme280_device.write(&[0xf7])?;
-            self.bme280_device.read(&mut buf)?;
+            self.bme280_device.borrow_mut().write(&[0xf7])?;
+            self.bme280_device.borrow_mut().read(&mut buf)?;
 
             if buf == [128, 0, 0, 128, 0, 0, 128, 0] {
                 return Err(io::Error::new(io::ErrorKind::Other, "sensor is not initialized"));
@@ -361,12 +362,12 @@ impl Interface {
         }
     }
 
-    pub fn get_outside_weather_report<'a>(&'a mut self) -> impl Future<Item=OutsideWeatherSensorReport, Error=io::Error> + 'a {
+    pub fn get_outside_weather_report<'a>(&'a self) -> impl Future<Item=OutsideWeatherSensorReport, Error=io::Error> + 'a {
         let mut buf: [u8; 5] = [0; 5];
 
         async_block! {
-            self.clock_display_device.write(&[0x04])?;
-            self.clock_display_device.read(&mut buf)?;
+            self.clock_display_device.borrow_mut().write(&[0x04])?;
+            self.clock_display_device.borrow_mut().read(&mut buf)?;
 
             let report = OutsideWeatherSensorReport {
                 temperature: (256.0 * buf[2] as f64 + buf[1] as f64) / 10.0,
@@ -380,13 +381,13 @@ impl Interface {
         }
     }
 
-    pub fn set_clock_display_content<'a>(&'a mut self, hours: u8, minutes: u8, upper_dot: bool, lower_dot: bool) -> impl Future<Item=(), Error=io::Error> + 'a {
+    pub fn set_clock_display_content<'a>(&'a self, hours: u8, minutes: u8, upper_dot: bool, lower_dot: bool) -> impl Future<Item=(), Error=io::Error> + 'a {
         let digits = [hours / 10, hours % 10, minutes / 10, minutes % 10];
         let dots = (if upper_dot { CLOCK_DISPLAY_UPPER_DOT } else { 0 }) | (if lower_dot { CLOCK_DISPLAY_LOWER_DOT } else { 0 });
         let buf: [u8; 6] = [0x1, digits[0] + 0x30, digits[1] + 0x30, digits[2] + 0x30, digits[3] + 0x30, dots];
 
         async_block! {
-            self.clock_display_device.write(&buf)?;
+            self.clock_display_device.borrow_mut().write(&buf)?;
             Ok(())
         }
     }
@@ -491,10 +492,10 @@ impl Interface {
         return pressure as f64 / 100.0 / 100.0; // result in hPa
     }
 
-    fn write_graphics_low_level(&mut self, position: u8, sum_with_existing_text: bool, content: &[u8]) -> Result<(), io::Error> {
+    fn write_graphics_low_level(&self, position: u8, sum_with_existing_text: bool, content: &[u8]) -> Result<(), io::Error> {
         let mut cmd = vec![6, position, content.len() as u8, sum_with_existing_text as u8];
         cmd.extend(content.iter());
-        self.front_display_device.write(&cmd)?;
+        self.front_display_device.borrow_mut().write(&cmd)?;
         Ok(())
     }
 
