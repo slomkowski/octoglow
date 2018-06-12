@@ -15,9 +15,12 @@ extern crate num_traits;
 use futures::prelude::*;
 use std::{thread, time};
 
+mod error;
 mod database;
 mod i2c;
 mod views;
+
+use views::View;
 
 
 fn main() {
@@ -37,19 +40,16 @@ fn main() {
 
     interface.front_display_clear().wait().unwrap();
     interface.set_brightness(1).wait().unwrap();
-    interface.front_display_upper_bar_active_positions(&[1, 3, 5, 15]).wait().unwrap();
 
-    database.save_inside_weather_report(&i2c::InsideWeatherSensorReport {
-        temperature: 33.0,
-        humidity: 15.2,
-        pressure: 1001.3,
-    }).wait().unwrap();
+    let i = views::weather_inside::WeatherInsideView::new(&interface, &database);
 
-    let i = views::WeatherInsideView::new(&interface, &database);
+    loop {
+        i.update_state().unwrap();
+        i.draw_on_front_screen(views::DrawViewOnScreenMode::First).unwrap();
 
-    i.update_state().wait().unwrap();
-    i.draw_on_front_screen(views::DrawViewOnScreenMode::First).wait().unwrap();
-
-    database.get_last_inside_weather_reports_by_hour(4).wait().unwrap();
-    database.get_last_outside_weather_reports_by_hour(4).wait().unwrap();
+        for _ in 0..6 {
+            i.draw_on_front_screen(views::DrawViewOnScreenMode::Update).unwrap();
+            thread::sleep(time::Duration::from_secs(10));
+        }
+    }
 }

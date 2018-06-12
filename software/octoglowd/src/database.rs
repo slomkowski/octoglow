@@ -1,7 +1,8 @@
-use chrono::{DateTime, Duration, Local, NaiveDateTime, NaiveDate};
+use chrono::{Duration, Local, NaiveDateTime};
 use futures::prelude::*;
 use i2c::{InsideWeatherSensorReport, OutsideWeatherSensorReport};
 use rusqlite;
+use error;
 
 struct InsideWeatherReportModel {
     id: i64,
@@ -42,7 +43,7 @@ impl Database {
         }
     }
 
-    pub fn save_inside_weather_report<'a>(&'a self, report: &'a InsideWeatherSensorReport) -> impl Future<Item=(), Error=rusqlite::Error> + 'a {
+    pub fn save_inside_weather_report<'a>(&'a self, report: InsideWeatherSensorReport) -> impl Future<Item=(), Error=error::Error> + 'a {
         async_block! {
             self.connection.execute("INSERT INTO inside_weather_report (timestamp, temperature, humidity, pressure) VALUES(?1, ?2, ?3, ?4)",
                                 &[&Local::now(), &(report.temperature as f64), &(report.humidity as f64), &(report.pressure as f64)])?;
@@ -50,7 +51,7 @@ impl Database {
         }
     }
 
-    pub fn save_outside_weather_report<'a>(&'a self, report: &'a OutsideWeatherSensorReport) -> impl Future<Item=(), Error=rusqlite::Error> + 'a {
+    pub fn save_outside_weather_report<'a>(&'a self, report: &'a OutsideWeatherSensorReport) -> impl Future<Item=(), Error=error::Error> + 'a {
         async_block! {
             self.connection.execute("INSERT INTO outside_weather_report (timestamp, temperature, humidity, weak_battery) VALUES (?1, ?2, ?3, ?4)",
                                 &[&Local::now(), &(report.temperature as f64), &(report.humidity as f64), &(report.battery_is_weak)])?;
@@ -58,7 +59,7 @@ impl Database {
         }
     }
 
-    pub fn get_last_inside_weather_reports_by_hour<'a>(&'a self, num_of_last_hours: u32) -> impl Future<Item=Vec<InsideWeatherSensorReport>, Error=rusqlite::Error> + 'a {
+    pub fn get_last_inside_weather_reports_by_hour<'a>(&'a self, num_of_last_hours: u32) -> impl Future<Item=Vec<InsideWeatherSensorReport>, Error=error::Error> + 'a {
         let sql = Database::create_sql_query_for_averaged_hours("inside_weather_report", &["temperature", "humidity", "pressure"],
                                                                 &Local::now().naive_local(), num_of_last_hours);
         async_block! {
@@ -73,7 +74,7 @@ impl Database {
         }
     }
 
-    pub fn get_last_outside_weather_reports_by_hour<'a>(&'a self, num_of_last_hours: u32) -> impl Future<Item=Vec<OutsideWeatherSensorReport>, Error=rusqlite::Error> + 'a {
+    pub fn get_last_outside_weather_reports_by_hour<'a>(&'a self, num_of_last_hours: u32) -> impl Future<Item=Vec<OutsideWeatherSensorReport>, Error=error::Error> + 'a {
         let sql = Database::create_sql_query_for_averaged_hours("outside_weather_report", &["temperature", "humidity"],
                                                                 &Local::now().naive_local(), num_of_last_hours);
         async_block! {
@@ -115,6 +116,7 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::NaiveDate;
 
     #[test]
     fn test_create_sql_query_for_averaged_hours() {
