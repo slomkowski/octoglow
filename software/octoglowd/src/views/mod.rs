@@ -17,3 +17,4 @@ pub trait View {
 
 pub mod weather_inside;
 pub mod weather_outside;
+pub mod clock;

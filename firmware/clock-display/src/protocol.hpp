@@ -6,12 +6,13 @@ namespace octoglow {
     namespace vfd_clock {
         namespace protocol {
 
-            constexpr uint8_t UPPER_DOT = 1u << (14 % 8);
-            constexpr uint8_t LOWER_DOT = 1u << (13 % 8);
+            constexpr uint8_t UPPER_DOT = 1 << (14 % 8);
+            constexpr uint8_t LOWER_DOT = 1 << (13 % 8);
 
             constexpr uint8_t MAX_BRIGHTNESS = 5;
 
             enum class Command : uint8_t {
+                NONE,
                 SET_DISPLAY_CONTENT = 0x1, // 4 ascii chars + dot content
                 SET_RELAY,
                 SET_BRIGHTNESS,

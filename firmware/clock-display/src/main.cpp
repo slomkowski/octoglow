@@ -14,30 +14,30 @@
 constexpr bool WATCHD0G_ENABLE = true;
 
 using namespace octoglow::vfd_clock;
+using namespace octoglow::vfd_clock::protocol;
+
+static Command currentCommand = Command::NONE;
 
 static inline void processI2cCommands() {
     using namespace octoglow::vfd_clock::protocol;
-
-    const auto command = static_cast<Command >(i2c_wrbuf[0]);
 
     if (i2c_reply_ready()) {
 
         i2c_rdbuf[0] = i2c_wrbuf[0];
 
-        if (command == Command::GET_WEATHER_SENSOR_STATE) {
+        if (currentCommand == Command::GET_WEATHER_SENSOR_STATE) {
             for (uint8_t i = sizeof(protocol::WeatherSensorState); i != 0; --i) {
                 i2c_rdbuf[i] = reinterpret_cast<uint8_t *>(&(receiver433::currentWeatherSensorState))[i - 1];
             }
             receiver433::currentWeatherSensorState.alreadyRead = true;
             i2c_reply_done(sizeof(protocol::WeatherSensorState) + 1);
+            currentCommand = Command::NONE;
         }
-
-        i2c_wrbuf[0] = 0;
     }
 
     if (i2c_message_ready()) {
 
-        switch (command) {
+        switch (static_cast<Command >(i2c_wrbuf[0])) {
             case Command::SET_DISPLAY_CONTENT: {
                 auto *dc = (DisplayContent *) (&i2c_wrbuf[1]);
                 display::setDots(dc->dotState, false);
@@ -52,6 +52,9 @@ static inline void processI2cCommands() {
                 break;
             case Command::SET_BRIGHTNESS:
                 display::setBrightness(i2c_wrbuf[1]);
+                break;
+            case Command::GET_WEATHER_SENSOR_STATE:
+                currentCommand = Command::GET_WEATHER_SENSOR_STATE;
                 break;
         }
 

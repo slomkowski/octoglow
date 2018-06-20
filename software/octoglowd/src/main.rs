@@ -1,26 +1,24 @@
 #![feature(proc_macro, proc_macro_non_items, generators)]
-extern crate futures_await as futures;
 extern crate byteorder;
 extern crate chrono;
 extern crate config;
+extern crate futures_await as futures;
 extern crate i2cdev;
 extern crate image;
 #[macro_use]
 extern crate log;
-extern crate simplelog;
-
-extern crate rusqlite;
 extern crate num_traits;
+extern crate rusqlite;
+extern crate simplelog;
 
 use futures::prelude::*;
 use std::{thread, time};
+use views::View;
 
 mod error;
 mod database;
 mod i2c;
 mod views;
-
-use views::View;
 
 
 fn main() {
@@ -43,6 +41,7 @@ fn main() {
 
     //let i = views::weather_outside::WeatherOutsideView::new(&interface, &database);
     let i = views::weather_inside::WeatherInsideView::new(&interface, &database);
+    let clock_view = views::clock::ClockView::new(&interface);
 
     loop {
         i.update_state().unwrap();
@@ -50,6 +49,7 @@ fn main() {
 
         for _ in 0..6 {
             i.draw_on_front_screen(views::DrawViewOnScreenMode::Update).unwrap();
+            clock_view.draw_on_front_screen(views::DrawViewOnScreenMode::First).unwrap();
             thread::sleep(time::Duration::from_secs(10));
         }
     }
