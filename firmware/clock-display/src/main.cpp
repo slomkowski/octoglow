@@ -28,8 +28,11 @@ static inline void processI2cCommands() {
             for (uint8_t i = sizeof(protocol::WeatherSensorState); i != 0; --i) {
                 i2c_rdbuf[i] = reinterpret_cast<uint8_t *>(&(receiver433::currentWeatherSensorState))[i - 1];
             }
+            receiver433::currentWeatherSensorState.alreadyRead = true;
             i2c_reply_done(sizeof(protocol::WeatherSensorState) + 1);
         }
+
+        i2c_wrbuf[0] = 0;
     }
 
     if (i2c_message_ready()) {

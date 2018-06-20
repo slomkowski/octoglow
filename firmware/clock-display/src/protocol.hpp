@@ -6,8 +6,8 @@ namespace octoglow {
     namespace vfd_clock {
         namespace protocol {
 
-            constexpr uint8_t UPPER_DOT = 1 << (14 % 8);
-            constexpr uint8_t LOWER_DOT = 1 << (13 % 8);
+            constexpr uint8_t UPPER_DOT = 1u << (14 % 8);
+            constexpr uint8_t LOWER_DOT = 1u << (13 % 8);
 
             constexpr uint8_t MAX_BRIGHTNESS = 5;
 
@@ -36,9 +36,10 @@ namespace octoglow {
                 int16_t temperature; // in 0.1 deg C
                 uint8_t humidity; // in %
                 bool weakBattery;
+                bool alreadyRead;
             };
 
-            static_assert(sizeof(WeatherSensorState) == 4);
+            static_assert(sizeof(WeatherSensorState) == 5);
         }
 
     }
