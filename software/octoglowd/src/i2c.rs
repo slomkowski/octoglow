@@ -4,10 +4,10 @@ use i2cdev::core::*;
 use i2cdev::linux::LinuxI2CDevice;
 use image;
 use num_traits;
+use std::cell::RefCell;
 use std::cmp;
 use std::io;
 use std::mem::transmute;
-use std::cell::RefCell;
 
 const CLOCK_DISPLAY_ADDR: u16 = 0x10;
 const GEIGER_ADDR: u16 = 0x12;
@@ -24,11 +24,12 @@ pub struct InsideWeatherSensorReport {
     pub pressure: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct OutsideWeatherSensorReport {
     pub temperature: f64,
     pub humidity: f64,
     pub battery_is_weak: bool,
+    pub already_read: bool,
 }
 
 #[derive(Debug)]
@@ -173,12 +174,12 @@ impl Interface {
         }
     }
 
-    pub fn front_display_upper_bar_active_positions<'a>(&'a self, active_positions: &[u32]) -> impl Future<Item=(), Error=io::Error> + 'a {
-        let mut content: [bool; 20] = [false; 20];
+    pub fn front_display_upper_bar_active_positions<'a>(&'a self, active_positions: &[u32], invert: bool) -> impl Future<Item=(), Error=io::Error> + 'a {
+        let mut content: [bool; 20] = [invert; 20];
 
         for pos in 0..20 {
             if active_positions.contains(&pos) {
-                content[pos as usize] = true;
+                content[pos as usize] = !invert;
             }
         }
         self.front_display_upper_bar_content(&content)
@@ -193,7 +194,7 @@ impl Interface {
 
     pub fn front_display_static_text<'a>(&'a self, position: u32, text: &str) -> impl Future<Item=(), Error=io::Error> + 'a {
         let text_length = text.chars().count() as u32;
-        let last_position = position + text_length;
+        let last_position = position + text_length - 1;
         assert!(position < 40, "position has to be between 0 and 39, {} provided", position);
         assert!(text_length > 0, "text length has to be at least 1");
         assert!(last_position < 40, "end of the string cannot exceed position 39, but has length {} and position {}, which sums to {}", text_length, position, last_position);
@@ -210,7 +211,7 @@ impl Interface {
 
     pub fn front_display_scrolling_text<'a>(&'a self, slot: ScrollingTextSlot, position: u32, length: u32, text: &str) -> impl Future<Item=(), Error=io::Error> + 'a {
         let text_length = text.len() as u32;
-        let last_position = position + length;
+        let last_position = position + length - 1;
         assert!(slot.capacity() as u32 > text_length, "UTF-8 text length ({} bytes) cannot exceed the capacity of the selected slot {:?}, which is {}", text_length, slot, slot.capacity());
         assert!(position < 40, "position has to be between 0 and 39, {} provided", position);
         assert!(text_length > 0, "text length has to be at least 1");
@@ -255,7 +256,7 @@ impl Interface {
         const MAX_VALUES: usize = 5 * 20;
         assert!(values.len() < MAX_VALUES, "number of values cannot exceed {}", MAX_VALUES);
         assert!(values.len() > 0, "there has to be at least one value");
-        let max_position: u32 = 5 * 40 - values.len() as u32;
+        let max_position: u32 = 5 * 40 - values.len() as u32 + 1;
         assert!(position < max_position, "position cannot exceed {}", max_position);
 
         let img_vec: Vec<u8> = values.iter().map(|v| ((*v - *values.last().unwrap()).to_f32().unwrap() / unit.to_f32().unwrap()).round() as i32)
@@ -363,7 +364,7 @@ impl Interface {
     }
 
     pub fn get_outside_weather_report<'a>(&'a self) -> impl Future<Item=OutsideWeatherSensorReport, Error=io::Error> + 'a {
-        let mut buf: [u8; 5] = [0; 5];
+        let mut buf: [u8; 6] = [0; 6];
 
         async_block! {
             self.clock_display_device.borrow_mut().write(&[0x04])?;
@@ -373,6 +374,7 @@ impl Interface {
                 temperature: (256.0 * buf[2] as f64 + buf[1] as f64) / 10.0,
                 humidity: buf[3] as f64,
                 battery_is_weak: (buf[4] == 1),
+                already_read: (buf[5] == 1),
             };
 
             debug!("Received {:?}.", report);
@@ -516,9 +518,9 @@ impl Interface {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::{thread, time};
     use std::path::PathBuf;
+    use super::*;
 
     fn set_stage_1<'a>(i2c: &'a mut Interface) -> impl Future<Item=(), Error=io::Error> + 'a {
         async_block! {

@@ -43,7 +43,7 @@ impl Database {
         }
     }
 
-    pub fn save_inside_weather_report<'a>(&'a self, report: InsideWeatherSensorReport) -> impl Future<Item=(), Error=error::Error> + 'a {
+    pub fn save_inside_weather_report<'a>(&'a self, report: &'a InsideWeatherSensorReport) -> impl Future<Item=(), Error=error::Error> + 'a {
         async_block! {
             self.connection.execute("INSERT INTO inside_weather_report (timestamp, temperature, humidity, pressure) VALUES(?1, ?2, ?3, ?4)",
                                 &[&Local::now(), &(report.temperature as f64), &(report.humidity as f64), &(report.pressure as f64)])?;
@@ -82,7 +82,8 @@ impl Database {
             let mapped_rows = prepared_stmt.query_map(&[], |row| OutsideWeatherSensorReport {
                 temperature: row.get(0),
                 humidity: row.get(1),
-                battery_is_weak : false // dummy value, we don't care
+                battery_is_weak : false, // dummy value, we don't care
+                already_read: false // dummy value
             })?;
             let res = mapped_rows.into_iter().map(|r| r.unwrap()).collect();
             Ok(res)

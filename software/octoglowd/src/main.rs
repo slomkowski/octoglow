@@ -41,6 +41,7 @@ fn main() {
     interface.front_display_clear().wait().unwrap();
     interface.set_brightness(1).wait().unwrap();
 
+    //let i = views::weather_outside::WeatherOutsideView::new(&interface, &database);
     let i = views::weather_inside::WeatherInsideView::new(&interface, &database);
 
     loop {

@@ -5,6 +5,7 @@ use i2c;
 use i2c::InsideWeatherSensorReport;
 use std::cell::Cell;
 use std::cmp::min;
+use chrono;
 use views::*;
 
 const HISTORIC_VALUES_LENGTH: usize = 15;
@@ -46,11 +47,15 @@ impl<'a> WeatherInsideView<'a> {
 }
 
 impl<'a> View for WeatherInsideView<'a> {
-    fn update_state(&self) -> Result<(), error::Error> {
+    fn get_preferred_pool_period(&self) -> chrono::Duration {
+        chrono::Duration::minutes(1)
+    }
+
+    fn update_state(&self) -> Result<bool, error::Error> {
         let current_measurement_fut = self.i2c_interface.get_inside_weather_report();
 
         let current_report = current_measurement_fut.wait()?;
-        let save_current_report_fut = self.database.save_inside_weather_report(current_report.clone());
+        let save_current_report_fut = self.database.save_inside_weather_report(&current_report);
 
         let historic_averages = self.database.get_last_inside_weather_reports_by_hour(HISTORIC_VALUES_LENGTH as u32).wait()?;
 
@@ -83,14 +88,16 @@ impl<'a> View for WeatherInsideView<'a> {
 
         save_current_report_fut.wait()?;
 
-        Ok(())
+        Ok(true) // we can always get the measurement
     }
 
     fn draw_on_front_screen(&self, draw_mode: DrawViewOnScreenMode) -> Result<(), error::Error> {
         let current_report = self.current_report.get();
 
         if draw_mode == DrawViewOnScreenMode::First {
-            self.i2c_interface.front_display_clear().wait()?;
+            self.i2c_interface.front_display_clear()
+                .join(self.i2c_interface.front_display_static_text(38, "IN"))
+                .wait()?;
         }
 
         match current_report {
