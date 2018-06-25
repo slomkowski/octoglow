@@ -26,7 +26,8 @@ namespace octoglow {
                 SET_GEIGER_CONFIGURATION,
                 CLEAN_GEIGER_STATE,
                 SET_EYE_CONFIGURATION,
-                SET_EYE_DISPLAY_VALUE
+                SET_EYE_DISPLAY_VALUE,
+                SET_BRIGHTNESS
             };
 
             struct DeviceState {
@@ -55,10 +56,9 @@ namespace octoglow {
 
             struct EyeConfiguration {
                 bool enabled;
-                uint8_t brightness;
                 EyeDisplayMode mode;
             }__attribute__((packed));
-            static_assert(sizeof(EyeConfiguration) == 3, "invalid size");
+            static_assert(sizeof(EyeConfiguration) == 2, "invalid size");
         }
     }
 }

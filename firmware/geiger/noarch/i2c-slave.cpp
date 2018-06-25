@@ -47,13 +47,13 @@ void ::octoglow::geiger::i2c::onReceive(uint8_t value) {
     } else if (bytesProcessed == 2) {
         if (cmd == Command::SET_EYE_DISPLAY_VALUE) {
             magiceye::setAdcValue(buffer[1]);
+        } else if (cmd == Command::SET_BRIGHTNESS) {
+            magiceye::setBrightness(buffer[1]);
         }
     } else if (bytesProcessed == 3) {
         if (cmd == Command::SET_GEIGER_CONFIGURATION) {
             geiger_counter::configure(*reinterpret_cast<protocol::GeigerConfiguration *>(buffer + 1));
-        }
-    } else if (bytesProcessed == 4) {
-        if (cmd == Command::SET_EYE_CONFIGURATION) {
+        } else if (cmd == Command::SET_EYE_CONFIGURATION) {
             magiceye::configure(*reinterpret_cast<protocol::EyeConfiguration *>(buffer + 1));
         }
     }

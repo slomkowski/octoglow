@@ -29,6 +29,8 @@ void ::octoglow::geiger::magiceye::hd::enableHeater2(bool enabled) {
 
 void ::octoglow::geiger::magiceye::init() {
 
+    setBrightness(3);
+
     // init heater
     P1DIR |= HEATING_1 | HEATING_2;
     hd::enableHeater2(false);

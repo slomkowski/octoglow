@@ -15,6 +15,8 @@ namespace octoglow {
 
             void configure(protocol::EyeConfiguration &configuration);
 
+            void setBrightness(uint8_t brightness);
+
             void setAdcValue(uint8_t v);
 
             void setEnabled(bool enabled);
