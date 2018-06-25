@@ -3,7 +3,6 @@ use database;
 use error;
 use futures::prelude::*;
 use i2c;
-use i2c::OutsideWeatherSensorReport;
 use std::cell::Cell;
 use std::cmp::min;
 use views::*;
@@ -18,15 +17,15 @@ struct CurrentReport {
     historic_humidity: [f64; HISTORIC_VALUES_LENGTH],
 }
 
-pub struct WeatherOutsideView<'a> {
+pub struct GeigerView<'a> {
     i2c_interface: &'a i2c::Interface,
     database: &'a database::Database,
     current_report: Cell<Option<CurrentReport>>,
 }
 
-impl<'a> WeatherOutsideView<'a> {
-    pub fn new<'c>(i2c_interface: &'c i2c::Interface, database: &'c database::Database) -> WeatherOutsideView<'c> {
-        WeatherOutsideView {
+impl<'a> GeigerView<'a> {
+    pub fn new<'c>(i2c_interface: &'c i2c::Interface, database: &'c database::Database) -> GeigerView<'c> {
+        GeigerView {
             i2c_interface,
             database,
             current_report: Cell::new(None),
@@ -42,7 +41,7 @@ impl<'a> WeatherOutsideView<'a> {
     }
 }
 
-impl<'a> View for WeatherOutsideView<'a> {
+impl<'a> View for GeigerView<'a> {
     fn update_state(&self) -> Result<bool, error::Error> {
         let current_report = self.i2c_interface.get_outside_weather_report().wait()?;
 
@@ -97,8 +96,8 @@ impl<'a> View for WeatherOutsideView<'a> {
                 let seconds_elapsed: u32 = Local::now().naive_local().signed_duration_since(rep.last_measurement_timestamp).num_seconds() as u32;
                 let active_positions: Vec<u32> = (0..20u32).filter(|v| *v <= seconds_elapsed / 5).collect();
 
-                self.i2c_interface.front_display_static_text(20, &WeatherOutsideView::format_temperature(rep.current_report.temperature))
-                    .join(self.i2c_interface.front_display_static_text(32, &WeatherOutsideView::format_humidity(rep.current_report.humidity)))
+                self.i2c_interface.front_display_static_text(20, &GeigerView::format_temperature(rep.current_report.temperature))
+                    .join(self.i2c_interface.front_display_static_text(32, &GeigerView::format_humidity(rep.current_report.humidity)))
                     .join(self.i2c_interface.front_display_upper_bar_active_positions(&active_positions, false))
                     .wait()?;
 
@@ -131,18 +130,18 @@ mod tests {
 
     #[test]
     fn test_format_humidity() {
-        assert_eq!("H: 100%", WeatherOutsideView::format_humidity(100.0));
-        assert_eq!("H:   0%", WeatherOutsideView::format_humidity(0.0));
-        assert_eq!("H:  24%", WeatherOutsideView::format_humidity(24.1001));
-        assert_eq!("H:  39%", WeatherOutsideView::format_humidity(38.8903));
+        assert_eq!("H: 100%", GeigerView::format_humidity(100.0));
+        assert_eq!("H:   0%", GeigerView::format_humidity(0.0));
+        assert_eq!("H:  24%", GeigerView::format_humidity(24.1001));
+        assert_eq!("H:  39%", GeigerView::format_humidity(38.8903));
     }
 
     #[test]
     fn test_format_temperature() {
-        assert_eq!("+24.4\u{00B0}C", WeatherOutsideView::format_temperature(24.434));
-        assert_eq!("-12.0\u{00B0}C", WeatherOutsideView::format_temperature(-12.0));
-        assert_eq!(" +3.2\u{00B0}C", WeatherOutsideView::format_temperature(3.21343));
-        assert_eq!("-12.7\u{00B0}C", WeatherOutsideView::format_temperature(-12.693423));
-        assert_eq!(" +0.0\u{00B0}C", WeatherOutsideView::format_temperature(0.0));
+        assert_eq!("+24.4\u{00B0}C", GeigerView::format_temperature(24.434));
+        assert_eq!("-12.0\u{00B0}C", GeigerView::format_temperature(-12.0));
+        assert_eq!(" +3.2\u{00B0}C", GeigerView::format_temperature(3.21343));
+        assert_eq!("-12.7\u{00B0}C", GeigerView::format_temperature(-12.693423));
+        assert_eq!(" +0.0\u{00B0}C", GeigerView::format_temperature(0.0));
     }
 }

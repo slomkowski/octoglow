@@ -1,3 +1,4 @@
+use chrono;
 use database;
 use error;
 use futures::prelude::*;
@@ -5,7 +6,6 @@ use i2c;
 use i2c::InsideWeatherSensorReport;
 use std::cell::Cell;
 use std::cmp::min;
-use chrono;
 use views::*;
 
 const HISTORIC_VALUES_LENGTH: usize = 15;
@@ -47,10 +47,6 @@ impl<'a> WeatherInsideView<'a> {
 }
 
 impl<'a> View for WeatherInsideView<'a> {
-    fn get_preferred_pool_period(&self) -> chrono::Duration {
-        chrono::Duration::minutes(1)
-    }
-
     fn update_state(&self) -> Result<bool, error::Error> {
         let current_measurement_fut = self.i2c_interface.get_inside_weather_report();
 
@@ -91,14 +87,12 @@ impl<'a> View for WeatherInsideView<'a> {
         Ok(true) // we can always get the measurement
     }
 
-    fn draw_on_front_screen(&self, draw_mode: DrawViewOnScreenMode) -> Result<(), error::Error> {
+    fn draw_on_front_screen(&self, _: DrawViewOnScreenMode) -> Result<(), error::Error> {
         let current_report = self.current_report.get();
 
-        if draw_mode == DrawViewOnScreenMode::First {
-            self.i2c_interface.front_display_clear()
-                .join(self.i2c_interface.front_display_static_text(38, "IN"))
-                .wait()?;
-        }
+        self.i2c_interface.front_display_clear()
+            .join(self.i2c_interface.front_display_static_text(38, "IN"))
+            .wait()?;
 
         match current_report {
             Some(rep) => {
@@ -120,6 +114,14 @@ impl<'a> View for WeatherInsideView<'a> {
             }
         }
         Ok(())
+    }
+
+    fn get_preferred_update_state_period(&self) -> chrono::Duration {
+        chrono::Duration::minutes(1)
+    }
+
+    fn get_preferred_draw_on_front_screen_period(&self) -> Option<chrono::Duration> {
+        None
     }
 }
 

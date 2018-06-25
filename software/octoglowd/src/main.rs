@@ -39,16 +39,23 @@ fn main() {
     interface.front_display_clear().wait().unwrap();
     interface.set_brightness(1).wait().unwrap();
 
-    //let i = views::weather_outside::WeatherOutsideView::new(&interface, &database);
-    let i = views::weather_inside::WeatherInsideView::new(&interface, &database);
+    let views: Vec<Box<View>> = vec![
+        Box::new(views::weather_inside::WeatherInsideView::new(&interface, &database)),
+        Box::new(views::weather_outside::WeatherOutsideView::new(&interface, &database)),
+    ];
+
     let clock_view = views::clock::ClockView::new(&interface);
 
+    let mut current_view: &Box<View> = &views[0];
+
     loop {
-        i.update_state().unwrap();
-        i.draw_on_front_screen(views::DrawViewOnScreenMode::First).unwrap();
+        let button_report = interface.get_button_report();
+
+        current_view.update_state().unwrap();
+        current_view.draw_on_front_screen(views::DrawViewOnScreenMode::First).unwrap();
 
         for _ in 0..6 {
-            i.draw_on_front_screen(views::DrawViewOnScreenMode::Update).unwrap();
+            current_view.draw_on_front_screen(views::DrawViewOnScreenMode::Update).unwrap();
             clock_view.draw_on_front_screen(views::DrawViewOnScreenMode::First).unwrap();
             thread::sleep(time::Duration::from_secs(10));
         }

@@ -17,10 +17,6 @@ impl<'a> ClockView<'a> {
 }
 
 impl<'a> View for ClockView<'a> {
-    fn get_preferred_pool_period(&self) -> chrono::Duration {
-        chrono::Duration::seconds(1)
-    }
-
     fn update_state(&self) -> Result<bool, error::Error> {
         Ok(false)
     }
@@ -33,6 +29,14 @@ impl<'a> View for ClockView<'a> {
         self.i2c_interface.set_clock_display_content(now.hour() as u8, now.minute() as u8, upper_dot, lower_dot).wait()?;
 
         Ok(())
+    }
+
+    fn get_preferred_update_state_period(&self) -> chrono::Duration {
+        chrono::Duration::seconds(10)
+    }
+
+    fn get_preferred_draw_on_front_screen_period(&self) -> Option<chrono::Duration> {
+        None
     }
 }
 

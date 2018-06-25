@@ -7,6 +7,7 @@ use num_traits;
 use std::cell::RefCell;
 use std::cmp;
 use std::io;
+use chrono;
 use std::mem::transmute;
 
 const CLOCK_DISPLAY_ADDR: u16 = 0x10;
@@ -50,6 +51,38 @@ pub enum ScrollingTextSlot {
     SLOT0,
     SLOT1,
     SLOT2,
+}
+
+#[derive(Debug)]
+pub enum EyeDisplayMode {
+    Animation,
+    FixedValue,
+}
+
+#[derive(Debug)]
+pub enum EyeInverterState {
+    Disabled,
+    HeatingLimited,
+    HeatingFull,
+    Running,
+}
+
+#[derive(Debug)]
+pub struct GeigerDeviceState {
+    pub geiger_voltage: f32,
+    pub geiger_pwm_value: u32,
+    pub eye_state: EyeInverterState,
+    pub eye_animation_mode: EyeDisplayMode,
+    pub eye_voltage: f32,
+    pub eye_pwm_value: u32,
+}
+
+#[derive(Debug)]
+pub struct GeigerCounterState {
+    pub has_new_cycle_started: bool,
+    pub num_of_counts_current_cycle: u32,
+    pub num_of_counts_previous_cycle: u32,
+    pub cycle_length: chrono::Duration,
 }
 
 impl ScrollingTextSlot {
@@ -157,6 +190,7 @@ impl Interface {
         async_block! {
             self.clock_display_device.borrow_mut().write(&[3, brightness as u8])?;
             self.front_display_device.borrow_mut().write(&[3, brightness as u8])?;
+            self.geiger_device.borrow_mut().write(&[7, brightness as u8])?;
             Ok(())
         }
     }
@@ -394,6 +428,59 @@ impl Interface {
         }
     }
 
+    pub fn get_geiger_device_state<'a>(&'a self) -> impl Future<Item=GeigerDeviceState, Error=io::Error> + 'a {
+        let mut buf: [u8; 8] = [0; 8];
+
+        async_block! {
+            self.geiger_device.borrow_mut().write(&[0x1])?;
+            self.geiger_device.borrow_mut().read(&mut buf)?;
+
+
+            let report = GeigerDeviceState {
+                geiger_voltage : (&buf[0..2]).read_u16::<LittleEndian>().unwrap() as f32,
+                geiger_pwm_value : buf[2] as u32,
+                eye_state: match buf[3] {
+                    0 => EyeInverterState::Disabled,
+                    1 => EyeInverterState::HeatingLimited,
+                    2 => EyeInverterState::HeatingFull,
+                    3 => EyeInverterState::Running,
+                    _ => panic!("invalid eye inverter state")
+                },
+                eye_animation_mode: match buf[4] {
+                    0 => EyeDisplayMode::Animation,
+                    1 => EyeDisplayMode::FixedValue,
+                    _ => panic!("invalid eye animation state")
+                },
+                eye_voltage : (&buf[5..7]).read_u16::<LittleEndian>().unwrap() as f32,
+                eye_pwm_value : buf[7] as u32
+            };
+
+            debug!("Received {:?}.", report);
+
+            Ok(report)
+        }
+    }
+
+    pub fn get_geiger_counter_state<'a>(&'a self) -> impl Future<Item=GeigerCounterState, Error=io::Error> + 'a {
+        let mut buf: [u8; 7] = [0; 7];
+
+        async_block! {
+            self.geiger_device.borrow_mut().write(&[0x2])?;
+            self.geiger_device.borrow_mut().read(&mut buf)?;
+
+            let report = GeigerCounterState {
+                has_new_cycle_started : buf[0] == 1,
+                num_of_counts_current_cycle : (&buf[1..3]).read_u16::<LittleEndian>().unwrap() as u32,
+                num_of_counts_previous_cycle : (&buf[3..5]).read_u16::<LittleEndian>().unwrap() as u32,
+                cycle_length : chrono::Duration::seconds((&buf[5..7]).read_u16::<LittleEndian>().unwrap() as i64)
+            };
+
+            debug!("Received {:?}.", report);
+
+            Ok(report)
+        }
+    }
+
     /// Calculation is based on sample code from BME280 datasheet.
     fn bme280_calculate_temperature(&self, t_fine: i32) -> f64 {
         const TEMPERATURE_MIN: i32 = -4000;
@@ -525,8 +612,9 @@ mod tests {
     fn set_stage_1<'a>(i2c: &'a mut Interface) -> impl Future<Item=(), Error=io::Error> + 'a {
         async_block! {
             await!(i2c.front_display_clear())?;
+            await!(i2c.set_brightness(4))?;
             await!(i2c.set_clock_display_content(3, 58, true, false))?;
-            await!(i2c.front_display_upper_bar_active_positions(&[0, 1, 19]))?;
+            await!(i2c.front_display_upper_bar_active_positions(&[0, 1, 19], false))?;
             await!(i2c.front_display_static_text(1, "Znajdź pchły, wróżko! Film \"Teść\"."))?;
             await!(i2c.front_display_scrolling_text(ScrollingTextSlot::SLOT0, 34, 5,
                                                   "The quick brown fox jumps over the lazy dog. 20\u{00B0}C Dość gróźb fuzją, klnę, pych i małżeństw!"))?;
@@ -585,6 +673,14 @@ mod tests {
         }
     }
 
+    fn set_stage_geiger<'a>(i2c: &'a mut Interface) -> impl Future<Item=(), Error=io::Error> + 'a {
+        async_block! {
+            await!(i2c.get_geiger_device_state())?;
+            //await!(i2c.get_geiger_counter_state())?;
+            Ok(())
+        }
+    }
+
     #[test]
     fn test_all_i2c_commands() {
         let mut i2c = Interface::new("/dev/i2c-1");
@@ -602,6 +698,9 @@ mod tests {
 
         thread::sleep(time::Duration::from_secs(4));
         set_stage_3(&mut i2c).wait().unwrap();
+
+        //thread::sleep(time::Duration::from_secs(2));
+        //set_stage_geiger(&mut i2c).wait().unwrap();
 
         thread::sleep(time::Duration::from_secs(4));
         i2c.front_display_clear().wait().unwrap();
