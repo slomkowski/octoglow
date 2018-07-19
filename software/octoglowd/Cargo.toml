@@ -11,6 +11,6 @@ image = "0.19"
 byteorder = "1.2"
 log = "0.4"
 simplelog = "0.5"
-rusqlite = {version = "0.13.0", features = ["chrono"]}
+rusqlite = {version = "0.13.0", features = ["chrono", "bundled"]}
 config = "0.7"
 num-traits="0.2"

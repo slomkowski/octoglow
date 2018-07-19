@@ -9,6 +9,7 @@ use std::cmp;
 use std::io;
 use chrono;
 use std::mem::transmute;
+use simplelog;
 
 const CLOCK_DISPLAY_ADDR: u16 = 0x10;
 const GEIGER_ADDR: u16 = 0x12;
@@ -435,6 +436,7 @@ impl Interface {
             self.geiger_device.borrow_mut().write(&[0x1])?;
             self.geiger_device.borrow_mut().read(&mut buf)?;
 
+            warn!("Received {:?}.", buf);
 
             let report = GeigerDeviceState {
                 geiger_voltage : (&buf[0..2]).read_u16::<LittleEndian>().unwrap() as f32,
@@ -444,7 +446,7 @@ impl Interface {
                     1 => EyeInverterState::HeatingLimited,
                     2 => EyeInverterState::HeatingFull,
                     3 => EyeInverterState::Running,
-                    _ => panic!("invalid eye inverter state")
+                    _ => panic!(format!("invalid eye inverter state: {}", buf[3]))
                 },
                 eye_animation_mode: match buf[4] {
                     0 => EyeDisplayMode::Animation,
@@ -467,6 +469,8 @@ impl Interface {
         async_block! {
             self.geiger_device.borrow_mut().write(&[0x2])?;
             self.geiger_device.borrow_mut().read(&mut buf)?;
+
+            debug!("Received {:?}.", buf);
 
             let report = GeigerCounterState {
                 has_new_cycle_started : buf[0] == 1,
@@ -625,6 +629,7 @@ mod tests {
     fn set_stage_2<'a>(i2c: &'a mut Interface) -> impl Future<Item=(), Error=io::Error> + 'a {
         async_block! {
             await!(i2c.front_display_clear())?;
+            await!(i2c.set_brightness(2))?;
             await!(i2c.set_clock_display_content(21, 2, false, true))?;
             await!(i2c.front_display_scrolling_text(ScrollingTextSlot::SLOT0, 0, 18, concat!("Lorem ipsum dolor sit amet, consectetur adipiscing elit,",
             " sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eere")))?;
@@ -660,6 +665,7 @@ mod tests {
 
         async_block! {
             await!(i2c.front_display_clear())?;
+            await!(i2c.set_brightness(5))?;
             await!(i2c.set_clock_display_content(12, 34, true, true))?;
             await!(i2c.front_display_static_text(0, "Foo bar text."))?;
             await!(i2c.front_display_image(5 * 1, true, img14.grayscale().as_luma8().unwrap(), true))?;
@@ -675,14 +681,18 @@ mod tests {
 
     fn set_stage_geiger<'a>(i2c: &'a mut Interface) -> impl Future<Item=(), Error=io::Error> + 'a {
         async_block! {
+            await!(i2c.set_brightness(2))?;
+            await!(i2c.get_geiger_counter_state())?;
             await!(i2c.get_geiger_device_state())?;
-            //await!(i2c.get_geiger_counter_state())?;
+
             Ok(())
         }
     }
 
     #[test]
     fn test_all_i2c_commands() {
+        simplelog::CombinedLogger::init(vec![simplelog::TermLogger::new(simplelog::LevelFilter::Debug, simplelog::Config::default()).unwrap()]).unwrap();
+
         let mut i2c = Interface::new("/dev/i2c-1");
 
         match i2c.get_inside_weather_report().wait() {
@@ -699,8 +709,8 @@ mod tests {
         thread::sleep(time::Duration::from_secs(4));
         set_stage_3(&mut i2c).wait().unwrap();
 
-        //thread::sleep(time::Duration::from_secs(2));
-        //set_stage_geiger(&mut i2c).wait().unwrap();
+        thread::sleep(time::Duration::from_secs(2));
+        set_stage_geiger(&mut i2c).wait().unwrap();
 
         thread::sleep(time::Duration::from_secs(4));
         i2c.front_display_clear().wait().unwrap();
