@@ -1,20 +1,20 @@
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use futures::prelude::*;
-use i2cdev::core::*;
-use i2cdev::linux::LinuxI2CDevice;
 use image;
 use num_traits;
-use std::cell::RefCell;
 use std::cmp;
 use std::io;
 use chrono;
 use std::mem::transmute;
 use simplelog;
+use i2cbus::*;
+use i2cbus::system::*;
+use std;
 
-const CLOCK_DISPLAY_ADDR: u16 = 0x10;
-const GEIGER_ADDR: u16 = 0x12;
-const FRONT_DISPLAY_ADDR: u16 = 0x14;
-const BME280_ADDR: u16 = 0x76;
+const CLOCK_DISPLAY_ADDR: u8 = 0x10;
+const GEIGER_ADDR: u8 = 0x12;
+const FRONT_DISPLAY_ADDR: u8 = 0x14;
+const BME280_ADDR: u8 = 0x76;
 
 const CLOCK_DISPLAY_UPPER_DOT: u8 = 1 << (14 % 8);
 const CLOCK_DISPLAY_LOWER_DOT: u8 = 1 << (13 % 8);
@@ -105,10 +105,10 @@ impl ScrollingTextSlot {
 }
 
 pub struct Interface {
-    clock_display_device: RefCell<LinuxI2CDevice>,
-    front_display_device: RefCell<LinuxI2CDevice>,
-    geiger_device: RefCell<LinuxI2CDevice>,
-    bme280_device: RefCell<LinuxI2CDevice>,
+    clock_display_device: Box<Device>,
+    front_display_device: Box<Device>,
+    geiger_device: Box<Device>,
+    bme280_device: Box<Device>,
 
     bme280_dig_t1: u16,
     bme280_dig_t2: i16,
@@ -132,7 +132,9 @@ pub struct Interface {
 
 impl Interface {
     pub fn new(bus_device_file: &str) -> Interface {
-        let mut bme280_device = LinuxI2CDevice::new(bus_device_file, BME280_ADDR).expect("cannot initialize BME280 I2C device");
+        let bus = SystemI2CBus::new(&bus_device_file).expect("cannot create I2C bus");
+
+        let bme280_device = bus.create_device(BME280_ADDR).expect("cannot initialize BME280 I2C device");
 
         bme280_device.write(&[0xe0, 0xb6]).unwrap();
 
@@ -160,10 +162,10 @@ impl Interface {
         }
 
         Interface {
-            clock_display_device: RefCell::new(LinuxI2CDevice::new(&bus_device_file, CLOCK_DISPLAY_ADDR).expect("cannot initialize clock display I2C device")),
-            front_display_device: RefCell::new(LinuxI2CDevice::new(&bus_device_file, FRONT_DISPLAY_ADDR).expect("cannot initialize front display I2C device")),
-            geiger_device: RefCell::new(LinuxI2CDevice::new(&bus_device_file, GEIGER_ADDR).expect("cannot initialize geiger I2C device")),
-            bme280_device: RefCell::new(bme280_device),
+            clock_display_device: bus.create_device(CLOCK_DISPLAY_ADDR).expect("cannot initialize clock display I2C device"),
+            front_display_device: bus.create_device(FRONT_DISPLAY_ADDR).expect("cannot initialize front display I2C device"),
+            geiger_device: bus.create_device(GEIGER_ADDR).expect("cannot initialize geiger I2C device"),
+            bme280_device,
             bme280_dig_t1: (&calibration1[0..2]).read_u16::<LittleEndian>().unwrap(),
             bme280_dig_t2: (&calibration1[2..4]).read_i16::<LittleEndian>().unwrap(),
             bme280_dig_t3: (&calibration1[4..6]).read_i16::<LittleEndian>().unwrap(),
@@ -189,9 +191,9 @@ impl Interface {
         assert!(brightness <= 5, "brightness has max value 5, {} provided", brightness);
 
         async_block! {
-            self.clock_display_device.borrow_mut().write(&[3, brightness as u8])?;
-            self.front_display_device.borrow_mut().write(&[3, brightness as u8])?;
-            self.geiger_device.borrow_mut().write(&[7, brightness as u8])?;
+            self.clock_display_device.write(&[3, brightness as u8])?;
+            self.front_display_device.write(&[3, brightness as u8])?;
+            self.geiger_device.write(&[7, brightness as u8])?;
             Ok(())
         }
     }
@@ -204,7 +206,7 @@ impl Interface {
         cmd.extend(c_bytes.iter());
 
         async_block! {
-            self.front_display_device.borrow_mut().write(&cmd)?;
+            self.front_display_device.write(&cmd)?;
             Ok(())
         }
     }
@@ -222,7 +224,7 @@ impl Interface {
 
     pub fn front_display_clear<'a>(&'a self) -> impl Future<Item=(), Error=io::Error> + 'a {
         async_block! {
-            self.front_display_device.borrow_mut().write(&[2])?;
+            self.front_display_device.write(&[2])?;
             Ok(())
         }
     }
@@ -239,7 +241,7 @@ impl Interface {
         cmd.push(0);
 
         async_block! {
-            self.front_display_device.borrow_mut().write(&cmd)?;
+            self.front_display_device.write(&cmd)?;
             Ok(())
         }
     }
@@ -257,7 +259,7 @@ impl Interface {
         cmd.push(0);
 
         async_block! {
-            self.front_display_device.borrow_mut().write(&cmd)?;
+            self.front_display_device.write(&cmd)?;
             Ok(())
         }
     }
@@ -349,8 +351,8 @@ impl Interface {
         let mut buf: [u8; 2] = [0; 2];
 
         async_block! {
-            self.front_display_device.borrow_mut().write(&[1])?;
-            self.front_display_device.borrow_mut().read(&mut buf)?;
+            self.front_display_device.write(&[1])?;
+            self.front_display_device.read(&mut buf)?;
 
             let button = match buf[1] {
                 0 => ButtonState::NoChange,
@@ -373,8 +375,8 @@ impl Interface {
         let mut buf: [u8; 8] = [0; 8];
 
         async_block! {
-            self.bme280_device.borrow_mut().write(&[0xf7])?;
-            self.bme280_device.borrow_mut().read(&mut buf)?;
+            self.bme280_device.write(&[0xf7])?;
+            self.bme280_device.read(&mut buf)?;
 
             if buf == [128, 0, 0, 128, 0, 0, 128, 0] {
                 return Err(io::Error::new(io::ErrorKind::Other, "sensor is not initialized"));
@@ -402,8 +404,8 @@ impl Interface {
         let mut buf: [u8; 6] = [0; 6];
 
         async_block! {
-            self.clock_display_device.borrow_mut().write(&[0x04])?;
-            self.clock_display_device.borrow_mut().read(&mut buf)?;
+            self.clock_display_device.write(&[0x04])?;
+            self.clock_display_device.read(&mut buf)?;
 
             let report = OutsideWeatherSensorReport {
                 temperature: (256.0 * buf[2] as f64 + buf[1] as f64) / 10.0,
@@ -424,7 +426,7 @@ impl Interface {
         let buf: [u8; 6] = [0x1, digits[0] + 0x30, digits[1] + 0x30, digits[2] + 0x30, digits[3] + 0x30, dots];
 
         async_block! {
-            self.clock_display_device.borrow_mut().write(&buf)?;
+            self.clock_display_device.write(&buf)?;
             Ok(())
         }
     }
@@ -433,8 +435,8 @@ impl Interface {
         let mut buf: [u8; 8] = [0; 8];
 
         async_block! {
-            self.geiger_device.borrow_mut().write(&[0x1])?;
-            self.geiger_device.borrow_mut().read(&mut buf)?;
+            self.geiger_device.write(&[0x1])?;
+            self.geiger_device.read(&mut buf)?;
 
             warn!("Received {:?}.", buf);
 
@@ -467,8 +469,8 @@ impl Interface {
         let mut buf: [u8; 7] = [0; 7];
 
         async_block! {
-            self.geiger_device.borrow_mut().write(&[0x2])?;
-            self.geiger_device.borrow_mut().read(&mut buf)?;
+            self.geiger_device.write(&[0x2])?;
+            self.geiger_device.read(&mut buf)?;
 
             debug!("Received {:?}.", buf);
 
@@ -588,7 +590,7 @@ impl Interface {
     fn write_graphics_low_level(&self, position: u8, sum_with_existing_text: bool, content: &[u8]) -> Result<(), io::Error> {
         let mut cmd = vec![6, position, content.len() as u8, sum_with_existing_text as u8];
         cmd.extend(content.iter());
-        self.front_display_device.borrow_mut().write(&cmd)?;
+        self.front_display_device.write(&cmd)?;
         Ok(())
     }
 

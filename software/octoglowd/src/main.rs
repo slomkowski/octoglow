@@ -19,6 +19,7 @@ mod error;
 mod database;
 mod i2c;
 mod views;
+mod i2cbus;
 
 
 fn main() {
