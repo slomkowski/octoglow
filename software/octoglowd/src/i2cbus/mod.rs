@@ -12,5 +12,4 @@ pub trait Bus {
     fn create_device(&self, address: u8) -> Result<Box<Device>, io::Error>;
 }
 
-pub mod buspirate;
 pub mod system;
