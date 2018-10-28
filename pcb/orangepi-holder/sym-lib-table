@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name orangepi-zero)(type Legacy)(uri /home/michal/projects/KICAD/libraries/orange-pi/zero/Kicad/orangepi-zero.lib)(options "")(descr ""))
+)
