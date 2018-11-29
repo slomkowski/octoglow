@@ -71,10 +71,9 @@ void octoglow::geiger::magiceye::setEnabled(bool enabled) {
 void octoglow::geiger::magiceye::configure(protocol::EyeConfiguration &configuration) {
     setEnabled(configuration.enabled);
     animationMode = configuration.mode;
-
-    auto brightness = (configuration.brightness > protocol::MAX_BRIGHTNESS
-                       ? protocol::MAX_BRIGHTNESS : configuration.brightness);
-
-    inverter::desiredEyeAdcValue = _private::desiredAdcValues[brightness];
 }
 
+void octoglow::geiger::magiceye::setBrightness(uint8_t brightness) {
+    auto limitedBrightness = (brightness > protocol::MAX_BRIGHTNESS ? protocol::MAX_BRIGHTNESS : brightness);
+    inverter::desiredEyeAdcValue = _private::desiredAdcValues[limitedBrightness];
+}

@@ -12,6 +12,7 @@ namespace octoglow {
             constexpr uint8_t MAX_BRIGHTNESS = 5;
 
             enum class Command : uint8_t {
+                NONE,
                 SET_DISPLAY_CONTENT = 0x1, // 4 ascii chars + dot content
                 SET_RELAY,
                 SET_BRIGHTNESS,
@@ -36,9 +37,10 @@ namespace octoglow {
                 int16_t temperature; // in 0.1 deg C
                 uint8_t humidity; // in %
                 bool weakBattery;
+                bool alreadyRead;
             };
 
-            static_assert(sizeof(WeatherSensorState) == 4);
+            static_assert(sizeof(WeatherSensorState) == 5);
         }
 
     }

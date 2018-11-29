@@ -101,7 +101,6 @@ TEST(I2C, WriteCommands) {
     onStart();
     onReceive(0x5);
     onReceive(1);
-    onReceive(3);
     onReceive(0);
     ASSERT_FALSE(eyeInverterEnabled);
     ASSERT_EQ(protocol::EyeInverterState::HEATING_LIMITED, magiceye::state);
@@ -116,7 +115,6 @@ TEST(I2C, WriteCommands) {
     onStart();
     onReceive(0x5);
     onReceive(0);
-    onReceive(4);
     onReceive(1);
     ASSERT_FALSE(eyeInverterEnabled);
     ASSERT_EQ(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
@@ -141,4 +139,9 @@ TEST(I2C, WriteCommands) {
     onReceive(0x34);
     ASSERT_EQ(0x3412, geiger_counter::getState().cycleLength);
     ASSERT_TRUE(geiger_counter::getState().hasNewCycleStarted);
+
+    onStart();
+    onReceive(0x6);
+    onReceive(4);
+    onReceive(0);
 }

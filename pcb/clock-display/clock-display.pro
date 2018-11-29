@@ -1,4 +1,4 @@
-update=Wed 11 Jan 2017 22:32:08 CET
+update=Thu 29 Nov 2018 10:40:15 PM CET
 version=1
 last_client=kicad
 [pcbnew]
@@ -27,40 +27,4 @@ NetIExt=net
 version=1
 [eeschema]
 version=1
-LibDir=../lib
-[eeschema/libraries]
-LibName1=power
-LibName2=device
-LibName3=transistors
-LibName4=conn
-LibName5=linear
-LibName6=regul
-LibName7=74xx
-LibName8=cmos4000
-LibName9=adc-dac
-LibName10=memory
-LibName11=xilinx
-LibName12=microcontrollers
-LibName13=dsp
-LibName14=microchip
-LibName15=analog_switches
-LibName16=motorola
-LibName17=texas
-LibName18=intel
-LibName19=audio
-LibName20=interface
-LibName21=digital-audio
-LibName22=philips
-LibName23=display
-LibName24=cypress
-LibName25=siliconi
-LibName26=opto
-LibName27=atmel
-LibName28=contrib
-LibName29=valves
-LibName30=/home/michal/Projects/vfd-display/vfd-display/pcb/lib/futaba-vfd
-LibName31=/home/michal/Projects/vfd-display/vfd-display/pcb/lib/TD62C950RF
-LibName32=V23079-monostable
-LibName33=TJA1010
-LibName34=lm75
-LibName35=RFM83C-433S
+LibDir=

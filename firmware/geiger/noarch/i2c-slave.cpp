@@ -9,10 +9,10 @@ constexpr uint8_t BUFFER_SIZE = 8;
 using namespace octoglow::geiger::protocol;
 using namespace octoglow::geiger;
 
-static char buffer[BUFFER_SIZE];
+static uint8_t buffer[BUFFER_SIZE];
 static uint8_t bytesProcessed;
 
-static volatile char *transmittedDataPointer = nullptr;
+static volatile uint8_t *transmittedDataPointer = nullptr;
 
 void ::octoglow::geiger::i2c::onTransmit(uint8_t volatile *value) {
     *value = *reinterpret_cast<volatile uint8_t *>(transmittedDataPointer);
@@ -42,18 +42,18 @@ void ::octoglow::geiger::i2c::onReceive(uint8_t value) {
             transmittedDataPointer = buffer;
             state->hasNewCycleStarted = false;
         } else if (cmd == Command::GET_DEVICE_STATE) {
-            transmittedDataPointer = reinterpret_cast<char *>(&hd::getDeviceState());
+            transmittedDataPointer = reinterpret_cast<uint8_t *>(&hd::getDeviceState());
         }
     } else if (bytesProcessed == 2) {
         if (cmd == Command::SET_EYE_DISPLAY_VALUE) {
             magiceye::setAdcValue(buffer[1]);
+        } else if (cmd == Command::SET_BRIGHTNESS) {
+            magiceye::setBrightness(buffer[1]);
         }
     } else if (bytesProcessed == 3) {
         if (cmd == Command::SET_GEIGER_CONFIGURATION) {
             geiger_counter::configure(*reinterpret_cast<protocol::GeigerConfiguration *>(buffer + 1));
-        }
-    } else if (bytesProcessed == 4) {
-        if (cmd == Command::SET_EYE_CONFIGURATION) {
+        } else if (cmd == Command::SET_EYE_CONFIGURATION) {
             magiceye::configure(*reinterpret_cast<protocol::EyeConfiguration *>(buffer + 1));
         }
     }

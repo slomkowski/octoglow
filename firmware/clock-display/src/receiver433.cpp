@@ -52,6 +52,8 @@ void ::octoglow::vfd_clock::receiver433::init() {
 
     TCCR0A = 0;
 
+    currentWeatherSensorState.alreadyRead = true;
+
     timerStart();
 }
 
@@ -80,6 +82,7 @@ void ::octoglow::vfd_clock::receiver433::pool() {
             currentWeatherSensorState.humidity =
                     (0xf0 & (mainMeasurementBuffer[3] << 4)) + (0x0f & (mainMeasurementBuffer[4] >> 4));
             currentWeatherSensorState.weakBattery = (mainMeasurementBuffer[1] & 0b1000) != 0;
+            currentWeatherSensorState.alreadyRead = false;
 
             updateState = ValueUpdateState::MEASUREMENT_ACCEPTED_BLINK_ENABLED;
             display::setReceiverUpdateFlag(true);

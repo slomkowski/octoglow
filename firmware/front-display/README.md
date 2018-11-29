@@ -8,20 +8,21 @@ Display supports following modes:
 ## Static text
 
 ```
-t|start|zero-terminated utf8 text
+4|start|max length|zero-terminated utf8 text
 ```
 
-|Value  |Size   |Description
-|-------|-------|---------------
-|`t`    |1      |Magic byte
-|start  |1      |Starting position of text. Between 0 and 39.
-|text   |*n*    |Zero-terminated UTF-8 text. Only Polish characters are supported. If text is longer than the display allows, it's truncated.
+|Value      |Size   |Description
+|-----------|-------|---------------
+|4          |1      |Magic byte
+|start      |1      |Starting position of text. Between 0 and 39.
+|max length |1      |Max length of the text. If the text is shorter, remaining place is filled with spaces.
+|text       |*n*    |Zero-terminated UTF-8 text. Only Polish characters are supported. If text is longer than the display allows, it's truncated.
 
 
 ## Scrolling text
 
 ```
-s|slot|start|length|zero terminated text
+5|slot|start|length|zero terminated text
 ```
 
 |Slot |Capacity |
@@ -35,8 +36,13 @@ s|slot|start|length|zero terminated text
 todo: sum mode
 
 ```
-p|start|length|column bytes
+p|start|length|sum with text|column bytes
 ```
 
-p - override mode
-P - sum mode
+|Value         |Size  |Description  |
+|--------------|------|-------------|
+|6             |1     |Magic byte
+|start         |1     |Starting column
+|length        |1     |Number of columns
+|sum with text |1     |1 - when sum with existing content. 0 otherwise.
+|column bytes  |*n*   |Content. Youngest bit is associated with uppermost pixel.
