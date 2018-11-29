@@ -1,4 +1,4 @@
-update=Sun 28 Oct 2018 04:57:26 PM CET
+update=Tue 20 Nov 2018 01:56:05 AM CET
 version=1
 last_client=kicad
 [pcbnew]
@@ -25,9 +25,6 @@ version=1
 NetIExt=net
 [general]
 version=1
-[eeschema]
-version=1
-LibDir=
 [schematic_editor]
 version=1
 PageLayoutDescrFile=
@@ -38,3 +35,6 @@ NetFmtName=
 SpiceAjustPassiveValues=0
 LabSize=50
 ERC_TestSimilarLabels=1
+[eeschema]
+version=1
+LibDir=

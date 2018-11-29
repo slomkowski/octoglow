@@ -1,41 +1,6 @@
-EESchema Schematic File Version 2
-LIBS:power
-LIBS:device
-LIBS:transistors
-LIBS:conn
-LIBS:linear
-LIBS:regul
-LIBS:74xx
-LIBS:cmos4000
-LIBS:adc-dac
-LIBS:memory
-LIBS:xilinx
-LIBS:microcontrollers
-LIBS:dsp
-LIBS:microchip
-LIBS:analog_switches
-LIBS:motorola
-LIBS:texas
-LIBS:intel
-LIBS:audio
-LIBS:interface
-LIBS:digital-audio
-LIBS:philips
-LIBS:display
-LIBS:cypress
-LIBS:siliconi
-LIBS:opto
-LIBS:atmel
-LIBS:contrib
-LIBS:valves
-LIBS:futaba-vfd
-LIBS:TD62C950RF
-LIBS:V23079-monostable
-LIBS:TJA1010
-LIBS:lm75
-LIBS:RFM83C-433S
+EESchema Schematic File Version 4
 LIBS:clock-display-cache
-EELAYER 25 0
+EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -50,7 +15,7 @@ Comment3 "433 MHz receiver module and 1WIRE bus conn."
 Comment4 "Board contains 4-digit VFD display, two relays with drivers,"
 $EndDescr
 $Comp
-L 5-LT-02M SV1
+L futaba-vfd:5-LT-02M SV1
 U 1 1 584EE278
 P 10650 2850
 F 0 "SV1" H 10250 4700 60  0000 C CNN
@@ -61,7 +26,7 @@ F 3 "" H 11850 3950 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L TD62C950RF IC2
+L TD62C950RF:TD62C950RF IC2
 U 1 1 584EE2F9
 P 7150 2900
 F 0 "IC2" H 7050 4900 45  0000 L BNN
@@ -72,7 +37,7 @@ F 3 "" H 7150 2900 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +5V #PWR01
+L power:+5V #PWR01
 U 1 1 584F33ED
 P 6100 4550
 F 0 "#PWR01" H 6100 4400 50  0001 C CNN
@@ -83,7 +48,7 @@ F 3 "" H 6100 4550 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR02
+L power:GND #PWR02
 U 1 1 584F3413
 P 9950 6300
 F 0 "#PWR02" H 9950 6050 50  0001 C CNN
@@ -94,7 +59,7 @@ F 3 "" H 9950 6300 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR03
+L power:GND #PWR03
 U 1 1 584F356F
 P 6800 4200
 F 0 "#PWR03" H 6800 3950 50  0001 C CNN
@@ -105,7 +70,7 @@ F 3 "" H 6800 4200 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C_Small C4
+L clock-display-rescue:C_Small C4
 U 1 1 584F35CE
 P 6100 5100
 F 0 "C4" H 6110 5170 50  0000 L CNN
@@ -116,7 +81,7 @@ F 3 "" H 6100 5100 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C_Small C5
+L clock-display-rescue:C_Small C5
 U 1 1 584F3761
 P 6450 5100
 F 0 "C5" H 6460 5170 50  0000 L CNN
@@ -127,7 +92,7 @@ F 3 "" H 6450 5100 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +36V #PWR04
+L power:+36V #PWR04
 U 1 1 584F379B
 P 6450 4550
 F 0 "#PWR04" H 6450 4400 50  0001 C CNN
@@ -138,7 +103,7 @@ F 3 "" H 6450 4550 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR05
+L power:GND #PWR05
 U 1 1 584F38E6
 P 6450 5350
 F 0 "#PWR05" H 6450 5100 50  0001 C CNN
@@ -149,7 +114,7 @@ F 3 "" H 6450 5350 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR06
+L power:GND #PWR06
 U 1 1 584F391A
 P 6100 5350
 F 0 "#PWR06" H 6100 5100 50  0001 C CNN
@@ -280,7 +245,7 @@ dotPM
 Text Label 9400 4350 0    60   ~ 0
 GRID
 $Comp
-L ATTINY26-S IC1
+L clock-display-rescue:ATTINY26-S IC1
 U 1 1 58507F6D
 P 2550 1750
 F 0 "IC1" H 1950 2700 50  0000 C CNN
@@ -291,7 +256,7 @@ F 3 "" H 2550 1750 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R8
+L clock-display-rescue:R R8
 U 1 1 5856DEA5
 P 9550 4850
 F 0 "R8" V 9630 4850 50  0000 C CNN
@@ -302,7 +267,7 @@ F 3 "" H 9550 4850 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R10
+L clock-display-rescue:R R10
 U 1 1 5856DF59
 P 9800 4850
 F 0 "R10" V 9880 4850 50  0000 C CNN
@@ -313,7 +278,7 @@ F 3 "" H 9800 4850 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR07
+L power:GND #PWR07
 U 1 1 5856E1DC
 P 1650 2650
 F 0 "#PWR07" H 1650 2400 50  0001 C CNN
@@ -324,7 +289,7 @@ F 3 "" H 1650 2650 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C_Small C3
+L clock-display-rescue:C_Small C3
 U 1 1 5856E355
 P 1500 1450
 F 0 "C3" H 1510 1520 50  0000 L CNN
@@ -335,7 +300,7 @@ F 3 "" H 1500 1450 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L C_Small C2
+L clock-display-rescue:C_Small C2
 U 1 1 5856E48F
 P 1200 1450
 F 0 "C2" H 1210 1520 50  0000 L CNN
@@ -346,7 +311,7 @@ F 3 "" H 1200 1450 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CP C1
+L clock-display-rescue:CP C1
 U 1 1 5856E4F8
 P 900 1450
 F 0 "C1" H 925 1550 50  0000 L CNN
@@ -357,7 +322,7 @@ F 3 "" H 900 1450 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +5V #PWR08
+L power:+5V #PWR08
 U 1 1 5856E7E9
 P 900 800
 F 0 "#PWR08" H 900 650 50  0001 C CNN
@@ -368,7 +333,7 @@ F 3 "" H 900 800 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR09
+L power:GND #PWR09
 U 1 1 5856E97F
 P 900 1700
 F 0 "#PWR09" H 900 1450 50  0001 C CNN
@@ -379,7 +344,7 @@ F 3 "" H 900 1700 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR010
+L power:GND #PWR010
 U 1 1 5856EA2A
 P 1200 1700
 F 0 "#PWR010" H 1200 1450 50  0001 C CNN
@@ -390,7 +355,7 @@ F 3 "" H 1200 1700 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR011
+L power:GND #PWR011
 U 1 1 5856EA53
 P 1500 1700
 F 0 "#PWR011" H 1500 1450 50  0001 C CNN
@@ -401,7 +366,7 @@ F 3 "" H 1500 1700 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L AVR-ISP-10 CON1
+L clock-display-rescue:AVR-ISP-10 CON1
 U 1 1 5856ED1B
 P 2100 3800
 F 0 "CON1" H 1930 4130 50  0000 C CNN
@@ -412,7 +377,7 @@ F 3 "" H 2100 3800 50  0000 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L CONN_02X05 P1
+L clock-display-rescue:CONN_02X05 P1
 U 1 1 5856ED8F
 P 2150 5150
 F 0 "P1" H 2150 5450 50  0000 C CNN
@@ -423,7 +388,7 @@ F 3 "" H 2150 3950 50  0000 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L +5V #PWR012
+L power:+5V #PWR012
 U 1 1 5856EF82
 P 1650 3200
 F 0 "#PWR012" H 1650 3050 50  0001 C CNN
@@ -434,7 +399,7 @@ F 3 "" H 1650 3200 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +5V #PWR013
+L power:+5V #PWR013
 U 1 1 5856F065
 P 1650 4650
 F 0 "#PWR013" H 1650 4500 50  0001 C CNN
@@ -445,7 +410,7 @@ F 3 "" H 1650 4650 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR014
+L power:GND #PWR014
 U 1 1 5856F1F2
 P 1650 4150
 F 0 "#PWR014" H 1650 3900 50  0001 C CNN
@@ -456,7 +421,7 @@ F 3 "" H 1650 4150 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R3
+L clock-display-rescue:R R3
 U 1 1 5856F45E
 P 3100 4950
 F 0 "R3" V 3180 4950 50  0000 C CNN
@@ -467,7 +432,7 @@ F 3 "" H 3100 4950 50  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R4
+L clock-display-rescue:R R4
 U 1 1 5856F568
 P 3100 5250
 F 0 "R4" V 3180 5250 50  0000 C CNN
@@ -478,7 +443,7 @@ F 3 "" H 3100 5250 50  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR015
+L power:GND #PWR015
 U 1 1 5856F8F8
 P 2550 5600
 F 0 "#PWR015" H 2550 5350 50  0001 C CNN
@@ -501,7 +466,7 @@ Entry Wire Line
 Entry Wire Line
 	3800 4000 3900 4100
 $Comp
-L R R1
+L clock-display-rescue:R R1
 U 1 1 5856FE71
 P 2000 3350
 F 0 "R1" V 2080 3350 50  0000 C CNN
@@ -538,7 +503,7 @@ SCK_SCL
 Text Label 3400 1950 0    60   ~ 0
 MISO_GAUGE
 $Comp
-L V23079 K1
+L V23079-monostable:V23079 K1
 U 1 1 5869A95A
 P 5400 6300
 F 0 "K1" H 5350 6700 50  0000 C CNN
@@ -549,7 +514,7 @@ F 3 "" H 5400 6300 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R7
+L clock-display-rescue:R R7
 U 1 1 586AADDE
 P 9350 5800
 F 0 "R7" V 9430 5800 50  0000 C CNN
@@ -560,7 +525,7 @@ F 3 "" H 9350 5800 50  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R9
+L clock-display-rescue:R R9
 U 1 1 586AAE91
 P 9700 5800
 F 0 "R9" V 9780 5800 50  0000 C CNN
@@ -571,7 +536,7 @@ F 3 "" H 9700 5800 50  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L CONN_01X04 P7
+L clock-display-rescue:CONN_01X04 P7
 U 1 1 586D9DBE
 P 10850 5750
 F 0 "P7" H 10850 6000 50  0000 C CNN
@@ -582,7 +547,7 @@ F 3 "" H 10850 5750 50  0000 C CNN
 	1    0    0    1   
 $EndComp
 $Comp
-L +36V #PWR016
+L power:+36V #PWR016
 U 1 1 586F3633
 P 9950 5650
 F 0 "#PWR016" H 9950 5500 50  0001 C CNN
@@ -593,7 +558,7 @@ F 3 "" H 9950 5650 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CP C6
+L clock-display-rescue:CP C6
 U 1 1 586F38CB
 P 9950 6150
 F 0 "C6" H 9975 6250 50  0000 L CNN
@@ -604,7 +569,7 @@ F 3 "" H 9950 6150 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L BC849 Q1
+L clock-display-rescue:BC849 Q1
 U 1 1 586F5FC8
 P 4900 7100
 F 0 "Q1" H 5100 7175 50  0000 L CNN
@@ -615,7 +580,7 @@ F 3 "" H 4900 7100 50  0000 L CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L D D1
+L clock-display-rescue:D D1
 U 1 1 586F68E4
 P 4800 6800
 F 0 "D1" H 4800 6900 50  0000 C CNN
@@ -626,7 +591,7 @@ F 3 "" H 4800 6800 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R5
+L clock-display-rescue:R R5
 U 1 1 586F6A91
 P 4450 7100
 F 0 "R5" V 4530 7100 50  0000 C CNN
@@ -637,7 +602,7 @@ F 3 "" H 4450 7100 50  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR017
+L power:GND #PWR017
 U 1 1 586F6BAA
 P 5000 7400
 F 0 "#PWR017" H 5000 7150 50  0001 C CNN
@@ -648,7 +613,7 @@ F 3 "" H 5000 7400 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +5V #PWR018
+L power:+5V #PWR018
 U 1 1 586F6D21
 P 4600 5850
 F 0 "#PWR018" H 4600 5700 50  0001 C CNN
@@ -659,7 +624,7 @@ F 3 "" H 4600 5850 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X04 P3
+L clock-display-rescue:CONN_01X04 P3
 U 1 1 586F7C39
 P 6400 6000
 F 0 "P3" H 6400 6250 50  0000 C CNN
@@ -670,7 +635,7 @@ F 3 "" H 6400 6000 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X04 P4
+L clock-display-rescue:CONN_01X04 P4
 U 1 1 586F9894
 P 6400 6600
 F 0 "P4" H 6400 6850 50  0000 C CNN
@@ -685,7 +650,7 @@ Entry Wire Line
 Text Label 4000 7100 0    60   ~ 0
 REL1
 $Comp
-L V23079 K2
+L V23079-monostable:V23079 K2
 U 1 1 586FABEA
 P 5450 3400
 F 0 "K2" H 5400 3800 50  0000 C CNN
@@ -696,7 +661,7 @@ F 3 "" H 5450 3400 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L BC849 Q2
+L clock-display-rescue:BC849 Q2
 U 1 1 586FABF0
 P 4950 4200
 F 0 "Q2" H 5150 4275 50  0000 L CNN
@@ -707,7 +672,7 @@ F 3 "" H 4950 4200 50  0000 L CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L D D2
+L clock-display-rescue:D D2
 U 1 1 586FABF6
 P 4850 3900
 F 0 "D2" H 4850 4000 50  0000 C CNN
@@ -718,7 +683,7 @@ F 3 "" H 4850 3900 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R6
+L clock-display-rescue:R R6
 U 1 1 586FABFC
 P 4500 4200
 F 0 "R6" V 4580 4200 50  0000 C CNN
@@ -729,7 +694,7 @@ F 3 "" H 4500 4200 50  0000 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR019
+L power:GND #PWR019
 U 1 1 586FAC02
 P 5050 4500
 F 0 "#PWR019" H 5050 4250 50  0001 C CNN
@@ -740,7 +705,7 @@ F 3 "" H 5050 4500 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +5V #PWR020
+L power:+5V #PWR020
 U 1 1 586FAC08
 P 4650 2950
 F 0 "#PWR020" H 4650 2800 50  0001 C CNN
@@ -751,7 +716,7 @@ F 3 "" H 4650 2950 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X04 P5
+L clock-display-rescue:CONN_01X04 P5
 U 1 1 586FAC17
 P 6450 3100
 F 0 "P5" H 6450 3350 50  0000 C CNN
@@ -762,7 +727,7 @@ F 3 "" H 6450 3100 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X04 P6
+L clock-display-rescue:CONN_01X04 P6
 U 1 1 586FAC26
 P 6450 3650
 F 0 "P6" H 6450 3900 50  0000 C CNN
@@ -785,7 +750,7 @@ Entry Bus Bus
 Wire Wire Line
 	6850 3900 6800 3900
 Wire Wire Line
-	6800 3900 6800 4200
+	6800 3900 6800 4100
 Wire Wire Line
 	6850 4100 6800 4100
 Connection ~ 6800 4100
@@ -794,19 +759,15 @@ Wire Wire Line
 Wire Wire Line
 	6850 4600 6450 4600
 Wire Wire Line
-	6450 4550 6450 5000
+	6450 4550 6450 4600
 Connection ~ 6450 4600
 Wire Wire Line
-	6100 4550 6100 5000
+	6100 4550 6100 4800
 Connection ~ 6100 4800
 Wire Wire Line
 	6100 5200 6100 5350
 Wire Wire Line
 	6450 5200 6450 5350
-Wire Bus Line
-	9250 750  9250 5200
-Wire Bus Line
-	8500 750  8500 6050
 Wire Wire Line
 	9350 1200 9950 1200
 Wire Wire Line
@@ -876,7 +837,7 @@ Wire Wire Line
 Wire Wire Line
 	9800 4600 9800 4700
 Wire Wire Line
-	1650 2450 1650 2650
+	1650 2450 1650 2550
 Wire Wire Line
 	1650 2450 1750 2450
 Wire Wire Line
@@ -887,7 +848,7 @@ Wire Wire Line
 Wire Wire Line
 	1650 1250 1650 950 
 Wire Wire Line
-	900  950  1750 950 
+	900  950  1200 950 
 Wire Wire Line
 	1500 1350 1500 950 
 Connection ~ 1650 950 
@@ -895,7 +856,7 @@ Wire Wire Line
 	1200 1350 1200 950 
 Connection ~ 1500 950 
 Wire Wire Line
-	900  800  900  1300
+	900  800  900  950 
 Connection ~ 1200 950 
 Connection ~ 900  950 
 Wire Wire Line
@@ -905,7 +866,7 @@ Wire Wire Line
 Wire Wire Line
 	1500 1700 1500 1550
 Wire Wire Line
-	1650 4650 1650 5050
+	1650 4650 1650 4750
 Wire Wire Line
 	1650 5050 1900 5050
 Wire Wire Line
@@ -918,7 +879,7 @@ Connection ~ 1650 4750
 Wire Wire Line
 	1650 4000 2050 4000
 Wire Wire Line
-	1650 3700 1650 4150
+	1650 3700 1650 3800
 Wire Wire Line
 	2050 3700 1650 3700
 Connection ~ 1650 4000
@@ -931,7 +892,7 @@ Connection ~ 1650 3900
 Wire Wire Line
 	1650 3600 2050 3600
 Wire Wire Line
-	1650 3200 1650 3600
+	1650 3200 1650 3350
 Wire Wire Line
 	2400 5250 2950 5250
 Wire Wire Line
@@ -943,7 +904,7 @@ Wire Wire Line
 Wire Wire Line
 	2400 5350 2550 5350
 Wire Wire Line
-	2550 5350 2550 5600
+	2550 5350 2550 5500
 Wire Wire Line
 	2550 5500 1800 5500
 Wire Wire Line
@@ -951,8 +912,6 @@ Wire Wire Line
 Wire Wire Line
 	1800 5350 1900 5350
 Connection ~ 2550 5500
-Wire Bus Line
-	3900 750  3900 7400
 Wire Wire Line
 	1850 3350 1650 3350
 Connection ~ 1650 3350
@@ -961,7 +920,7 @@ Wire Wire Line
 Wire Wire Line
 	2850 3350 2850 3800
 Wire Wire Line
-	2300 3800 3800 3800
+	2300 3800 2850 3800
 Wire Wire Line
 	3800 3600 2300 3600
 Connection ~ 2850 3800
@@ -994,18 +953,16 @@ Wire Wire Line
 Wire Wire Line
 	10200 5700 10200 5200
 Wire Wire Line
-	9950 6300 9950 6300
-Wire Wire Line
 	9550 5800 9500 5800
 Wire Wire Line
-	5000 6650 5000 6900
+	5000 6650 5000 6800
 Wire Wire Line
 	4950 6800 5000 6800
 Connection ~ 5000 6800
 Wire Wire Line
 	5000 6550 4600 6550
 Wire Wire Line
-	4600 5850 4600 6800
+	4600 5850 4600 6550
 Wire Wire Line
 	4600 6800 4650 6800
 Connection ~ 4600 6550
@@ -1046,14 +1003,14 @@ Wire Wire Line
 Wire Wire Line
 	4300 7100 4000 7100
 Wire Wire Line
-	5050 3750 5050 4000
+	5050 3750 5050 3900
 Wire Wire Line
 	5000 3900 5050 3900
 Connection ~ 5050 3900
 Wire Wire Line
 	5050 3650 4650 3650
 Wire Wire Line
-	4650 2950 4650 3900
+	4650 2950 4650 3650
 Wire Wire Line
 	4650 3900 4700 3900
 Connection ~ 4650 3650
@@ -1103,8 +1060,6 @@ Wire Wire Line
 	5000 3450 5050 3450
 Wire Wire Line
 	4000 4200 4350 4200
-Wire Bus Line
-	4000 650  9600 650 
 Entry Wire Line
 	8500 5900 8600 5800
 Wire Wire Line
@@ -1112,7 +1067,7 @@ Wire Wire Line
 Text Label 8600 5800 0    60   ~ 0
 MISO_GAUGE
 $Comp
-L CONN_01X02 P2
+L clock-display-rescue:CONN_01X02 P2
 U 1 1 586FE2DD
 P 2300 6750
 F 0 "P2" H 2300 6900 50  0000 C CNN
@@ -1123,7 +1078,7 @@ F 3 "" H 2300 6750 50  0000 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L +5V #PWR021
+L power:+5V #PWR021
 U 1 1 586FE50E
 P 2950 6200
 F 0 "#PWR021" H 2950 6050 50  0001 C CNN
@@ -1134,7 +1089,7 @@ F 3 "" H 2950 6200 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R2
+L clock-display-rescue:R R2
 U 1 1 586FE5B9
 P 2950 6450
 F 0 "R2" V 3030 6450 50  0000 C CNN
@@ -1145,11 +1100,11 @@ F 3 "" H 2950 6450 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	2500 6700 3800 6700
+	2500 6700 2950 6700
 Wire Wire Line
 	2950 6700 2950 6600
 $Comp
-L GND #PWR022
+L power:GND #PWR022
 U 1 1 586FE7E4
 P 2600 6900
 F 0 "#PWR022" H 2600 6650 50  0001 C CNN
@@ -1197,7 +1152,7 @@ Wire Wire Line
 Text Label 6750 950  3    60   ~ 0
 CK
 $Comp
-L GND #PWR023
+L power:GND #PWR023
 U 1 1 5870136C
 P 6750 2250
 F 0 "#PWR023" H 6750 2000 50  0001 C CNN
@@ -1218,7 +1173,7 @@ STB
 Text Label 6150 1050 1    60   ~ 0
 S-IN
 $Comp
-L R R11
+L clock-display-rescue:R R11
 U 1 1 587033D7
 P 10300 6150
 F 0 "R11" V 10380 6150 50  0000 C CNN
@@ -1229,7 +1184,7 @@ F 3 "" H 10300 6150 50  0000 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L GND #PWR024
+L power:GND #PWR024
 U 1 1 587034C2
 P 10300 6300
 F 0 "#PWR024" H 10300 6050 50  0001 C CNN
@@ -1239,8 +1194,6 @@ F 3 "" H 10300 6300 50  0000 C CNN
 	1    10300 6300
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	10300 6300 10300 6300
 Entry Wire Line
 	8400 1100 8500 1200
 Entry Wire Line
@@ -1441,9 +1394,9 @@ NoConn ~ 6250 3150
 NoConn ~ 6250 3600
 NoConn ~ 6850 2100
 Wire Wire Line
-	9950 5900 10650 5900
+	9950 5900 10300 5900
 Wire Wire Line
-	9950 5650 9950 6000
+	9950 5650 9950 5900
 Wire Wire Line
 	10300 6000 10300 5900
 Connection ~ 10300 5900
@@ -1493,7 +1446,7 @@ Wire Wire Line
 Text Label 3500 1350 0    60   ~ 0
 1WIRE
 $Comp
-L RFM83C-433S IC3
+L RFM83C-433S:RFM83C-433S IC3
 U 1 1 5876A5C6
 P 4650 2000
 F 0 "IC3" H 4750 2600 60  0000 C CNN
@@ -1504,7 +1457,7 @@ F 3 "" H 5000 1850 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X02 P8
+L clock-display-rescue:CONN_01X02 P8
 U 1 1 5876A79F
 P 5700 1600
 F 0 "P8" H 5700 1750 50  0000 C CNN
@@ -1521,7 +1474,7 @@ Wire Wire Line
 Entry Wire Line
 	3900 1750 4000 1650
 $Comp
-L +5V #PWR025
+L power:+5V #PWR025
 U 1 1 5876B45B
 P 4350 1350
 F 0 "#PWR025" H 4350 1200 50  0001 C CNN
@@ -1532,7 +1485,7 @@ F 3 "" H 4350 1350 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR026
+L power:GND #PWR026
 U 1 1 5876B919
 P 4400 2350
 F 0 "#PWR026" H 4400 2100 50  0001 C CNN
@@ -1579,7 +1532,7 @@ NoConn ~ 3350 1450
 NoConn ~ 3350 2250
 NoConn ~ 3350 2350
 $Comp
-L PWR_FLAG #FLG027
+L power:PWR_FLAG #FLG027
 U 1 1 587810C4
 P 10550 5500
 F 0 "#FLG027" H 10550 5595 50  0001 C CNN
@@ -1592,4 +1545,58 @@ $EndComp
 Wire Wire Line
 	10550 5500 10550 5900
 Connection ~ 10550 5900
+Wire Wire Line
+	6800 4100 6800 4200
+Wire Wire Line
+	6450 4600 6450 5000
+Wire Wire Line
+	6100 4800 6100 5000
+Wire Wire Line
+	1650 2550 1650 2650
+Wire Wire Line
+	1650 950  1750 950 
+Wire Wire Line
+	1500 950  1650 950 
+Wire Wire Line
+	1200 950  1500 950 
+Wire Wire Line
+	900  950  900  1300
+Wire Wire Line
+	1650 4750 1650 5050
+Wire Wire Line
+	1650 4000 1650 4150
+Wire Wire Line
+	1650 3800 1650 3900
+Wire Wire Line
+	1650 3900 1650 4000
+Wire Wire Line
+	2550 5500 2550 5600
+Wire Wire Line
+	1650 3350 1650 3600
+Wire Wire Line
+	2850 3800 3800 3800
+Wire Wire Line
+	5000 6800 5000 6900
+Wire Wire Line
+	4600 6550 4600 6800
+Wire Wire Line
+	5050 3900 5050 4000
+Wire Wire Line
+	4650 3650 4650 3900
+Wire Wire Line
+	2950 6700 3800 6700
+Wire Wire Line
+	10300 5900 10550 5900
+Wire Wire Line
+	9950 5900 9950 6000
+Wire Wire Line
+	10550 5900 10650 5900
+Wire Bus Line
+	4000 650  9600 650 
+Wire Bus Line
+	3900 750  3900 7400
+Wire Bus Line
+	9250 750  9250 5200
+Wire Bus Line
+	8500 750  8500 6050
 $EndSCHEMATC
