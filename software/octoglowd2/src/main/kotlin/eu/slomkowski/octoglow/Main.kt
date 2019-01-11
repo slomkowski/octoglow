@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow
 
 import io.dvlopt.linux.i2c.I2CBus
+import io.dvlopt.linux.i2c.I2CFunctionality
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -9,7 +10,9 @@ import kotlinx.coroutines.launch
 fun main(args: Array<String>) {
     println("Hello, World")
 
-    val bus = I2CBus("/dev/i2c-2")
+    val bus = I2CBus("/dev/i2c-0")
+
+    println("Transactions: " + bus.functionalities.can(I2CFunctionality.TRANSACTIONS))
 
     GlobalScope.launch {
         // launch new coroutine in background and continue

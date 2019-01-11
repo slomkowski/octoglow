@@ -5,6 +5,7 @@ import io.dvlopt.linux.i2c.I2CBus
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
+import kotlin.math.roundToInt
 
 enum class Slot(val capacity: Int) {
     SLOT0(150),
@@ -12,14 +13,31 @@ enum class Slot(val capacity: Int) {
     SLOT2(30)
 }
 
+enum class ButtonState {
+    NO_CHANGE,
+    JUST_PRESSED,
+    JUST_RELEASED
+}
+
+data class ButtonReport(
+        val button: ButtonState,
+        val encoderDelta: Int) {
+    init {
+        require(encoderDelta in -127..127) { "valid delta is between -127 and 127" }
+    }
+}
+
 class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
 
     private val writeBuffer = I2CBuffer(500)
     private val readBuffer = I2CBuffer(8)
 
+    // we assume last value as pivot
+    private val maxValuesInChart = 5 * 20
+
     override suspend fun setBrightness(brightness: Int) {
         selectSlave()
-        i2c.write(writeBuffer.set(0, 7).set(1, brightness), 2)
+        i2c.write(writeBuffer.set(0, 3).set(1, brightness), 2)
     }
 
     /**
@@ -93,5 +111,92 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
 
         selectSlave()
         i2c.write(writeBuffer, offset + textBytes.size + 1)
+    }
+
+    suspend fun <T : Number> setOneLineDiffChart(position: Int, values: List<T>, unit: T) {
+        require(values.size < maxValuesInChart) { "number of values cannot exceed $maxValuesInChart" }
+        require(values.isNotEmpty()) { "there has to be at least one value" }
+        val maxPosition = 5 * 40 - values.size + 1
+        require(position < maxPosition) { "position cannot exceed $maxPosition" }
+
+        val last = values.last().toDouble()
+        val img = values
+                .map { ((it.toDouble() - last) / unit.toDouble()).roundToInt().coerceIn(-3, 3) }
+                .map {
+                    when (it) {
+                        -3 -> 0b1111000
+                        -2 -> 0b0111000
+                        -1 -> 0b0011000
+                        0 -> 0b0001000
+                        1 -> 0b1100
+                        2 -> 0b1110
+                        3 -> 0b1111
+                        else -> throw IllegalStateException()
+                    }
+                }
+
+        selectSlave()
+        drawImage(position, false, img)
+    }
+
+    suspend fun <T : Number> setTwoLinesDiffChart(position: Int, values: List<T>, unit: T) {
+        require(values.size < maxValuesInChart) { "number of values cannot exceed $maxValuesInChart" }
+        require(values.isNotEmpty()) { "there has to be at least one value" }
+        val maxPosition = 5 * 20 - values.size
+        require(position < maxPosition) { "position cannot exceed $maxPosition" }
+
+        val current = values.last().toDouble()
+        val historical = values.dropLast(1)
+
+        val (upper, lower) = historical
+                .map {
+                    val v = ((it.toDouble() - current) / unit.toDouble()).roundToInt()
+                    val (upperV, lowerV) = v.coerceIn(0, 7) to v.coerceIn(-7, 0)
+
+                    val upperC = (0..(upperV - 1)).fold(0) { columnByte, y -> columnByte or (0b1000000 shr y) }
+                    val lowerC = (0..(-lowerV - 1)).fold(0) { columnByte, y -> columnByte or (1 shl y) }
+
+                    upperC to lowerC
+                }
+                .plus(0b1000000 to 0b1)
+                .unzip()
+
+        selectSlave()
+        drawImage(position, false, upper)
+        drawImage(5 * 20 + position, false, lower)
+    }
+
+    private suspend fun drawImage(position: Int, sumWithExistingText: Boolean, content: List<Int>) {
+        writeBuffer
+                .set(0, 6)
+                .set(1, position)
+                .set(2, content.size)
+                .set(3, if (sumWithExistingText) {
+                    1
+                } else {
+                    0
+                })
+
+        content.forEachIndexed { idx, v -> writeBuffer.set(idx + 4, v) }
+
+        i2c.write(writeBuffer, content.size + 4)
+    }
+
+    suspend fun getButtonReport(): ButtonReport {
+        selectSlave()
+        writeBuffer.set(0, 1)
+        i2c.write(writeBuffer, 1)
+        i2c.read(readBuffer, 2)
+
+        return ButtonReport(when (readBuffer[1]) {
+            255 -> ButtonState.JUST_RELEASED
+            1 -> ButtonState.JUST_PRESSED
+            0 -> ButtonState.NO_CHANGE
+            else -> throw IllegalStateException("invalid button state value: ${readBuffer[1]}")
+        }, if (readBuffer[0] <= 127) {
+            readBuffer[0]
+        } else {
+            readBuffer[0] - 255
+        })
     }
 }
