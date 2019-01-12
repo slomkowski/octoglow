@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.hardware
 
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
@@ -30,14 +30,13 @@ data class ButtonReport(
 class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
 
     private val writeBuffer = I2CBuffer(500)
-    private val readBuffer = I2CBuffer(8)
 
     // we assume last value as pivot
     private val maxValuesInChart = 5 * 20
 
     override suspend fun setBrightness(brightness: Int) {
         selectSlave()
-        i2c.write(writeBuffer.set(0, 3).set(1, brightness), 2)
+        i2c.smbus.writeWord(3, brightness)
     }
 
     /**
@@ -77,7 +76,7 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
 
     suspend fun clear() {
         selectSlave()
-        i2c.write(writeBuffer.set(0, 2), 1)
+        i2c.smbus.writeByteDirectly(2)
     }
 
     suspend fun setStaticText(position: Int, text: String) {
@@ -183,10 +182,8 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
     }
 
     suspend fun getButtonReport(): ButtonReport {
-        selectSlave()
-        writeBuffer.set(0, 1)
-        i2c.write(writeBuffer, 1)
-        i2c.read(readBuffer, 2)
+        val readBuffer = I2CBuffer(2)
+        doTransaction(I2CBuffer(1).set(0, 1), readBuffer)
 
         return ButtonReport(when (readBuffer[1]) {
             255 -> ButtonState.JUST_RELEASED

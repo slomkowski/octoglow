@@ -1,5 +1,6 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.hardware
 
+import eu.slomkowski.octoglow.hardware.Geiger
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay

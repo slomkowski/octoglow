@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.hardware
 
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
@@ -20,17 +20,15 @@ class ClockDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x10), HasBrightness {
     private val LOWER_DOT: Int = 1 shl (13 % 8)
 
     private val writeBuffer = I2CBuffer(8)
-    private val readBuffer = I2CBuffer(8)
 
     override suspend fun setBrightness(brightness: Int) {
         selectSlave()
-        i2c.write(writeBuffer.set(0, 3).set(1, brightness), 2)
+        i2c.smbus.writeWord(3, brightness)
     }
 
     suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport {
-        selectSlave()
-        i2c.write(writeBuffer.set(0, 4), 1)
-        i2c.read(readBuffer, 6)
+        val readBuffer = I2CBuffer(6)
+        doTransaction(I2CBuffer(1).set(0, 4), readBuffer)
 
         return OutdoorWeatherReport(
                 (256.0 * readBuffer[2].toDouble() + readBuffer[1].toDouble()) / 10.0,
@@ -53,6 +51,7 @@ class ClockDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x10), HasBrightness {
             0
         }
 
+        selectSlave()
         i2c.write(writeBuffer
                 .set(0, 1)
                 .set(1, 0x30 + hours / 10)

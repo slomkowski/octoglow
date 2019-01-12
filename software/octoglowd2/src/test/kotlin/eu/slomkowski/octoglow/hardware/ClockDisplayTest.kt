@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.hardware
 
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
