@@ -3,10 +3,9 @@ package eu.slomkowski.octoglow
 import eu.slomkowski.octoglow.hardware.ClockDisplay
 import eu.slomkowski.octoglow.hardware.FrontDisplay
 import io.dvlopt.linux.i2c.I2CBus
-import io.dvlopt.linux.i2c.I2CFunctionality
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.ticker
-import java.time.LocalDateTime
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.runBlocking
+import java.nio.file.Paths
 
 
 fun main(args: Array<String>) {
@@ -16,11 +15,11 @@ fun main(args: Array<String>) {
     val clockDisplay = ClockDisplay(bus)
     val frontDisplay = FrontDisplay(bus)
 
-    println("Transactions: " + bus.functionalities.can(I2CFunctionality.TRANSACTIONS))
-
     runBlocking {
+        val database = DatabaseLayer(Paths.get("data.db"))
+
         joinAll(createRealTimeClockController(clockDisplay),
-        createFrontDisplayController(frontDisplay))
+                createFrontDisplayController(frontDisplay))
     }
 }
 

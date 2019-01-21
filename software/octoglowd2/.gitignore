@@ -11,3 +11,8 @@ buildNumber.properties
 
 *.iml
 .idea
+
+*db
+
+config.yml
+unittest.yml
