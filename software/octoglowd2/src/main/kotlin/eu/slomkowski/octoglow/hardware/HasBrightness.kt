@@ -1,5 +1,5 @@
 package eu.slomkowski.octoglow.hardware
 
 interface HasBrightness {
-    suspend fun setBrightness(brightness: Int)
+    fun setBrightness(brightness: Int)
 }

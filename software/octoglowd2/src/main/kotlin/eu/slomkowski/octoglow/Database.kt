@@ -122,6 +122,7 @@ class DatabaseLayer(databaseFile: Path) {
         }
     }
 
+    // todo naprawić wstawianie, by wstawiało datę z odpowiednim formatem
     fun insertOutdoorWeatherReport(ts: LocalDateTime, owr: OutdoorWeatherReport) {
         logger.debug { "Inserting data to DB: $owr" }
         transaction {

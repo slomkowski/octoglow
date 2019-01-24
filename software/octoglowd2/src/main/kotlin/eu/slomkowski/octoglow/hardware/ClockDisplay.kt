@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.hardware
 
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import kotlin.math.pow
 
 data class OutdoorWeatherReport(
         val temperature: Double,
@@ -12,32 +13,47 @@ data class OutdoorWeatherReport(
         require(temperature in -40.0..60.0)
         require(humidity in 0.0..100.0)
     }
+
+    companion object {
+        fun parse(buff: I2CBuffer): OutdoorWeatherReport {
+            val temperaturePart = (256 * buff[2] + buff[1]).let {
+                when (it > 0x100) {
+                    true -> it.toDouble() - 2.0.pow(12)
+                    false -> it.toDouble()
+                } / 10.0
+            }
+
+            return OutdoorWeatherReport(
+                    temperaturePart,
+                    buff[3].toDouble(),
+                    buff[4] == 1,
+                    buff[5] == 1)
+        }
+    }
 }
 
 class ClockDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x10), HasBrightness {
 
-    private val UPPER_DOT: Int = 1 shl (14 % 8)
-    private val LOWER_DOT: Int = 1 shl (13 % 8)
+    companion object {
+        private const val UPPER_DOT: Int = 1 shl (14 % 8)
+        private const val LOWER_DOT: Int = 1 shl (13 % 8)
+    }
 
     private val writeBuffer = I2CBuffer(8)
 
-    override suspend fun setBrightness(brightness: Int) {
+    override fun setBrightness(brightness: Int) {
         selectSlave()
         i2c.smbus.writeWord(3, brightness)
     }
 
-    suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport {
+    fun getOutdoorWeatherReport(): OutdoorWeatherReport {
         val readBuffer = I2CBuffer(6)
         doTransaction(I2CBuffer(1).set(0, 4), readBuffer)
-
-        return OutdoorWeatherReport(
-                (256.0 * readBuffer[2].toDouble() + readBuffer[1].toDouble()) / 10.0,
-                readBuffer[3].toDouble(),
-                readBuffer[4] == 1,
-                readBuffer[5] == 1)
+        check(readBuffer[0] == 4)
+        return OutdoorWeatherReport.parse(readBuffer)
     }
 
-    suspend fun setDisplay(hours: Int, minutes: Int, upperDot: Boolean, lowerDot: Boolean) {
+    fun setDisplay(hours: Int, minutes: Int, upperDot: Boolean, lowerDot: Boolean) {
         require(hours in 0..24)
         require(minutes in 0..60)
 

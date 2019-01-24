@@ -15,7 +15,7 @@ abstract class I2CDevice(
 
     fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
 
-    suspend fun doTransaction(writeBuffer: I2CBuffer, readBuffer: I2CBuffer) {
+    fun doTransaction(writeBuffer: I2CBuffer, readBuffer: I2CBuffer) {
         i2c.doTransaction(I2CTransaction(2).apply {
             getMessage(0).apply {
                 address = i2cAddress

@@ -38,7 +38,7 @@ class Geiger(i2c: I2CBus) : I2CDevice(i2c, 0x12), HasBrightness {
 
     private val cycleMaxDuration = Duration.ofSeconds(0xffff)
 
-    override suspend fun setBrightness(brightness: Int) {
+    override fun setBrightness(brightness: Int) {
         assert(brightness in 0..5) { "brightness should be in range 0..5" }
 
         selectSlave()

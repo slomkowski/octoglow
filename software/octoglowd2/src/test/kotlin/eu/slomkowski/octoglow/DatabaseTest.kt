@@ -1,14 +1,7 @@
 package eu.slomkowski.octoglow
 
-import eu.slomkowski.octoglow.EventBus.sendEvent
-import eu.slomkowski.octoglow.hardware.OutdoorWeatherReport
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import mu.KLogging
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import java.nio.file.Paths
 import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
