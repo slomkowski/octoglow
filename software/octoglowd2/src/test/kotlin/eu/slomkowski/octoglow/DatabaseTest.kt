@@ -38,6 +38,11 @@ class DatabaseTest {
 //    }
 
     @Test
+    fun testDateTimeFormat() {
+        assertEquals("2019-01-25 00:32:35.212000", LocalDateTime.of(2019, 1, 25, 0, 32, 35, 212_000_000).format(DatabaseLayer.sqliteNativeDateTimeFormat))
+    }
+
+    @Test
     fun testCreateSqlQueryForAveragedHours() {
         val d = LocalDateTime.of(2018, 6, 24, 16, 20, 11)
 

@@ -1,5 +1,6 @@
 package eu.slomkowski.octoglow.hardware
 
+import eu.slomkowski.octoglow.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlin.math.pow
@@ -23,11 +24,17 @@ data class OutdoorWeatherReport(
                 } / 10.0
             }
 
-            return OutdoorWeatherReport(
-                    temperaturePart,
-                    buff[3].toDouble(),
-                    buff[4] == 1,
-                    buff[5] == 1)
+            val humidityPart = buff[3].toDouble()
+
+            try {
+                return OutdoorWeatherReport(
+                        temperaturePart,
+                        humidityPart,
+                        buff[4] == 1,
+                        buff[5] == 1)
+            } catch (e: IllegalArgumentException) {
+                throw IllegalArgumentException("invalid weather data: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}", e)
+            }
         }
     }
 }
@@ -38,8 +45,6 @@ class ClockDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x10), HasBrightness {
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
     }
-
-    private val writeBuffer = I2CBuffer(8)
 
     override fun setBrightness(brightness: Int) {
         selectSlave()
@@ -68,12 +73,12 @@ class ClockDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x10), HasBrightness {
         }
 
         selectSlave()
-        i2c.write(writeBuffer
+        i2c.write(I2CBuffer(6)
                 .set(0, 1)
                 .set(1, 0x30 + hours / 10)
                 .set(2, 0x30 + hours % 10)
                 .set(3, 0x30 + minutes / 10)
                 .set(4, 0x30 + minutes % 10)
-                .set(5, dots), 6)
+                .set(5, dots))
     }
 }

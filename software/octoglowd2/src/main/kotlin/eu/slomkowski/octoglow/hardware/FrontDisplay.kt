@@ -29,8 +29,6 @@ data class ButtonReport(
 
 class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
 
-    private val writeBuffer = I2CBuffer(500)
-
     // we assume last value as pivot
     private val maxValuesInChart = 5 * 20
 
@@ -71,7 +69,7 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
     private fun setUpperBar(c: Int) {
         selectSlave()
         val bk = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(c)
-        i2c.write(writeBuffer.set(0, 7).set(1, bk[0]).set(2, bk[1]).set(3, bk[2]).set(4, bk[3]), 5)
+        i2c.write(I2CBuffer(5).set(0, 7).set(1, bk[0]).set(2, bk[1]).set(3, bk[2]).set(4, bk[3]))
     }
 
     fun clear() {
@@ -88,8 +86,7 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
                     "and position $position, which sums to ${text.length + position}"
         }
 
-        writeBuffer.set(0, 4).set(1, position).set(2, text.length)
-        setText(text.toByteArray(StandardCharsets.UTF_8), 3)
+        setText(text.toByteArray(StandardCharsets.UTF_8), intArrayOf(4, position, text.length))
     }
 
     fun setScrollingText(slot: Slot, position: Int, length: Int, text: String) {
@@ -100,22 +97,23 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
         require(text.isNotEmpty()) { "text length has to be at least 1" }
         require(lastPosition < 40) { "end of the string cannot exceed position 39, but has length ${textBytes.size} and position $position, which sums to $lastPosition" }
 
-        writeBuffer.set(0, 5).set(1, slot.ordinal).set(2, position).set(3, length)
-        setText(textBytes, 4)
+        setText(textBytes, intArrayOf(5, slot.ordinal, position, length))
     }
 
-    private fun setText(textBytes: ByteArray, offset: Int) {
-        textBytes.forEachIndexed { idx, b -> writeBuffer.set(idx + offset, b) }
-        writeBuffer.set(offset + textBytes.size, 0)
+    private fun setText(textBytes: ByteArray, header: IntArray) {
+        val writeBuffer = I2CBuffer(header.size + textBytes.size + 1)
+        header.forEachIndexed { idx, v -> writeBuffer.set(idx, v) }
+        textBytes.forEachIndexed { idx, b -> writeBuffer.set(idx + header.size, b) }
+        writeBuffer.set(header.size + textBytes.size, 0)
 
         selectSlave()
-        i2c.write(writeBuffer, offset + textBytes.size + 1)
+        i2c.write(writeBuffer)
     }
 
     fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
-        require(historicalValues.size < maxValuesInChart) { "number of values cannot exceed $maxValuesInChart" }
+        require(historicalValues.size + 1 < maxValuesInChart) { "number of values cannot exceed $maxValuesInChart" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
-        val maxPosition = 5 * 40 - historicalValues.size + 1
+        val maxPosition = 5 * 40 - historicalValues.size + 2
         require(position < maxPosition) { "position cannot exceed $maxPosition" }
 
         val img = historicalValues
@@ -133,6 +131,7 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
                         else -> throw IllegalStateException()
                     }
                 }
+                .plus(0b0001000)
 
         selectSlave()
         drawImage(position, false, img)
@@ -165,7 +164,7 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
     }
 
     private fun drawImage(position: Int, sumWithExistingText: Boolean, content: List<Int>) {
-        writeBuffer
+        val writeBuffer = I2CBuffer(content.size + 4)
                 .set(0, 6)
                 .set(1, position)
                 .set(2, content.size)
@@ -177,7 +176,7 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
 
         content.forEachIndexed { idx, v -> writeBuffer.set(idx + 4, v) }
 
-        i2c.write(writeBuffer, content.size + 4)
+        i2c.write(writeBuffer)
     }
 
     fun getButtonReport(): ButtonReport {

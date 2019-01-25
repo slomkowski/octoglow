@@ -1,5 +1,6 @@
 package eu.slomkowski.octoglow.hardware
 
+import eu.slomkowski.octoglow.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
@@ -38,7 +39,7 @@ class ClockDisplayTest {
         // -1.8 stopnia 72% wilg : 4 238 15 72 1 0
         // -2.6 stopnia 71% wilg : 4 230 15 71 1 1
         val b1 = I2CBuffer(6).set(0, 4).set(1, 238).set(2, 15).set(3, 72).set(4, 1).set(5, 0)
-        assertEquals("4 238 15 72 1 0", (0..5).map { b1[it] }.joinToString(" "))
+        assertEquals("[4 238 15 72 1 0]", b1.contentToString())
 
         OutdoorWeatherReport.parse(b1).apply {
             assertEquals(-1.8, temperature)

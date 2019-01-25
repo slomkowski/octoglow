@@ -59,9 +59,9 @@ class OutdoorWeatherView(
                 else -> {
                     val ts = LocalDateTime.now()
                     logger.info { "Got report : $rep." }
-                    databaseLayer.insertOutdoorWeatherReport(ts, rep)
+                    databaseLayer.insertOutdoorWeatherReport(ts, rep).join()
 
-                    currentReport = databaseLayer.getLastOutdoorWeatherReportsByHour(ts, HISTORIC_VALUES_LENGTH).let {
+                    currentReport = databaseLayer.getLastOutdoorWeatherReportsByHour(ts, HISTORIC_VALUES_LENGTH).await().let {
                         check(it.size == HISTORIC_VALUES_LENGTH)
                         CurrentReport(rep, ts, it.map { it?.temperature }, it.map { it?.humidity })
                     }

@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow
 
 
 import eu.slomkowski.octoglow.hardware.OutdoorWeatherReport
+import kotlinx.coroutines.*
 import mu.KLogging
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -15,7 +16,10 @@ import java.sql.ResultSet
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoField
 
 
 object OutdoorWeatherReports : Table("outdoor_weather_report") {
@@ -59,7 +63,6 @@ class DatabaseLayer(databaseFile: Path) {
             require(!interval.isNegative && !interval.isZero)
 
             val timestampCol = "created"
-            val fmt = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
             val fieldExpression = fields.joinToString(", ") {
                 val f = it.trim()
@@ -72,12 +75,14 @@ class DatabaseLayer(databaseFile: Path) {
                 upperBound.minus(interval) to upperBound
             }
 
+            fun LocalDateTime.fmt() = ZonedDateTime.of(this, ZoneId.systemDefault()).toInstant().toEpochMilli()
+
             val rangeLimitExpr = timeRanges
                     .flatMap { it.toList() }
-                    .let { "$timestampCol BETWEEN '${it.min()?.format(fmt)}' AND '${it.max()?.format(fmt)}'" }
+                    .let { "$timestampCol BETWEEN ${it.min()?.fmt()} AND ${it.max()?.fmt()}" }
 
             val caseExpr = timeRanges.mapIndexed { idx, (lower, upper) ->
-                "WHEN $timestampCol BETWEEN '${lower.format(fmt)}' AND '${upper.format(fmt)}' THEN $idx"
+                "WHEN $timestampCol BETWEEN ${lower.fmt()} AND ${upper.fmt()} THEN $idx"
             }.joinToString(prefix = "CASE\n",
                     separator = "\n",
                     postfix = "\nELSE -1 END")
@@ -111,7 +116,11 @@ class DatabaseLayer(databaseFile: Path) {
         fun toJodaDateTime(d: LocalDateTime): org.joda.time.DateTime {
             return org.joda.time.DateTime(d.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
         }
+
+        val sqliteNativeDateTimeFormat:DateTimeFormatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss.SSSSSS")
     }
+
+    val threadContext = newSingleThreadContext("database")
 
     init {
         Database.connect("jdbc:sqlite:$databaseFile", "org.sqlite.JDBC")
@@ -123,14 +132,16 @@ class DatabaseLayer(databaseFile: Path) {
     }
 
     // todo naprawić wstawianie, by wstawiało datę z odpowiednim formatem
-    fun insertOutdoorWeatherReport(ts: LocalDateTime, owr: OutdoorWeatherReport) {
+    suspend fun insertOutdoorWeatherReport(ts: LocalDateTime, owr: OutdoorWeatherReport) = coroutineScope {
         logger.debug { "Inserting data to DB: $owr" }
-        transaction {
-            OutdoorWeatherReports.insert {
-                it[timestamp] = toJodaDateTime(ts)
-                it[temperature] = owr.temperature
-                it[humidity] = owr.humidity
-                it[batteryIsWeak] = owr.batteryIsWeak
+        launch(threadContext) {
+            transaction {
+                OutdoorWeatherReports.insert {
+                    it[timestamp] = toJodaDateTime(ts)
+                    it[temperature] = owr.temperature
+                    it[humidity] = owr.humidity
+                    it[batteryIsWeak] = owr.batteryIsWeak
+                }
             }
         }
     }
@@ -148,14 +159,14 @@ class DatabaseLayer(databaseFile: Path) {
         return result
     }
 
-    fun getLastOutdoorWeatherReportsByHour(currentTime: LocalDateTime, numberOfPastHours: Int): List<OutdoorWeatherReportRow?> {
+    suspend fun getLastOutdoorWeatherReportsByHour(currentTime: LocalDateTime, numberOfPastHours: Int): Deferred<List<OutdoorWeatherReportRow?>> = coroutineScope {
         val query = createAveragedByTimeInterval(OutdoorWeatherReports.tableName,
                 listOf("temperature", "humidity"), currentTime, Duration.ofHours(1), numberOfPastHours, true)
 
-        return groupByBucketNo(transaction {
-            query.execAndMap { it.getInt(caseColumnName) to OutdoorWeatherReportRow(it.getDouble("temperature"), it.getDouble("humidity")) }
-        }, numberOfPastHours)
+        async(threadContext) {
+            groupByBucketNo(transaction {
+                query.execAndMap { it.getInt(caseColumnName) to OutdoorWeatherReportRow(it.getDouble("temperature"), it.getDouble("humidity")) }
+            }, numberOfPastHours)
+        }
     }
-
-
 }
