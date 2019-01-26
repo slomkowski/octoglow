@@ -3,6 +3,8 @@ package eu.slomkowski.octoglow.hardware
 import eu.slomkowski.octoglow.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import kotlinx.coroutines.ExecutorCoroutineDispatcher
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.pow
 
 data class OutdoorWeatherReport(
@@ -39,26 +41,24 @@ data class OutdoorWeatherReport(
     }
 }
 
-class ClockDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x10), HasBrightness {
+class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x10), HasBrightness {
 
     companion object {
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
     }
 
-    override fun setBrightness(brightness: Int) {
-        selectSlave()
-        i2c.smbus.writeWord(3, brightness)
+    override suspend fun setBrightness(brightness: Int) {
+        doWrite(3, brightness)
     }
 
-    fun getOutdoorWeatherReport(): OutdoorWeatherReport {
-        val readBuffer = I2CBuffer(6)
-        doTransaction(I2CBuffer(1).set(0, 4), readBuffer)
+    suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport {
+        val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 6)
         check(readBuffer[0] == 4)
         return OutdoorWeatherReport.parse(readBuffer)
     }
 
-    fun setDisplay(hours: Int, minutes: Int, upperDot: Boolean, lowerDot: Boolean) {
+    suspend fun setDisplay(hours: Int, minutes: Int, upperDot: Boolean, lowerDot: Boolean) {
         require(hours in 0..24)
         require(minutes in 0..60)
 
@@ -72,13 +72,6 @@ class ClockDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x10), HasBrightness {
             0
         }
 
-        selectSlave()
-        i2c.write(I2CBuffer(6)
-                .set(0, 1)
-                .set(1, 0x30 + hours / 10)
-                .set(2, 0x30 + hours % 10)
-                .set(3, 0x30 + minutes / 10)
-                .set(4, 0x30 + minutes % 10)
-                .set(5, dots))
+        doWrite(1, 0x30 + hours / 10, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots)
     }
 }

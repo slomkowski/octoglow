@@ -11,7 +11,7 @@ internal class GeigerTest {
     @ParameterizedTest
     @MethodSource("getI2CBus")
     fun testBrightness(bus: I2CBus) = runBlocking {
-        val geiger = Geiger(bus)
+        val geiger = Geiger(coroutineContext, bus)
 
         val x = async { geiger.setEyeEnabled(true) }
 

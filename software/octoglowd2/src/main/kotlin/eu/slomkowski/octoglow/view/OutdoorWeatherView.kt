@@ -3,8 +3,7 @@ package eu.slomkowski.octoglow.view
 import eu.slomkowski.octoglow.DatabaseLayer
 import eu.slomkowski.octoglow.formatHumidity
 import eu.slomkowski.octoglow.formatTemperature
-import eu.slomkowski.octoglow.hardware.ClockDisplay
-import eu.slomkowski.octoglow.hardware.FrontDisplay
+import eu.slomkowski.octoglow.hardware.Hardware
 import eu.slomkowski.octoglow.hardware.OutdoorWeatherReport
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -15,8 +14,7 @@ import java.time.LocalDateTime
 
 class OutdoorWeatherView(
         private val databaseLayer: DatabaseLayer,
-        private val frontDisplay: FrontDisplay,
-        private val clockDisplay: ClockDisplay) : FrontDisplayView {
+        private val hardware: Hardware) : FrontDisplayView {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
@@ -33,6 +31,8 @@ class OutdoorWeatherView(
         }
     }
 
+    private val fd = hardware.frontDisplay
+
     private var currentReport: CurrentReport? = null //todo maybe protected by mutex?
 
     override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(30)
@@ -40,20 +40,20 @@ class OutdoorWeatherView(
     override suspend fun redrawDisplay() = coroutineScope {
         val rep = currentReport
 
-        launch { frontDisplay.setStaticText(2, "Weather outside") }
+        launch { fd.setStaticText(2, "Weather outside") }
 
-        launch { frontDisplay.setStaticText(20, formatTemperature(rep?.lastMeasurement?.temperature)) }
-        launch { frontDisplay.setStaticText(32, formatHumidity(rep?.lastMeasurement?.humidity)) }
+        launch { fd.setStaticText(20, formatTemperature(rep?.lastMeasurement?.temperature)) }
+        launch { fd.setStaticText(32, formatHumidity(rep?.lastMeasurement?.humidity)) }
 
         if (rep != null) {
-            launch { frontDisplay.setOneLineDiffChart(5 * 37, rep.lastMeasurement.humidity, rep.historicalHumidity, 1.0) }
-            launch { frontDisplay.setOneLineDiffChart(5 * 28, rep.lastMeasurement.temperature, rep.historicalTemperature, 1.0) }
+            launch { fd.setOneLineDiffChart(5 * 37, rep.lastMeasurement.humidity, rep.historicalHumidity, 1.0) }
+            launch { fd.setOneLineDiffChart(5 * 28, rep.lastMeasurement.temperature, rep.historicalTemperature, 1.0) }
         }
     }
 
     override suspend fun poolStateUpdate() = coroutineScope {
         async {
-            val rep = clockDisplay.getOutdoorWeatherReport()
+            val rep = hardware.clockDisplay.getOutdoorWeatherReport()
             when (rep.alreadyReadFlag) {
                 false -> false
                 else -> {

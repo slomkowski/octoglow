@@ -1,8 +1,9 @@
 package eu.slomkowski.octoglow.hardware
 
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import java.time.Duration
+import kotlin.coroutines.CoroutineContext
 
 enum class EyeDisplayMode {
     ANIMATION,
@@ -31,32 +32,26 @@ data class GeigerDeviceState(
         val eyeVoltage: Double,
         val eyePwmValue: Int)
 
-class Geiger(i2c: I2CBus) : I2CDevice(i2c, 0x12), HasBrightness {
+class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), HasBrightness {
 
-    private val writeBuffer = I2CBuffer(8)
-    private val readBuffer = I2CBuffer(8)
+    companion object {
+        private val cycleMaxDuration = Duration.ofSeconds(0xffff)
+    }
 
-    private val cycleMaxDuration = Duration.ofSeconds(0xffff)
-
-    override fun setBrightness(brightness: Int) {
+    override suspend fun setBrightness(brightness: Int) {
         assert(brightness in 0..5) { "brightness should be in range 0..5" }
-
-        selectSlave()
-        i2c.write(writeBuffer.set(0, 7).set(1, brightness), 2)
+        doWrite(7, brightness)
     }
 
     suspend fun setEyeEnabled(enabled: Boolean) {
-        selectSlave()
-        i2c.write(writeBuffer.set(0, 5).set(1, when (enabled) {
+        doWrite(5, when (enabled) {
             true -> 1
             else -> 0
-        }), 2)
+        })
     }
 
     suspend fun getDeviceState(): GeigerDeviceState {
-        selectSlave()
-        i2c.write(writeBuffer.set(0, 1), 1)
-        i2c.read(readBuffer, 8)
+        val readBuffer = doTransaction(listOf(1), 8)
 
         return GeigerDeviceState(
                 (0xff * readBuffer.get(1) + readBuffer.get(0)).toDouble(),
@@ -69,9 +64,7 @@ class Geiger(i2c: I2CBus) : I2CDevice(i2c, 0x12), HasBrightness {
     }
 
     suspend fun getCounterState(): GeigerCounterState {
-        selectSlave()
-        i2c.write(writeBuffer.set(0, 2), 1)
-        i2c.read(readBuffer, 7)
+        val readBuffer = doTransaction(listOf(2), 7)
 
         return GeigerCounterState(
                 readBuffer.get(0) > 0,
@@ -86,12 +79,6 @@ class Geiger(i2c: I2CBus) : I2CDevice(i2c, 0x12), HasBrightness {
         assert(duration < cycleMaxDuration) { "duration can be max $cycleMaxDuration" }
         val seconds = duration.seconds.toInt()
 
-        selectSlave()
-        i2c.write(writeBuffer
-                .set(0, 3)
-                .set(1, seconds)
-                .set(2, seconds shl 8), 3)
+        doWrite(3, 0xff and seconds, seconds shl 8)
     }
-
-
 }

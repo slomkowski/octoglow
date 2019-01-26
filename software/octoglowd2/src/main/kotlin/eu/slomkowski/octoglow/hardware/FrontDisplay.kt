@@ -2,9 +2,11 @@ package eu.slomkowski.octoglow.hardware
 
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 
 enum class Slot(val capacity: Int) {
@@ -27,20 +29,21 @@ data class ButtonReport(
     }
 }
 
-class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
+class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x14), HasBrightness {
 
-    // we assume last value as pivot
-    private val maxValuesInChart = 5 * 20
+    companion object {
+        // we assume last value as pivot
+        private const val maxValuesInChart = 5 * 20
+    }
 
-    override fun setBrightness(brightness: Int) {
-        selectSlave()
-        i2c.smbus.writeWord(3, brightness)
+    override suspend fun setBrightness(brightness: Int) {
+        doWrite(3, brightness)
     }
 
     /**
      * Sets the upper bar content - all 20 positions are needed.
      */
-    fun setUpperBar(content: Array<Boolean>) {
+    suspend fun setUpperBar(content: Array<Boolean>) {
         require(content.size == 20) { "array size has to be 20" }
 
         val c = content.foldIndexed(0) { index, acc, value ->
@@ -52,7 +55,7 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
         setUpperBar(c)
     }
 
-    fun setUpperBar(activePositions: Collection<Int>, invert: Boolean = false) {
+    suspend fun setUpperBar(activePositions: Collection<Int>, invert: Boolean = false) {
         require(activePositions.all { it <= 19 }) { "position numbers between 0 and 19 are allowed" }
 
         val c = activePositions
@@ -66,18 +69,16 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
         setUpperBar(c)
     }
 
-    private fun setUpperBar(c: Int) {
-        selectSlave()
+    private suspend fun setUpperBar(c: Int) {
         val bk = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(c)
-        i2c.write(I2CBuffer(5).set(0, 7).set(1, bk[0]).set(2, bk[1]).set(3, bk[2]).set(4, bk[3]))
+        doWrite(I2CBuffer(5).set(0, 7).set(1, bk[0]).set(2, bk[1]).set(3, bk[2]).set(4, bk[3]))
     }
 
-    fun clear() {
-        selectSlave()
-        i2c.smbus.writeByteDirectly(2)
+    suspend fun clear() {
+        doWrite(2)
     }
 
-    fun setStaticText(position: Int, text: String) {
+    suspend fun setStaticText(position: Int, text: String) {
         val lastPosition = position + text.length - 1
         require(position < 40) { "position has to be between 0 and 39, $position provided" }
         require(text.isNotEmpty()) { "text length has to be at least 1" }
@@ -89,7 +90,7 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
         setText(text.toByteArray(StandardCharsets.UTF_8), intArrayOf(4, position, text.length))
     }
 
-    fun setScrollingText(slot: Slot, position: Int, length: Int, text: String) {
+    suspend fun setScrollingText(slot: Slot, position: Int, length: Int, text: String) {
         val textBytes = text.toByteArray(StandardCharsets.UTF_8)
         val lastPosition = position + length - 1
         require(slot.capacity > textBytes.size) { "UTF-8 text length ({} bytes) cannot exceed the capacity of the selected slot $slot, which is ${slot.capacity}" }
@@ -100,17 +101,16 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
         setText(textBytes, intArrayOf(5, slot.ordinal, position, length))
     }
 
-    private fun setText(textBytes: ByteArray, header: IntArray) {
+    private suspend fun setText(textBytes: ByteArray, header: IntArray) {
         val writeBuffer = I2CBuffer(header.size + textBytes.size + 1)
         header.forEachIndexed { idx, v -> writeBuffer.set(idx, v) }
         textBytes.forEachIndexed { idx, b -> writeBuffer.set(idx + header.size, b) }
         writeBuffer.set(header.size + textBytes.size, 0)
 
-        selectSlave()
-        i2c.write(writeBuffer)
+        doWrite(writeBuffer)
     }
 
-    fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
+    suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
         require(historicalValues.size + 1 < maxValuesInChart) { "number of values cannot exceed $maxValuesInChart" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
         val maxPosition = 5 * 40 - historicalValues.size + 2
@@ -133,11 +133,10 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
                 }
                 .plus(0b0001000)
 
-        selectSlave()
         drawImage(position, false, img)
     }
 
-    fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
+    suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
         require(historicalValues.size < maxValuesInChart) { "number of values cannot exceed $maxValuesInChart" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
         val maxPosition = 5 * 20 - historicalValues.size
@@ -158,12 +157,11 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
                 .plus(0b1000000 to 0b1)
                 .unzip()
 
-        selectSlave()
         drawImage(position, false, upper)
         drawImage(5 * 20 + position, false, lower)
     }
 
-    private fun drawImage(position: Int, sumWithExistingText: Boolean, content: List<Int>) {
+    private suspend fun drawImage(position: Int, sumWithExistingText: Boolean, content: List<Int>) {
         val writeBuffer = I2CBuffer(content.size + 4)
                 .set(0, 6)
                 .set(1, position)
@@ -176,12 +174,12 @@ class FrontDisplay(i2c: I2CBus) : I2CDevice(i2c, 0x14), HasBrightness {
 
         content.forEachIndexed { idx, v -> writeBuffer.set(idx + 4, v) }
 
-        i2c.write(writeBuffer)
+
+        doWrite(writeBuffer)
     }
 
-    fun getButtonReport(): ButtonReport {
-        val readBuffer = I2CBuffer(2)
-        doTransaction(I2CBuffer(1).set(0, 1), readBuffer)
+    suspend fun getButtonReport(): ButtonReport {
+        val readBuffer = doTransaction(I2CBuffer(1).set(0, 1), 2)
 
         return ButtonReport(when (readBuffer[1]) {
             255 -> ButtonState.JUST_RELEASED
