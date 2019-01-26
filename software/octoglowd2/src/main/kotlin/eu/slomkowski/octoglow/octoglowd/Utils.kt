@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.octoglowd
 
 import io.dvlopt.linux.i2c.I2CBuffer
 
@@ -14,4 +14,4 @@ fun formatTemperature(t: Double?): String = when (t) {
     else -> String.format("%+5.1f${DEGREE}C", t)
 }
 
-fun I2CBuffer.contentToString() : String =    (0 until this.length).map { this[it] }.joinToString(" ", prefix = "[", postfix = "]")
+fun I2CBuffer.contentToString(): String = (0 until this.length).map { this[it] }.joinToString(" ", prefix = "[", postfix = "]")

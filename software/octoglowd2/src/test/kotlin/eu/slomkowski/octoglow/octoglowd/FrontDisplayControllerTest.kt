@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.octoglowd
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

@@ -1,7 +1,7 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.octoglowd
 
-import eu.slomkowski.octoglow.hardware.FrontDisplay
-import eu.slomkowski.octoglow.view.FrontDisplayView
+import eu.slomkowski.octoglow.octoglowd.hardware.FrontDisplay
+import eu.slomkowski.octoglow.octoglowd.view.FrontDisplayView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.launch
@@ -38,7 +38,7 @@ fun CoroutineScope.createFrontDisplayController(frontDisplay: FrontDisplay,
 
         val buttonReport = frontDisplay.getButtonReport()
 
-        if(buttonReport.encoderDelta != 0) {
+        if (buttonReport.encoderDelta != 0) {
             logger.debug { "Encoder delta: ${buttonReport.encoderDelta}." }
         }
 

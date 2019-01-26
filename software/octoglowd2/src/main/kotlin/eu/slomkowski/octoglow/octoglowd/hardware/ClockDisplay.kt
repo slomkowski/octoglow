@@ -1,9 +1,8 @@
-package eu.slomkowski.octoglow.hardware
+package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.contentToString
+import eu.slomkowski.octoglow.octoglowd.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
-import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.pow
 

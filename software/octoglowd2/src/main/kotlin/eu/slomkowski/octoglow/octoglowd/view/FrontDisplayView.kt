@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.view
+package eu.slomkowski.octoglow.octoglowd.view
 
 import kotlinx.coroutines.Deferred
 import java.time.Duration
@@ -10,5 +10,5 @@ interface FrontDisplayView {
 
     fun getPreferredPoolingInterval(): Duration
 
-    val name : String
+    val name: String
 }

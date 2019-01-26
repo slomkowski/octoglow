@@ -1,8 +1,7 @@
-package eu.slomkowski.octoglow.hardware
+package eu.slomkowski.octoglow.octoglowd.hardware
 
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
-import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets

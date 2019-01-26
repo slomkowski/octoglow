@@ -1,6 +1,6 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.octoglowd
 
-import eu.slomkowski.octoglow.hardware.ClockDisplay
+import eu.slomkowski.octoglow.octoglowd.hardware.ClockDisplay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.launch

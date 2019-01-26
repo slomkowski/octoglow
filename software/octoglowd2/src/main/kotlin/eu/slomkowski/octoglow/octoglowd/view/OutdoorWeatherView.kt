@@ -1,10 +1,10 @@
-package eu.slomkowski.octoglow.view
+package eu.slomkowski.octoglow.octoglowd.view
 
-import eu.slomkowski.octoglow.DatabaseLayer
-import eu.slomkowski.octoglow.formatHumidity
-import eu.slomkowski.octoglow.formatTemperature
-import eu.slomkowski.octoglow.hardware.Hardware
-import eu.slomkowski.octoglow.hardware.OutdoorWeatherReport
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.formatHumidity
+import eu.slomkowski.octoglow.octoglowd.formatTemperature
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.OutdoorWeatherReport
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch

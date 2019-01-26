@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.octoglowd
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.*
@@ -21,7 +21,7 @@ object EventBus {
 
     inline fun <reified T> registerHandler(coroutineContext: CoroutineContext, crossinline callback: (T) -> Unit) {
         CoroutineScope(coroutineContext).launch {
-            for (owr in EventBus.asChannel<T>()) {
+            for (owr in asChannel<T>()) {
                 callback(owr)
             }
         }

@@ -1,10 +1,10 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.octoglowd
 
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.ConfigSpec
-import eu.slomkowski.octoglow.hardware.Hardware
-import eu.slomkowski.octoglow.view.AboutView
-import eu.slomkowski.octoglow.view.OutdoorWeatherView
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.view.AboutView
+import eu.slomkowski.octoglow.octoglowd.view.OutdoorWeatherView
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Path

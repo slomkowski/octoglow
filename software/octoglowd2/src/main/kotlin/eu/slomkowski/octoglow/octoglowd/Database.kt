@@ -1,7 +1,7 @@
-package eu.slomkowski.octoglow
+package eu.slomkowski.octoglow.octoglowd
 
 
-import eu.slomkowski.octoglow.hardware.OutdoorWeatherReport
+import eu.slomkowski.octoglow.octoglowd.hardware.OutdoorWeatherReport
 import kotlinx.coroutines.*
 import mu.KLogging
 import org.jetbrains.exposed.sql.Database
@@ -18,8 +18,6 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatterBuilder
-import java.time.temporal.ChronoField
 
 
 object OutdoorWeatherReports : Table("outdoor_weather_report") {
@@ -117,7 +115,7 @@ class DatabaseLayer(databaseFile: Path) {
             return org.joda.time.DateTime(d.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
         }
 
-        val sqliteNativeDateTimeFormat:DateTimeFormatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss.SSSSSS")
+        val sqliteNativeDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss.SSSSSS")
     }
 
     val threadContext = newSingleThreadContext("database")

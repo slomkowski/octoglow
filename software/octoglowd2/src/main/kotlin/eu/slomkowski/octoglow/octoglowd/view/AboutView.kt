@@ -1,6 +1,6 @@
-package eu.slomkowski.octoglow.view
+package eu.slomkowski.octoglow.octoglowd.view
 
-import eu.slomkowski.octoglow.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope

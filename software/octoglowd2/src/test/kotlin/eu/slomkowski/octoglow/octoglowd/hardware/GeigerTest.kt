@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.hardware
+package eu.slomkowski.octoglow.octoglowd.hardware
 
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.async
@@ -7,7 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 
-internal class GeigerTest {
+class GeigerTest {
     @ParameterizedTest
     @MethodSource("getI2CBus")
     fun testBrightness(bus: I2CBus) = runBlocking {
