@@ -15,6 +15,8 @@ class Hardware(i2cBusPath: Path) : HasBrightness {
 
     val geiger = Geiger(threadContext, bus)
 
+    val dac = Dac(threadContext, bus)
+
     override suspend fun setBrightness(brightness: Int) {
         listOf<HasBrightness>(clockDisplay, frontDisplay, geiger).forEach { it.setBrightness(brightness) }
     }

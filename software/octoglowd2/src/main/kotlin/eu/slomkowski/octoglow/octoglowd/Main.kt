@@ -31,6 +31,7 @@ fun main(args: Array<String>) {
 
     runBlocking {
         joinAll(createRealTimeClockController(hardware.clockDisplay),
+                createCpuUsageIndicatorController(hardware.dac),
                 createFrontDisplayController(hardware.frontDisplay, frontDisplayViews))
     }
 }

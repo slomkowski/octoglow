@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import kotlinx.coroutines.runBlocking
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
@@ -33,6 +34,13 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
     companion object {
         // we assume last value as pivot
         private const val maxValuesInChart = 5 * 20
+    }
+
+    init {
+        runBlocking {
+            clear()
+            setBrightness(5)
+        }
     }
 
     override suspend fun setBrightness(brightness: Int) {
