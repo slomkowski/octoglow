@@ -9,4 +9,6 @@ interface FrontDisplayView {
     suspend fun poolStateUpdate(): Deferred<Boolean>
 
     fun getPreferredPoolingInterval(): Duration
+
+    val name : String
 }

@@ -16,6 +16,9 @@ class OutdoorWeatherView(
         private val databaseLayer: DatabaseLayer,
         private val hardware: Hardware) : FrontDisplayView {
 
+    override val name: String
+        get() = "Outdoor weather"
+
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
     }

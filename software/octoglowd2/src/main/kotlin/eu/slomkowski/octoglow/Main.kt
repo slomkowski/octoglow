@@ -1,17 +1,29 @@
 package eu.slomkowski.octoglow
 
+import com.uchuhimo.konf.Config
+import com.uchuhimo.konf.ConfigSpec
 import eu.slomkowski.octoglow.hardware.Hardware
 import eu.slomkowski.octoglow.view.AboutView
 import eu.slomkowski.octoglow.view.OutdoorWeatherView
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Path
 import java.nio.file.Paths
 
+object ConfKey : ConfigSpec() {
+    val i2cBusFile by required<Path>()
+    val databaseFile by optional<Path>(Paths.get("data.db"))
+}
 
 fun main(args: Array<String>) {
 
-    val hardware = Hardware(Paths.get("/dev/i2c-4"))
-    val database = DatabaseLayer(Paths.get("data.db"))
+    val config = Config { addSpec(ConfKey) }
+            .from.yaml.file("config.yml")
+            .from.env()
+            .from.systemProperties()
+
+    val hardware = Hardware(config[ConfKey.i2cBusFile])
+    val database = DatabaseLayer(config[ConfKey.databaseFile])
 
     val frontDisplayViews = listOf(
             AboutView(hardware),

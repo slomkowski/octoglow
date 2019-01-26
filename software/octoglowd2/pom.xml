@@ -58,6 +58,18 @@
         </dependency>
 
         <dependency>
+            <groupId>com.uchuhimo</groupId>
+            <artifactId>konf</artifactId>
+            <version>0.12</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.jgit</groupId>
+                    <artifactId>org.eclipse.jgit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.25.2</version>

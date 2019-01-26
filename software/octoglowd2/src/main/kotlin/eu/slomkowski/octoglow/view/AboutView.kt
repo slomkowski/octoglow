@@ -11,6 +11,9 @@ class AboutView(
         private val hardware: Hardware
 ) : FrontDisplayView {
 
+    override val name: String
+        get() = "About"
+
     override suspend fun redrawDisplay() = coroutineScope<Unit> {
         launch { hardware.frontDisplay.setStaticText(0, "OCTOGLOW by Michał Słomkowski") }
     }

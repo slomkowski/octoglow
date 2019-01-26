@@ -38,12 +38,16 @@ fun CoroutineScope.createFrontDisplayController(frontDisplay: FrontDisplay,
 
         val buttonReport = frontDisplay.getButtonReport()
 
+        if(buttonReport.encoderDelta != 0) {
+            logger.debug { "Encoder delta: ${buttonReport.encoderDelta}." }
+        }
+
         val newViewIndex = updateViewIndex(currentViewIdx, buttonReport.encoderDelta, views.size)
 
         if (newViewIndex != currentViewIdx) {
             val newCurrentView = views[newViewIndex].view
 
-            logger.debug { "Switched view to $newCurrentView." }
+            logger.debug { "Switched view to ${newCurrentView.name}." }
 
             launch {
                 frontDisplay.clear()
