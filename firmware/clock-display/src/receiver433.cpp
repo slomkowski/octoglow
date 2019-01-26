@@ -52,7 +52,7 @@ void ::octoglow::vfd_clock::receiver433::init() {
 
     TCCR0A = 0;
 
-    currentWeatherSensorState.alreadyRead = true;
+    currentWeatherSensorState.flags = 0;
 
     timerStart();
 }
@@ -77,21 +77,36 @@ void ::octoglow::vfd_clock::receiver433::pool() {
         }
 
         if (buffersAreEqual) {
-            currentWeatherSensorState.temperature =
-                    (((uint16_t) mainMeasurementBuffer[2]) << 4) + (0x0f & (mainMeasurementBuffer[3] >> 4));
+            currentWeatherSensorState.flags = 0;
             currentWeatherSensorState.humidity =
                     (0xf0 & (mainMeasurementBuffer[3] << 4)) + (0x0f & (mainMeasurementBuffer[4] >> 4));
-            currentWeatherSensorState.weakBattery = (mainMeasurementBuffer[1] & 0b1000) != 0;
-            currentWeatherSensorState.alreadyRead = false;
+
+            // this is 12-bit two's complement value
+            currentWeatherSensorState.temperature = (((uint16_t) mainMeasurementBuffer[2]) << 4) + (0x0f & (mainMeasurementBuffer[3] >> 4));
+            if (currentWeatherSensorState.temperature > 0b11111111111) {
+                currentWeatherSensorState.temperature -= 0b111111111111;
+            }
+
+            if ((mainMeasurementBuffer[1] & 0b1000) != 0) {
+                currentWeatherSensorState.flags |= protocol::WEAK_BATTERY_FLAG;
+            }
+
+            // sanity check
+            if (currentWeatherSensorState.humidity <= 100 && currentWeatherSensorState.temperature > -450 && currentWeatherSensorState.temperature < 500) {
+                currentWeatherSensorState.flags |= protocol::VALID_MEASUREMENT_FLAG;
+                display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::VALID);
+
+            } else {
+                display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::INVALID);
+            }
 
             updateState = ValueUpdateState::MEASUREMENT_ACCEPTED_BLINK_ENABLED;
-            display::setReceiverUpdateFlag(true);
         } else {
             updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
         }
     } else if (updateState == ValueUpdateState::MEASUREMENT_ACCEPTED_BLINK_ENABLED
                and timer1overflowCounter > msToTimer1overflows(500)) {
-        display::setReceiverUpdateFlag(false);
+        display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::DISABLED);
         updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
     }
 }

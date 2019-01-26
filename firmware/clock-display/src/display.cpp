@@ -28,7 +28,8 @@ constexpr uint8_t NUMBER_OF_POSITIONS = 4;
 constexpr uint8_t PWM_STEPS = 255;
 
 constexpr uint8_t RECEIVER_UPDATE_FLAG = 0b100;
-constexpr uint8_t RECEIVER_UPDATE_CHARACTER_SHAPE = 0b1100010;
+constexpr uint8_t RECEIVER_VALID_UPDATE_CHARACTER_SHAPE = 0b1100010;
+constexpr uint8_t RECEIVER_INVALID_UPDATE_CHARACTER_SHAPE = 0b0000010;
 
 static_assert((RECEIVER_UPDATE_FLAG & protocol::LOWER_DOT) == 0);
 static_assert((RECEIVER_UPDATE_FLAG & protocol::UPPER_DOT) == 0);
@@ -82,7 +83,7 @@ static const char CHARACTER_ORDER[] PROGMEM = {
 static_assert(sizeof(CHARACTER_SHAPES) == sizeof(CHARACTER_ORDER), "every char shape has to have character defined");
 
 static uint8_t characterBuffer[NUMBER_OF_POSITIONS];
-static bool receiverUpdateFlagEnabled = false;
+static ReceiverUpdateFlag receiverUpdateFlagEnabled = ReceiverUpdateFlag::DISABLED;
 static uint8_t segmentBuffer[5];
 
 static void reloadDisplay() {
@@ -98,8 +99,12 @@ static void reloadDisplay() {
     for (uint8_t numberPos = 0; numberPos != NUMBER_OF_POSITIONS; ++numberPos) {
         uint8_t characterShape = pgm_read_byte(CHARACTER_SHAPES + characterBuffer[numberPos]);
 
-        if (receiverUpdateFlagEnabled and numberPos == 0) {
-            characterShape = RECEIVER_UPDATE_CHARACTER_SHAPE;
+        if (numberPos == 0) {
+            if (receiverUpdateFlagEnabled == ReceiverUpdateFlag::VALID) {
+                characterShape = RECEIVER_VALID_UPDATE_CHARACTER_SHAPE;
+            } else if (receiverUpdateFlagEnabled == ReceiverUpdateFlag::INVALID) {
+                characterShape = RECEIVER_INVALID_UPDATE_CHARACTER_SHAPE;
+            }
         }
 
         for (uint8_t s = 0; s != 7; ++s) {
@@ -189,8 +194,8 @@ void ::octoglow::vfd_clock::display::setDots(const uint8_t newDotState, const bo
     }
 }
 
-void ::octoglow::vfd_clock::display::setReceiverUpdateFlag(const bool enabled) {
-    receiverUpdateFlagEnabled = enabled;
+void ::octoglow::vfd_clock::display::setReceiverUpdateFlag(const ReceiverUpdateFlag flag) {
+    receiverUpdateFlagEnabled = flag;
     reloadDisplay();
 }
 

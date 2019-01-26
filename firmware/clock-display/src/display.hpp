@@ -8,6 +8,12 @@ namespace octoglow {
     namespace vfd_clock {
         namespace display {
 
+            enum class ReceiverUpdateFlag : uint8_t {
+                DISABLED,
+                VALID,
+                INVALID
+            };
+
             void init();
 
             void setCharacter(uint8_t position, char character, bool shouldReloadDisplay = true);
@@ -18,7 +24,7 @@ namespace octoglow {
 
             void setDots(uint8_t newDotState, bool shouldReloadDisplay = true);
 
-            void setReceiverUpdateFlag(bool enabled);
+            void setReceiverUpdateFlag(ReceiverUpdateFlag flag);
         }
     }
 }

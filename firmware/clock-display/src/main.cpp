@@ -29,7 +29,7 @@ static inline void processI2cCommands() {
             for (uint8_t i = sizeof(protocol::WeatherSensorState); i != 0; --i) {
                 i2c_rdbuf[i] = reinterpret_cast<uint8_t *>(&(receiver433::currentWeatherSensorState))[i - 1];
             }
-            receiver433::currentWeatherSensorState.alreadyRead = true;
+            receiver433::currentWeatherSensorState.flags |= ALREADY_READ_FLAG;
             i2c_reply_done(sizeof(protocol::WeatherSensorState) + 1);
             currentCommand = Command::NONE;
         }
