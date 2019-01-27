@@ -4,35 +4,38 @@ import eu.slomkowski.octoglow.octoglowd.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.pow
 
 data class OutdoorWeatherReport(
         val temperature: Double,
         val humidity: Double,
         val batteryIsWeak: Boolean,
         val alreadyReadFlag: Boolean) {
+
     init {
         require(temperature in -40.0..60.0)
         require(humidity in 0.0..100.0)
     }
 
     companion object {
-        fun parse(buff: I2CBuffer): OutdoorWeatherReport {
-            val temperaturePart = (256 * buff[2] + buff[1]).let {
-                when (it > 0x100) {
-                    true -> it.toDouble() - 2.0.pow(12)
-                    false -> it.toDouble()
-                } / 10.0
+        private const val WEAK_BATTERY_FLAG = 1 shl 0
+        private const val VALID_MEASUREMENT_FLAG = 1 shl 1
+        private const val ALREADY_READ_FLAG = 1 shl 2
+
+        fun parse(buff: I2CBuffer): OutdoorWeatherReport? {
+
+            if ((buff[4] and VALID_MEASUREMENT_FLAG) == 0) {
+                return null
             }
 
+            val temperaturePart = (256 * buff[2] + buff[1]).toDouble() / 10.0
             val humidityPart = buff[3].toDouble()
 
             try {
                 return OutdoorWeatherReport(
                         temperaturePart,
                         humidityPart,
-                        buff[4] == 1,
-                        buff[5] == 1)
+                        (buff[4] and WEAK_BATTERY_FLAG) != 0,
+                        (buff[4] and ALREADY_READ_FLAG) != 0)
             } catch (e: IllegalArgumentException) {
                 throw IllegalArgumentException("invalid weather data: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}", e)
             }
@@ -51,8 +54,8 @@ class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
         doWrite(3, brightness)
     }
 
-    suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport {
-        val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 6)
+    suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport? {
+        val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 5)
         check(readBuffer[0] == 4)
         return OutdoorWeatherReport.parse(readBuffer)
     }

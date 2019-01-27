@@ -57,19 +57,25 @@ class OutdoorWeatherView(
     override suspend fun poolStateUpdate() = coroutineScope {
         async {
             val rep = hardware.clockDisplay.getOutdoorWeatherReport()
-            when (rep.alreadyReadFlag) {
-                false -> false
-                else -> {
-                    val ts = LocalDateTime.now()
-                    logger.info { "Got report : $rep." }
-                    databaseLayer.insertOutdoorWeatherReport(ts, rep).join()
 
-                    currentReport = databaseLayer.getLastOutdoorWeatherReportsByHour(ts, HISTORIC_VALUES_LENGTH).await().let {
-                        check(it.size == HISTORIC_VALUES_LENGTH)
-                        CurrentReport(rep, ts, it.map { it?.temperature }, it.map { it?.humidity })
+            if (rep == null) {
+                logger.warn { "Invalid report." }
+                false
+            } else {
+                when (rep.alreadyReadFlag) {
+                    false -> false
+                    else -> {
+                        val ts = LocalDateTime.now()
+                        logger.info { "Got report : $rep." }
+                        databaseLayer.insertOutdoorWeatherReport(ts, rep).join()
+
+                        currentReport = databaseLayer.getLastOutdoorWeatherReportsByHour(ts, HISTORIC_VALUES_LENGTH).await().let {
+                            check(it.size == HISTORIC_VALUES_LENGTH)
+                            CurrentReport(rep, ts, it.map { it?.temperature }, it.map { it?.humidity })
+                        }
+
+                        true
                     }
-
-                    true
                 }
             }
         }
