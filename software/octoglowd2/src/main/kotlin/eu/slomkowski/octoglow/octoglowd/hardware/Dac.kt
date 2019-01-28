@@ -12,10 +12,16 @@ enum class DacChannel(val number: Int) {
 class Dac(ctx: CoroutineContext, i2cBus: I2CBus) : I2CDevice(ctx, i2cBus, 0x4f) {
 
     init {
-        runBlocking {
-            setValue(DacChannel.C1, 0)
-            setValue(DacChannel.C2, 0)
-        }
+        setToZero()
+    }
+
+    override fun close() {
+        setToZero()
+    }
+
+    private fun setToZero() = runBlocking {
+        setValue(DacChannel.C1, 0)
+        setValue(DacChannel.C2, 0)
     }
 
     suspend fun setValue(channel: DacChannel, value: Int) {

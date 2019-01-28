@@ -1,19 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import com.uchuhimo.konf.Config
-import com.uchuhimo.konf.ConfigSpec
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.view.AboutView
 import eu.slomkowski.octoglow.octoglowd.view.OutdoorWeatherView
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
-import java.nio.file.Path
-import java.nio.file.Paths
-
-object ConfKey : ConfigSpec() {
-    val i2cBusFile by required<Path>()
-    val databaseFile by optional<Path>(Paths.get("data.db"))
-}
 
 fun main(args: Array<String>) {
 
@@ -22,7 +14,12 @@ fun main(args: Array<String>) {
             .from.env()
             .from.systemProperties()
 
-    val hardware = Hardware(config[ConfKey.i2cBusFile])
+    val hardware = Hardware(config[ConfKey.i2cBus])
+
+    Runtime.getRuntime().addShutdownHook(Thread {
+        hardware.close() //todo maybe find cleaner way?
+    })
+
     val database = DatabaseLayer(config[ConfKey.databaseFile])
 
     val frontDisplayViews = listOf(

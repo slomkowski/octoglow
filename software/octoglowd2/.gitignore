@@ -15,4 +15,4 @@ buildNumber.properties
 *db
 
 config.yml
-unittest.yml
+test-config.yml

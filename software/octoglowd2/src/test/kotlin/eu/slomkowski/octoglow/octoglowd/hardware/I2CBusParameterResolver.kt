@@ -1,5 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import eu.slomkowski.octoglow.octoglowd.TestConfKey
+import eu.slomkowski.octoglow.octoglowd.testConfig
 import io.dvlopt.linux.i2c.I2CBus
 import io.dvlopt.linux.i2c.I2CFunctionality
 import mu.KLogging
@@ -16,9 +18,9 @@ class I2CBusParameterResolver : ParameterResolver {
     }
 
     override fun resolveParameter(context: ParameterContext, extensionContext: ExtensionContext): Any {
-        val bus = I2CBus(4)
+        val bus = I2CBus(testConfig[TestConfKey.i2cBus])
         bus.functionalities.apply {
-            logger.info("I2C transactions: {}", can(I2CFunctionality.TRANSACTIONS))
+            logger.debug("I2C transactions: {}", can(I2CFunctionality.TRANSACTIONS))
         }
         return bus
     }

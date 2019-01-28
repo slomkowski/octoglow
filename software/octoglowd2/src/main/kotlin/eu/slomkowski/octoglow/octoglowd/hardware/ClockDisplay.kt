@@ -3,6 +3,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import kotlinx.coroutines.runBlocking
 import kotlin.coroutines.CoroutineContext
 
 data class OutdoorWeatherReport(
@@ -52,6 +53,11 @@ class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
 
     override suspend fun setBrightness(brightness: Int) {
         doWrite(3, brightness)
+    }
+
+    override fun close() = runBlocking {
+        setBrightness(3)
+        doWrite(1, 45, 45, 45, 45)
     }
 
     suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport? {

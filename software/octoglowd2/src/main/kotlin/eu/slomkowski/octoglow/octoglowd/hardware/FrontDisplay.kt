@@ -39,8 +39,14 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
     init {
         runBlocking {
             clear()
-            setBrightness(5)
+            setBrightness(3)
         }
+    }
+
+    override fun close() = runBlocking {
+        clear()
+        setBrightness(3)
+        setStaticText(5, "SHUT  DOWN")
     }
 
     override suspend fun setBrightness(brightness: Int) {

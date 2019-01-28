@@ -25,7 +25,6 @@ class OutdoorWeatherView(
 
     data class CurrentReport(
             val lastMeasurement: OutdoorWeatherReport,
-            val lastMeasurementTimestamp: LocalDateTime,
             val historicalTemperature: List<Double?>,
             val historicalHumidity: List<Double?>) {
         init {
@@ -71,7 +70,7 @@ class OutdoorWeatherView(
 
                         currentReport = databaseLayer.getLastOutdoorWeatherReportsByHour(ts, HISTORIC_VALUES_LENGTH).await().let {
                             check(it.size == HISTORIC_VALUES_LENGTH)
-                            CurrentReport(rep, ts, it.map { it?.temperature }, it.map { it?.humidity })
+                            CurrentReport(rep, it.map { it?.temperature }, it.map { it?.humidity })
                         }
 
                         true
