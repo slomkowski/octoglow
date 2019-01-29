@@ -3,16 +3,17 @@ package eu.slomkowski.octoglow.octoglowd
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.view.AboutView
+import eu.slomkowski.octoglow.octoglowd.view.CryptocurrencyView
 import eu.slomkowski.octoglow.octoglowd.view.OutdoorWeatherView
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 
 fun main(args: Array<String>) {
 
-    val config = Config { addSpec(ConfKey) }
-            .from.yaml.file("config.yml")
-            .from.env()
-            .from.systemProperties()
+    val config = Config {
+        addSpec(ConfKey)
+        addSpec(CryptocurrenciesKey)
+    }.from.yaml.file("config.yml").from.env().from.systemProperties()
 
     val hardware = Hardware(config[ConfKey.i2cBus])
 
@@ -24,7 +25,8 @@ fun main(args: Array<String>) {
 
     val frontDisplayViews = listOf(
             AboutView(hardware),
-            OutdoorWeatherView(database, hardware))
+            OutdoorWeatherView(database, hardware),
+            CryptocurrencyView(config, database, hardware))
 
     runBlocking {
         joinAll(createRealTimeClockController(hardware.clockDisplay),

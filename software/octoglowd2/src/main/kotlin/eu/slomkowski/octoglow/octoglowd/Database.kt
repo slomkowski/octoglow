@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd
 
 
-import eu.slomkowski.octoglow.octoglowd.IndoorWeatherReports.timestamp
 import eu.slomkowski.octoglow.octoglowd.hardware.OutdoorWeatherReport
 import kotlinx.coroutines.*
 import mu.KLogging
@@ -21,8 +20,8 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 abstract class TimestampedTable(name: String) : Table(name) {
-    val id = OutdoorWeatherReports.long("id").autoIncrement().primaryKey()
-    val timestamp = OutdoorWeatherReports.datetime("created").uniqueIndex()
+    val id = long("id").autoIncrement().primaryKey()
+    val timestamp = datetime("created")
 }
 
 object OutdoorWeatherReports : TimestampedTable("outdoor_weather_report") {
@@ -37,7 +36,7 @@ object IndoorWeatherReports : TimestampedTable("indoor_weather_report") {
     val pressure = double("pressure")
 }
 
-object CryptocurrencyValues : Table("cryptocurrency_value") {
+object CryptocurrencyValues : TimestampedTable("cryptocurrency_value") {
     val symbol = varchar("symbol", 10)
     val valueInDollars = double("value_in_dollars")
 }
@@ -131,7 +130,7 @@ class DatabaseLayer(databaseFile: Path) {
         TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
 
         transaction {
-            SchemaUtils.create(IndoorWeatherReports, OutdoorWeatherReports)
+            SchemaUtils.create(IndoorWeatherReports, OutdoorWeatherReports, CryptocurrencyValues)
         }
     }
 

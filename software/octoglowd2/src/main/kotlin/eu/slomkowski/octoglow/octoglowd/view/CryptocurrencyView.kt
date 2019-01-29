@@ -8,6 +8,7 @@ import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
 import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
 import kotlinx.coroutines.*
 import mu.KLogging
@@ -18,7 +19,8 @@ import java.time.ZoneId
 
 class CryptocurrencyView(
         private val config: Config,
-        private val database: DatabaseLayer) : FrontDisplayView {
+        private val database: DatabaseLayer,
+        private val hardware: Hardware) : FrontDisplayView {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
@@ -41,6 +43,16 @@ class CryptocurrencyView(
             val resp = Fuel.get(url).awaitObject<List<CoinInfoDto>>(jacksonDeserializerOf(jacksonObjectMapper))
             logger.debug { "Got list of ${resp.size} coins." }
             return resp
+        }
+
+        fun formatDollars(amount: Double?): String {
+            return when (amount) {
+                null -> "$-----"
+                in 1000.0..100_000.0 -> String.format("$%4.0f", amount)
+                in 100.0..1000.0 -> String.format("$%5.1f", amount)
+                in 10.0..100.0 -> String.format("$%5.2f", amount)
+                else -> String.format("$%5.3f", amount)
+            }
         }
     }
 
@@ -77,21 +89,42 @@ class CryptocurrencyView(
     private val availableCoins: List<CoinInfoDto>
     private var currentReports: Map<RequiredItem<String>, CurrentReport> = emptyMap()
 
+    private val coinKeys = listOf(CryptocurrenciesKey.coin1, CryptocurrenciesKey.coin2, CryptocurrenciesKey.coin3)
+
     init {
         availableCoins = runBlocking { getCoins() }
+        coinKeys.forEach { findCoinId(config[it]) }
+    }
+
+    private suspend fun drawCurrencyInfo(cr: CurrentReport?, offset: Int, diffChartStep: Double) {
+        require(diffChartStep > 0)
+        hardware.frontDisplay.apply {
+            setStaticText(offset, cr?.symbol?.take(3) ?: "---")
+            setStaticText(offset + 20, formatDollars(cr?.latest))
+
+            if (cr != null) {
+                val unit = cr.latest * diffChartStep
+                setOneLineDiffChart(5 * (offset + 3), cr.latest, cr.historical, unit)
+            }
+        }
     }
 
     override suspend fun redrawDisplay() = coroutineScope {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val reports = currentReports
+        val diffChartStep = config[CryptocurrenciesKey.diffChartFraction]
+        logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
+        launch { drawCurrencyInfo(reports[CryptocurrenciesKey.coin1], 0, diffChartStep) }
+        launch { drawCurrencyInfo(reports[CryptocurrenciesKey.coin2], 7, diffChartStep) }
+        launch { drawCurrencyInfo(reports[CryptocurrenciesKey.coin3], 14, diffChartStep) }
+        Unit //todo
     }
 
     override suspend fun poolStateUpdateAsync(): Deferred<UpdateStatus> = coroutineScope {
         async {
-            val newReports = listOf(CryptocurrenciesKey.coin1, CryptocurrenciesKey.coin2, CryptocurrenciesKey.coin3).map { coinKey ->
+            val newReports = coinKeys.map { coinKey ->
                 async {
                     val symbol = config[coinKey]
-                    val coinId = checkNotNull(availableCoins.find { it.symbol == symbol }?.id)
-                    { "coin with symbol '$symbol' not found" }
+                    val coinId = findCoinId(symbol)
                     try {
                         val ohlc = getLatestOhlc(coinId)
                         val ts = LocalDateTime.ofInstant(ohlc.timeClose.toInstant(), ZoneId.systemDefault())
@@ -100,7 +133,7 @@ class CryptocurrencyView(
                         database.insertCryptocurrencyValue(ts, symbol, value)
 
                         //todo get historical data
-                        coinKey to CurrentReport(symbol, ts, value, emptyList())
+                        coinKey to CurrentReport(symbol, ts, value, (1..14).map { it.toDouble() }.toList())
                     } catch (e: Exception) {
                         logger.error(e) { "Failed to update status on $symbol." }
                         null
@@ -118,7 +151,10 @@ class CryptocurrencyView(
         }
     }
 
-    override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(30) // change to 5 min
+    private fun findCoinId(symbol: String): String = checkNotNull(availableCoins.find { it.symbol == symbol }?.id)
+    { "coin with symbol '$symbol' not found" }
+
+    override fun getPreferredPoolingInterval(): Duration = Duration.ofMinutes(2) // change to 5 min
 
     override val name: String
         get() = "Cryptocurrencies"
