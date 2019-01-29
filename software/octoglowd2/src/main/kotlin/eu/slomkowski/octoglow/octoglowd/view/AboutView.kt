@@ -18,7 +18,7 @@ class AboutView(
         launch { hardware.frontDisplay.setStaticText(0, "OCTOGLOW by Michał Słomkowski") }
     }
 
-    override suspend fun poolStateUpdate(): Deferred<Boolean> = coroutineScope { async { false } }
+    override suspend fun poolStateUpdateAsync(): Deferred<UpdateStatus> = coroutineScope { async { UpdateStatus.NO_NEW_DATA } }
 
     override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(3)
 }

@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd
 
 
+import eu.slomkowski.octoglow.octoglowd.IndoorWeatherReports.timestamp
 import eu.slomkowski.octoglow.octoglowd.hardware.OutdoorWeatherReport
 import kotlinx.coroutines.*
 import mu.KLogging
@@ -19,21 +20,26 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+abstract class TimestampedTable(name: String) : Table(name) {
+    val id = OutdoorWeatherReports.long("id").autoIncrement().primaryKey()
+    val timestamp = OutdoorWeatherReports.datetime("created").uniqueIndex()
+}
 
-object OutdoorWeatherReports : Table("outdoor_weather_report") {
-    val id = long("id").autoIncrement().primaryKey()
-    val timestamp = datetime("created")
+object OutdoorWeatherReports : TimestampedTable("outdoor_weather_report") {
     val temperature = double("temperature")
     val humidity = double("humidity")
     val batteryIsWeak = bool("weak_battery")
 }
 
-object IndoorWeatherReports : Table("indoor_weather_report") {
-    val id = long("id").autoIncrement().primaryKey()
-    val timestamp = datetime("created")
+object IndoorWeatherReports : TimestampedTable("indoor_weather_report") {
     val temperature = double("temperature")
     val humidity = double("humidity")
     val pressure = double("pressure")
+}
+
+object CryptocurrencyValues : Table("cryptocurrency_value") {
+    val symbol = varchar("symbol", 10)
+    val valueInDollars = double("value_in_dollars")
 }
 
 data class OutdoorWeatherReportRow(
@@ -118,7 +124,7 @@ class DatabaseLayer(databaseFile: Path) {
         val sqliteNativeDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss.SSSSSS")
     }
 
-    val threadContext = newSingleThreadContext("database")
+    private val threadContext = newSingleThreadContext("database")
 
     init {
         Database.connect("jdbc:sqlite:$databaseFile", "org.sqlite.JDBC")
@@ -129,7 +135,19 @@ class DatabaseLayer(databaseFile: Path) {
         }
     }
 
-    // todo naprawić wstawianie, by wstawiało datę z odpowiednim formatem
+    suspend fun insertCryptocurrencyValue(ts: LocalDateTime, symbol: String, value: Double) = coroutineScope {
+        logger.debug { "Inserting data to DB: $symbol = \$ $value." }
+        launch(threadContext) {
+            transaction {
+                CryptocurrencyValues.insert {
+                    it[timestamp] = toJodaDateTime(ts)
+                    it[this.symbol] = symbol
+                    it[valueInDollars] = value
+                }
+            }
+        }
+    }
+
     suspend fun insertOutdoorWeatherReport(ts: LocalDateTime, owr: OutdoorWeatherReport) = coroutineScope {
         logger.debug { "Inserting data to DB: $owr" }
         launch(threadContext) {

@@ -32,7 +32,7 @@ fun CoroutineScope.createFrontDisplayController(frontDisplay: FrontDisplay,
         val now = LocalDateTime.now()
 
         views.filter { it.lastPooled?.plus(it.view.getPreferredPoolingInterval())?.isBefore(now) ?: true }.forEach {
-            it.view.poolStateUpdate()
+            it.view.poolStateUpdateAsync()
             it.lastPooled = now
         }
 
