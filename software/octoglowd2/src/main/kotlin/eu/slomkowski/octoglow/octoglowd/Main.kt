@@ -13,6 +13,8 @@ fun main(args: Array<String>) {
     val config = Config {
         addSpec(ConfKey)
         addSpec(CryptocurrenciesKey)
+        addSpec(GeoPosKey)
+        addSpec(SleepKey)
     }.from.yaml.file("config.yml").from.env().from.systemProperties()
 
     val hardware = Hardware(config[ConfKey.i2cBus])
@@ -28,10 +30,16 @@ fun main(args: Array<String>) {
             OutdoorWeatherView(database, hardware),
             CryptocurrencyView(config, database, hardware))
 
+    val controllers = listOf(
+            BrightnessController(config, hardware))
+
     runBlocking {
-        joinAll(createRealTimeClockController(hardware.clockDisplay),
+
+        listOf(
+                createRealTimeClockController(hardware.clockDisplay),
                 createCpuUsageIndicatorController(hardware.dac),
                 createFrontDisplayController(hardware.frontDisplay, frontDisplayViews))
+                .plus(controllers.map { it.startPooling() }).joinAll()
     }
 }
 
