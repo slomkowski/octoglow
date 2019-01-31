@@ -1,6 +1,8 @@
-package eu.slomkowski.octoglow.octoglowd
+package eu.slomkowski.octoglow.octoglowd.controller
 
 import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.GeoPosKey
+import eu.slomkowski.octoglow.octoglowd.SleepKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import mu.KLogging
 import org.shredzone.commons.suncalc.SunTimes
@@ -12,7 +14,7 @@ import java.util.*
 
 class BrightnessController(
         private val config: Config,
-        private val hardware: Hardware) : Controller {
+        private val hardware: Hardware) : Controller(Duration.ofSeconds(30)) {
 
     data class BrightnessMode(
             val isDay: Boolean,
@@ -51,9 +53,6 @@ class BrightnessController(
         private fun Date.toLocalDateTime(): LocalDateTime = toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
     }
 
-    override val poolInterval: Duration
-        get() = Duration.ofSeconds(30)
-
     override suspend fun pool() {
         val br = calculateBrightnessFraction(LocalDateTime.now()).coerceIn(1, 5)
         logger.debug { "Setting brightness to $br." }
@@ -83,6 +82,4 @@ class BrightnessController(
 
         return br
     }
-
-
 }

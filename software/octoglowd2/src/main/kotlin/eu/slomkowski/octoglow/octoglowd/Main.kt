@@ -1,7 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.controller.BrightnessController
+import eu.slomkowski.octoglow.octoglowd.controller.CpuUsageIndicatorController
+import eu.slomkowski.octoglow.octoglowd.controller.FrontDisplayController
+import eu.slomkowski.octoglow.octoglowd.controller.RealTimeClockController
+import eu.slomkowski.octoglow.octoglowd.hardware.PhysicalHardware
 import eu.slomkowski.octoglow.octoglowd.view.AboutView
 import eu.slomkowski.octoglow.octoglowd.view.CryptocurrencyView
 import eu.slomkowski.octoglow.octoglowd.view.OutdoorWeatherView
@@ -17,7 +21,7 @@ fun main(args: Array<String>) {
         addSpec(SleepKey)
     }.from.yaml.file("config.yml").from.env().from.systemProperties()
 
-    val hardware = Hardware(config[ConfKey.i2cBus])
+    val hardware = PhysicalHardware(config[ConfKey.i2cBus])
 
     Runtime.getRuntime().addShutdownHook(Thread {
         hardware.close() //todo maybe find cleaner way?
@@ -31,15 +35,13 @@ fun main(args: Array<String>) {
             CryptocurrencyView(config, database, hardware))
 
     val controllers = listOf(
+            CpuUsageIndicatorController(hardware),
+            FrontDisplayController(hardware, frontDisplayViews),
+            RealTimeClockController(hardware),
             BrightnessController(config, hardware))
 
     runBlocking {
-
-        listOf(
-                createRealTimeClockController(hardware.clockDisplay),
-                createCpuUsageIndicatorController(hardware.dac),
-                createFrontDisplayController(hardware.frontDisplay, frontDisplayViews))
-                .plus(controllers.map { it.startPooling() }).joinAll()
+        controllers.map { it.startPooling() }.joinAll()
     }
 }
 

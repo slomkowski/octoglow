@@ -1,14 +1,12 @@
-package eu.slomkowski.octoglow.octoglowd
+package eu.slomkowski.octoglow.octoglowd.controller
 
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.time.Duration
 
-interface Controller {
+abstract class Controller(private val poolInterval: Duration) {
     abstract suspend fun pool()
-
-    abstract val poolInterval: Duration
 
     suspend fun startPooling() = coroutineScope {
         launch {
