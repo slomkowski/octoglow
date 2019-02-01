@@ -40,12 +40,11 @@ class ClockDisplayTest {
     @Test
     fun testParseInvalid() {
         assertFails {
-            //todo better tests
             OutdoorWeatherReport.parse(I2CBuffer(3))
         }
 
-        assertFails {
-            OutdoorWeatherReport.parse(I2CBuffer(6))
+        assertFailsWith(IllegalStateException::class) {
+            OutdoorWeatherReport.parse(I2CBuffer(5).set(0, 4).set(1, 43).set(2, 34).set(3, 43).set(4, 43))
         }
     }
 

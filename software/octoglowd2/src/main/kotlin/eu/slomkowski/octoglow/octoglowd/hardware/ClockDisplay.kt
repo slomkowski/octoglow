@@ -23,6 +23,7 @@ data class OutdoorWeatherReport(
         private const val ALREADY_READ_FLAG = 1 shl 2
 
         fun parse(buff: I2CBuffer): OutdoorWeatherReport? {
+            require(buff.length == 5)
 
             if ((buff[4] and VALID_MEASUREMENT_FLAG) == 0) {
                 return null
@@ -38,7 +39,7 @@ data class OutdoorWeatherReport(
                         (buff[4] and WEAK_BATTERY_FLAG) != 0,
                         (buff[4] and ALREADY_READ_FLAG) != 0)
             } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("insane values despite valid flag set: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}", e)
+                throw IllegalStateException("insane values despite valid flag set: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}", e)
             }
         }
     }
