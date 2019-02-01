@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.controller
+package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.sun.management.OperatingSystemMXBean
 import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
@@ -8,9 +8,9 @@ import java.time.Duration
 import kotlin.math.roundToInt
 
 
-class CpuUsageIndicatorController(
+class CpuUsageIndicatorDaemon(
         private val hardware: Hardware)
-    : Controller(Duration.ofMillis(500)) {
+    : Daemon(Duration.ofMillis(500)) {
     private val operatingSystemMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
 
     private var previousDacValue = -1

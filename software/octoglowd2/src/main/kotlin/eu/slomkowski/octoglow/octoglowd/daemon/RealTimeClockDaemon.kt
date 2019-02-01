@@ -1,11 +1,11 @@
-package eu.slomkowski.octoglow.octoglowd.controller
+package eu.slomkowski.octoglow.octoglowd.daemon
 
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import java.time.Duration
 import java.time.LocalDateTime
 
-class RealTimeClockController(
-        private val hardware: Hardware) : Controller(Duration.ofMillis(500)) {
+class RealTimeClockDaemon(
+        private val hardware: Hardware) : Daemon(Duration.ofMillis(500)) {
     override suspend fun pool() {
         LocalDateTime.now().apply {
             val upperDot = second >= 20

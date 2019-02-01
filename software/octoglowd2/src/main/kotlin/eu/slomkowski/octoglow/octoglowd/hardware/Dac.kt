@@ -19,9 +19,11 @@ class Dac(ctx: CoroutineContext, i2cBus: I2CBus) : I2CDevice(ctx, i2cBus, 0x4f) 
         setToZero()
     }
 
-    private fun setToZero() = runBlocking {
-        setValue(DacChannel.C1, 0)
-        setValue(DacChannel.C2, 0)
+    private fun setToZero() {
+        runBlocking(threadContext) {
+            setValue(DacChannel.C1, 0)
+            setValue(DacChannel.C2, 0)
+        }
     }
 
     suspend fun setValue(channel: DacChannel, value: Int) {

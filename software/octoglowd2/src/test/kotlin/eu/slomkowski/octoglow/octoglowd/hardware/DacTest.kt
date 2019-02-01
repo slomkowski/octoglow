@@ -2,11 +2,14 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
+import mu.KLogging
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(I2CBusParameterResolver::class)
 class DacTest {
+
+    companion object : KLogging()
 
     @Test
     fun testOut2Max(i2CBus: I2CBus) {

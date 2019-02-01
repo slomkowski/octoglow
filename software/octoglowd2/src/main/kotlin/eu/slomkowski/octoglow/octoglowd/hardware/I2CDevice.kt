@@ -5,7 +5,7 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
 abstract class I2CDevice(
-        private val threadContext: CoroutineContext,
+        protected val threadContext: CoroutineContext,
         private val i2c: I2CBus,
         private val i2cAddress: Int) : AutoCloseable {
 

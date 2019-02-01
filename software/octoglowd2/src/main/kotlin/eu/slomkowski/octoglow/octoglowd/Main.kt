@@ -1,15 +1,16 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.controller.BrightnessController
-import eu.slomkowski.octoglow.octoglowd.controller.CpuUsageIndicatorController
-import eu.slomkowski.octoglow.octoglowd.controller.FrontDisplayController
-import eu.slomkowski.octoglow.octoglowd.controller.RealTimeClockController
+import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
+import eu.slomkowski.octoglow.octoglowd.daemon.CpuUsageIndicatorDaemon
+import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
+import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
+import eu.slomkowski.octoglow.octoglowd.daemon.view.AboutView
+import eu.slomkowski.octoglow.octoglowd.daemon.view.CryptocurrencyView
+import eu.slomkowski.octoglow.octoglowd.daemon.view.OutdoorWeatherView
 import eu.slomkowski.octoglow.octoglowd.hardware.PhysicalHardware
-import eu.slomkowski.octoglow.octoglowd.view.AboutView
-import eu.slomkowski.octoglow.octoglowd.view.CryptocurrencyView
-import eu.slomkowski.octoglow.octoglowd.view.OutdoorWeatherView
 import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 fun main(args: Array<String>) {
@@ -35,13 +36,12 @@ fun main(args: Array<String>) {
             CryptocurrencyView(config, database, hardware))
 
     val controllers = listOf(
-            CpuUsageIndicatorController(hardware),
-            FrontDisplayController(hardware, frontDisplayViews),
-            RealTimeClockController(hardware),
-            BrightnessController(config, hardware))
+            CpuUsageIndicatorDaemon(hardware),
+            RealTimeClockDaemon(hardware),
+            BrightnessDaemon(config, hardware),
+            FrontDisplayDaemon(hardware, frontDisplayViews))
 
     runBlocking {
-        controllers.map { it.startPooling() }.joinAll()
+        controllers.map { launch { it.startPooling() } }.joinAll()
     }
 }
-

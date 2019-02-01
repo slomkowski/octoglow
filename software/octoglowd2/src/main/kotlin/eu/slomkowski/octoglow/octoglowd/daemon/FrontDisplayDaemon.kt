@@ -1,7 +1,7 @@
-package eu.slomkowski.octoglow.octoglowd.controller
+package eu.slomkowski.octoglow.octoglowd.daemon
 
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.view.FrontDisplayView
+import eu.slomkowski.octoglow.octoglowd.daemon.view.FrontDisplayView
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -9,10 +9,10 @@ import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
 
-class FrontDisplayController(
+class FrontDisplayDaemon(
         private val hardware: Hardware,
         private val frontDisplayViews: List<FrontDisplayView>)
-    : Controller(Duration.ofMillis(100)) {
+    : Daemon(Duration.ofMillis(100)) {
 
     data class ViewInfo(
             val view: FrontDisplayView,

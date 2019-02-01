@@ -1,7 +1,6 @@
-package eu.slomkowski.octoglow.octoglowd.view
+package eu.slomkowski.octoglow.octoglowd.daemon.view
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
 import eu.slomkowski.octoglow.octoglowd.hardware.MockHardware
 import io.mockk.*

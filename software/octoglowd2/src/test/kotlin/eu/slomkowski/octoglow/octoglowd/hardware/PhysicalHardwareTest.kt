@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test
     fun testBrightness() {
         runBlocking {
             PhysicalHardware(testConfig[TestConfKey.i2cBus]).use { hardware ->
-                hardware.frontDisplay.setStaticText(0, LoremIpsum.getInstance().getWords(5).substring(0, 38))
+                hardware.frontDisplay.setStaticText(0, LoremIpsum.getInstance().getWords(5).take(39))
                 hardware.clockDisplay.setDisplay(12, 34, true, false)
 
                 for (b in (0..5)) {

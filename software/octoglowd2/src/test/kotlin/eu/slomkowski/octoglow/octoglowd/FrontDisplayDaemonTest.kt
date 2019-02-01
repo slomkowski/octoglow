@@ -1,10 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd
 
-import eu.slomkowski.octoglow.octoglowd.controller.FrontDisplayController.Companion.updateViewIndex
+import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon.Companion.updateViewIndex
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class FrontDisplayControllerTest {
+class FrontDisplayDaemonTest {
 
     @Test
     fun testUpdateViewIndex() {

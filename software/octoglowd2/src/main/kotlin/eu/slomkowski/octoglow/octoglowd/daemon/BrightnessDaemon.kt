@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.controller
+package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.GeoPosKey
@@ -12,9 +12,9 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.util.*
 
-class BrightnessController(
+class BrightnessDaemon(
         private val config: Config,
-        private val hardware: Hardware) : Controller(Duration.ofSeconds(30)) {
+        private val hardware: Hardware) : Daemon(Duration.ofSeconds(30)) {
 
     data class BrightnessMode(
             val isDay: Boolean,

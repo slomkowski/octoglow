@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.view
+package eu.slomkowski.octoglow.octoglowd.daemon.view
 
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.Deferred

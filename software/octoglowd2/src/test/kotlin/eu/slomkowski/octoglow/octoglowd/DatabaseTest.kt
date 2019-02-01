@@ -48,42 +48,42 @@ class DatabaseTest {
 
         assertEquals("""SELECT
         |CASE
-		|WHEN created BETWEEN '2018-06-24T15:20:11' AND '2018-06-24T16:20:11' THEN 0
-		|WHEN created BETWEEN '2018-06-24T14:20:11' AND '2018-06-24T15:20:11' THEN 1
-		|WHEN created BETWEEN '2018-06-24T13:20:11' AND '2018-06-24T14:20:11' THEN 2
-		|WHEN created BETWEEN '2018-06-24T12:20:11' AND '2018-06-24T13:20:11' THEN 3
-		|WHEN created BETWEEN '2018-06-24T11:20:11' AND '2018-06-24T12:20:11' THEN 4
-		|WHEN created BETWEEN '2018-06-24T10:20:11' AND '2018-06-24T11:20:11' THEN 5
-		|WHEN created BETWEEN '2018-06-24T09:20:11' AND '2018-06-24T10:20:11' THEN 6
-		|ELSE -1 END AS bucket_no,
-		|avg(temperature) as temperature, avg(humidity) as humidity, avg(pressure) as pressure
-		|FROM indoor_weather_report
-		|WHERE created BETWEEN '2018-06-24T09:20:11' AND '2018-06-24T16:20:11'
-		|GROUP BY 1
-		|ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval("indoor_weather_report",
+        |WHEN created BETWEEN 1529846411000 AND 1529850011000 THEN 0
+        |WHEN created BETWEEN 1529842811000 AND 1529846411000 THEN 1
+        |WHEN created BETWEEN 1529839211000 AND 1529842811000 THEN 2
+        |WHEN created BETWEEN 1529835611000 AND 1529839211000 THEN 3
+        |WHEN created BETWEEN 1529832011000 AND 1529835611000 THEN 4
+        |WHEN created BETWEEN 1529828411000 AND 1529832011000 THEN 5
+        |WHEN created BETWEEN 1529824811000 AND 1529828411000 THEN 6
+        |ELSE -1 END AS bucket_no,
+        |avg(temperature) as temperature, avg(humidity) as humidity, avg(pressure) as pressure
+        |FROM indoor_weather_report
+        |WHERE created BETWEEN 1529824811000 AND 1529850011000
+        |GROUP BY 1
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval("indoor_weather_report",
                 listOf("temperature", "humidity", "pressure"), d, Duration.ofHours(1), 7, false))
 
         assertEquals("""SELECT
-		|CASE
-		|WHEN created BETWEEN '2018-06-24T15:50:11' AND '2018-06-24T16:20:11' THEN 0
-		|WHEN created BETWEEN '2018-06-24T15:20:11' AND '2018-06-24T15:50:11' THEN 1
-		|WHEN created BETWEEN '2018-06-24T14:50:11' AND '2018-06-24T15:20:11' THEN 2
-		|WHEN created BETWEEN '2018-06-24T14:20:11' AND '2018-06-24T14:50:11' THEN 3
-		|WHEN created BETWEEN '2018-06-24T13:50:11' AND '2018-06-24T14:20:11' THEN 4
-		|WHEN created BETWEEN '2018-06-24T13:20:11' AND '2018-06-24T13:50:11' THEN 5
-		|WHEN created BETWEEN '2018-06-24T12:50:11' AND '2018-06-24T13:20:11' THEN 6
-		|WHEN created BETWEEN '2018-06-24T12:20:11' AND '2018-06-24T12:50:11' THEN 7
-		|WHEN created BETWEEN '2018-06-24T11:50:11' AND '2018-06-24T12:20:11' THEN 8
-		|WHEN created BETWEEN '2018-06-24T11:20:11' AND '2018-06-24T11:50:11' THEN 9
-		|WHEN created BETWEEN '2018-06-24T10:50:11' AND '2018-06-24T11:20:11' THEN 10
-		|WHEN created BETWEEN '2018-06-24T10:20:11' AND '2018-06-24T10:50:11' THEN 11
-		|WHEN created BETWEEN '2018-06-24T09:50:11' AND '2018-06-24T10:20:11' THEN 12
-		|ELSE -1 END AS bucket_no,
-		|avg(temperature) as temperature
-		|FROM indoor_weather_report
-		|WHERE created BETWEEN '2018-06-24T09:50:11' AND '2018-06-24T16:20:11' AND created < (SELECT MAX(created) FROM indoor_weather_report)
-		|GROUP BY 1
-		|ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval("indoor_weather_report",
+        |CASE
+        |WHEN created BETWEEN 1529848211000 AND 1529850011000 THEN 0
+        |WHEN created BETWEEN 1529846411000 AND 1529848211000 THEN 1
+        |WHEN created BETWEEN 1529844611000 AND 1529846411000 THEN 2
+        |WHEN created BETWEEN 1529842811000 AND 1529844611000 THEN 3
+        |WHEN created BETWEEN 1529841011000 AND 1529842811000 THEN 4
+        |WHEN created BETWEEN 1529839211000 AND 1529841011000 THEN 5
+        |WHEN created BETWEEN 1529837411000 AND 1529839211000 THEN 6
+        |WHEN created BETWEEN 1529835611000 AND 1529837411000 THEN 7
+        |WHEN created BETWEEN 1529833811000 AND 1529835611000 THEN 8
+        |WHEN created BETWEEN 1529832011000 AND 1529833811000 THEN 9
+        |WHEN created BETWEEN 1529830211000 AND 1529832011000 THEN 10
+        |WHEN created BETWEEN 1529828411000 AND 1529830211000 THEN 11
+        |WHEN created BETWEEN 1529826611000 AND 1529828411000 THEN 12
+        |ELSE -1 END AS bucket_no,
+        |avg(temperature) as temperature
+        |FROM indoor_weather_report
+        |WHERE created BETWEEN 1529826611000 AND 1529850011000 AND created < (SELECT MAX(created) FROM indoor_weather_report)
+        |GROUP BY 1
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval("indoor_weather_report",
                 listOf("temperature"), d, Duration.ofMinutes(30), 13, true))
     }
 }

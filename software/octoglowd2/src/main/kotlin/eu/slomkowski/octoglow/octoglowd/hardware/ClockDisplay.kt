@@ -38,7 +38,7 @@ data class OutdoorWeatherReport(
                         (buff[4] and WEAK_BATTERY_FLAG) != 0,
                         (buff[4] and ALREADY_READ_FLAG) != 0)
             } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("invalid weather data: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}", e)
+                throw IllegalArgumentException("insane values despite valid flag set: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}", e)
             }
         }
     }
@@ -55,7 +55,7 @@ class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
         doWrite(3, brightness)
     }
 
-    override fun close() = runBlocking {
+    override fun close() = runBlocking(threadContext) {
         setBrightness(3)
         doWrite(1, 45, 45, 45, 45)
     }

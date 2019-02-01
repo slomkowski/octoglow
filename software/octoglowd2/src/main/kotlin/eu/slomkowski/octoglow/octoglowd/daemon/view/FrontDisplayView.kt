@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.view
+package eu.slomkowski.octoglow.octoglowd.daemon.view
 
 import kotlinx.coroutines.Deferred
 import java.time.Duration

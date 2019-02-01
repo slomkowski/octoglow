@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.view
+package eu.slomkowski.octoglow.octoglowd.daemon.view
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.github.kittinunf.fuel.Fuel

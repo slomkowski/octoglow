@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.view
+package eu.slomkowski.octoglow.octoglowd.daemon.view
 
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.formatHumidity

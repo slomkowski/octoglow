@@ -1,15 +1,13 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
-import kotlin.test.fail
+import kotlin.test.*
 
 @ExtendWith(I2CBusParameterResolver::class)
 class ClockDisplayTest {
@@ -36,6 +34,18 @@ class ClockDisplayTest {
                 assertEquals(report1.humidity, report2.humidity)
                 assertEquals(report1.batteryIsWeak, report2.batteryIsWeak)
             }
+        }
+    }
+
+    @Test
+    fun testParseInvalid() {
+        assertFails {
+            //todo better tests
+            OutdoorWeatherReport.parse(I2CBuffer(3))
+        }
+
+        assertFails {
+            OutdoorWeatherReport.parse(I2CBuffer(6))
         }
     }
 
