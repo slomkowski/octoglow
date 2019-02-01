@@ -1,17 +1,23 @@
 package eu.slomkowski.octoglow.octoglowd.view
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
-import eu.slomkowski.octoglow.octoglowd.hardware.MockHardware
-import io.mockk.*
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.confirmVerified
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class CryptocurrencyViewTest {
+
+    companion object : KLogging()
 
     @Test
     fun testCoinpaprikaMethods() {
@@ -50,17 +56,29 @@ class CryptocurrencyViewTest {
             set(CryptocurrenciesKey.coin3, "EOS")
 
         }
-        val hardware = MockHardware()
+        val db = mockk<DatabaseLayer>()
+        val hardware = mockk<Hardware>()
+
+        coEvery { hardware.frontDisplay.setStaticText(any(), any()) } returns Unit
 
         runBlocking {
-            coEvery { hardware.frontDisplay.setStaticText(any(), any()) } just Runs
-
-            val view = CryptocurrencyView(config, mockk(), hardware)
+            val view = CryptocurrencyView(config, db, hardware)
 
             view.redrawDisplay()
 
             coVerify {
-                hardware.frontDisplay.setStaticText(0, "---") }
+                hardware.frontDisplay.setStaticText(0, "---")
+                hardware.frontDisplay.setStaticText(20, "$-----")
+
+                hardware.frontDisplay.setStaticText(7, "---")
+                hardware.frontDisplay.setStaticText(27, "$-----")
+
+                hardware.frontDisplay.setStaticText(14, "---")
+                hardware.frontDisplay.setStaticText(34, "$-----")
+            }
+
+            confirmVerified(hardware)
         }
+
     }
 }
