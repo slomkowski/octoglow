@@ -38,7 +38,7 @@
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core</artifactId>
-            <version>1.0.0</version>
+            <version>1.1.1</version>
         </dependency>
         <dependency>
             <groupId>io.dvlopt</groupId>
@@ -76,6 +76,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.uchuhimo</groupId>
             <artifactId>konf</artifactId>
             <version>0.12</version>
@@ -83,6 +89,14 @@
                 <exclusion>
                     <groupId>org.eclipse.jgit</groupId>
                     <artifactId>org.eclipse.jgit</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.moandjiezana.toml</groupId>
+                    <artifactId>toml4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.dom4j</groupId>
+                    <artifactId>dom4j</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

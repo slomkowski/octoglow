@@ -13,6 +13,6 @@ should_enable = sys.argv[1] == "1"
 
 print("Enable: %d" % should_enable)
 
-bus = smbus.SMBus(1)
+bus = smbus.SMBus(4)
 
 bus.write_i2c_block_data(GEIGER_ADDR, 5, [1 if should_enable else 0, 0])
