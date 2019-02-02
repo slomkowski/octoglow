@@ -59,7 +59,8 @@ class DatabaseLayer(databaseFile: Path) {
                                          startTime: LocalDateTime,
                                          interval: Duration,
                                          pastIntervals: Int,
-                                         skipMostRecentRow: Boolean): String {
+                                         skipMostRecentRow: Boolean,
+                                         discriminator: Pair<String, String?>? = null): String {
             require(tableName.isNotBlank())
             require(fields.isNotEmpty())
             require(pastIntervals >= 1)
@@ -95,11 +96,16 @@ class DatabaseLayer(databaseFile: Path) {
                 else -> ""
             }
 
+            val discriminatorRowExpr = discriminator?.let { (columnName, columnValue) ->
+                require(columnName.isNotBlank())
+                " AND $columnName " + (columnValue?.let { "= '$it'" } ?: "IS NULL")
+            } ?: ""
+
             return """SELECT
                 |$caseExpr AS $caseColumnName,
                 |$fieldExpression
                 |FROM $tableName
-                |WHERE $rangeLimitExpr$skipMostRecentRowExpr
+                |WHERE $rangeLimitExpr$skipMostRecentRowExpr$discriminatorRowExpr
                 |GROUP BY 1
                 |ORDER BY 1 DESC""".trimMargin()
         }
@@ -181,6 +187,17 @@ class DatabaseLayer(databaseFile: Path) {
         async(threadContext) {
             groupByBucketNo(transaction {
                 query.execAndMap { it.getInt(caseColumnName) to OutdoorWeatherReportRow(it.getDouble("temperature"), it.getDouble("humidity")) }
+            }, numberOfPastHours)
+        }
+    }
+
+    suspend fun getLastCryptoCurrencyValuesByHour(currentTime: LocalDateTime, symbol: String, numberOfPastHours: Int): Deferred<List<Double?>> = coroutineScope {
+        val query = createAveragedByTimeInterval(CryptocurrencyValues.tableName,
+                listOf("value_in_dollars"), currentTime, Duration.ofHours(1), numberOfPastHours, true, "symbol" to symbol)
+
+        async(threadContext) {
+            groupByBucketNo(transaction {
+                query.execAndMap { it.getInt(caseColumnName) to it.getDouble("value_in_dollars") }
             }, numberOfPastHours)
         }
     }

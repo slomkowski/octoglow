@@ -132,8 +132,8 @@ class CryptocurrencyView(
                         logger.info { "Value of $symbol at $ts is \$$value." }
                         database.insertCryptocurrencyValue(ts, symbol, value)
 
-                        //todo get historical data
-                        coinKey to CurrentReport(symbol, ts, value, (1..14).map { it.toDouble() }.toList())
+                        val history = database.getLastCryptoCurrencyValuesByHour(ts, symbol, HISTORIC_VALUES_LENGTH).await()
+                        coinKey to CurrentReport(symbol, ts, value, history)
                     } catch (e: Exception) {
                         logger.error(e) { "Failed to update status on $symbol." }
                         null

@@ -85,5 +85,43 @@ class DatabaseTest {
         |GROUP BY 1
         |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval("indoor_weather_report",
                 listOf("temperature"), d, Duration.ofMinutes(30), 13, true))
+
+        assertEquals("""SELECT
+        |CASE
+        |WHEN created BETWEEN 1548327600000 AND 1548329400000 THEN 0
+        |WHEN created BETWEEN 1548325800000 AND 1548327600000 THEN 1
+        |WHEN created BETWEEN 1548324000000 AND 1548325800000 THEN 2
+        |WHEN created BETWEEN 1548322200000 AND 1548324000000 THEN 3
+        |ELSE -1 END AS bucket_no,
+        |avg(value) as value
+        |FROM tt
+        |WHERE created BETWEEN 1548322200000 AND 1548329400000 AND symbol = 'WER'
+        |GROUP BY 1
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+                "tt",
+                listOf("value"),
+                LocalDateTime.of(2019, 1, 24, 12, 30),
+                Duration.ofMinutes(30),
+                4,
+                false,
+                "symbol" to "WER"))
+
+        assertEquals("""SELECT
+        |CASE
+        |WHEN created BETWEEN 1548327600000 AND 1548329400000 THEN 0
+        |WHEN created BETWEEN 1548325800000 AND 1548327600000 THEN 1
+        |ELSE -1 END AS bucket_no,
+        |avg(value) as value
+        |FROM tt
+        |WHERE created BETWEEN 1548325800000 AND 1548329400000 AND created < (SELECT MAX(created) FROM tt) AND symbol IS NULL
+        |GROUP BY 1
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+                "tt",
+                listOf("value"),
+                LocalDateTime.of(2019, 1, 24, 12, 30),
+                Duration.ofMinutes(30),
+                2,
+                true,
+                "symbol" to null))
     }
 }
