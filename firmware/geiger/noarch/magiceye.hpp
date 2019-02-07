@@ -13,7 +13,7 @@ namespace octoglow {
 
             void tick();
 
-            void configure(protocol::EyeConfiguration &configuration);
+            void configure(volatile protocol::EyeConfiguration &configuration);
 
             void setBrightness(uint8_t brightness);
 

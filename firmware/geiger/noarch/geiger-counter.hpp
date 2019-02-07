@@ -12,7 +12,7 @@ namespace octoglow {
 
             void resetCounters();
 
-            void configure(protocol::GeigerConfiguration &configuration);
+            void configure(volatile protocol::GeigerConfiguration &configuration);
 
             /**
              * @return GeigerState structure is statically initialized, it's always available

@@ -29,8 +29,9 @@ static inline void configureClockSystem() {
         while (--i) {}
     } while (IFG1 & OFIFG);
 
-    BCSCTL2 = SELM_3 | DIVM_0 | SELS | DIVS_0;
-    BCSCTL1 = XT2OFF | XTS | DIVA_3;
+    BCSCTL2 = SELM_0 | DIVM_0 | SELS | DIVS_0;
+    BCSCTL1 = XT2OFF | XTS | DIVA_3 | (0x0f & CALBC1_16MHZ);
+    DCOCTL = CALDCO_16MHZ;
 }
 
 int main() {
@@ -60,7 +61,6 @@ int main() {
     //uint8_t x = 0;
 
     while (true) {
-        //
         if (timerTicked) {
             P1OUT |= BIT0;
 

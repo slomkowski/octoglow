@@ -43,7 +43,7 @@ void ::octoglow::geiger::geiger_counter::resetCounters() {
     _state.numOfCountsPreviousCycle = 0;
 }
 
-void ::octoglow::geiger::geiger_counter::configure(protocol::GeigerConfiguration &configuration) {
+void ::octoglow::geiger::geiger_counter::configure(volatile protocol::GeigerConfiguration &configuration) {
     _state.cycleLength = configuration.cycleLength;
     resetCounters();
 }

@@ -8,7 +8,7 @@
 
 static uint16_t readAdcValue(uint16_t inch) {
     ADC10CTL0 &= (~ENC);
-    ADC10CTL1 = inch | SHS_0 | ADC10DIV_7 | ADC10SSEL_2 | CONSEQ_0;
+    ADC10CTL1 = inch | SHS_0 | ADC10DIV_7 | ADC10SSEL_3 | CONSEQ_0;
 
     ADC10CTL0 |= ENC;
     ADC10CTL0 |= ADC10SC;

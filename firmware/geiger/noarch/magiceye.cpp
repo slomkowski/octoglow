@@ -68,7 +68,7 @@ void octoglow::geiger::magiceye::setEnabled(bool enabled) {
     }
 }
 
-void octoglow::geiger::magiceye::configure(protocol::EyeConfiguration &configuration) {
+void octoglow::geiger::magiceye::configure(volatile protocol::EyeConfiguration &configuration) {
     setEnabled(configuration.enabled);
     animationMode = configuration.mode;
 }

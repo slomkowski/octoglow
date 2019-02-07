@@ -10,12 +10,12 @@ using namespace octoglow::geiger::protocol;
 using namespace octoglow::geiger;
 
 static uint8_t buffer[BUFFER_SIZE];
-static uint8_t bytesProcessed;
+static volatile uint8_t bytesProcessed;
 
 static volatile uint8_t *transmittedDataPointer = nullptr;
 
 void ::octoglow::geiger::i2c::onTransmit(uint8_t volatile *value) {
-    *value = *reinterpret_cast<volatile uint8_t *>(transmittedDataPointer);
+    *value = *transmittedDataPointer;
     ++transmittedDataPointer;
 }
 
