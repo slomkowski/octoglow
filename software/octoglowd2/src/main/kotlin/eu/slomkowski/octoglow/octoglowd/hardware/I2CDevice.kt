@@ -6,15 +6,23 @@ import kotlin.coroutines.CoroutineContext
 
 abstract class I2CDevice(
         protected val threadContext: CoroutineContext,
-        private val i2c: I2CBus,
-        private val i2cAddress: Int) : AutoCloseable {
+        protected val i2c: I2CBus,
+        protected val i2cAddress: Int) : AutoCloseable {
 
     init {
         require(i2cAddress in 0..127)
         require(i2c.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
     }
 
+    protected fun I2CBuffer.toByteArray(): ByteArray = (0 until length).map { get(it).toByte() }.toByteArray()
+
     protected fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
+
+    private fun List<Int>.toI2CBuffer(): I2CBuffer {
+        val buffer = I2CBuffer(this.size)
+        this.forEachIndexed { idx, v -> buffer.set(idx, v) }
+        return buffer
+    }
 
     suspend fun doWrite(vararg bytes: Int) {
         val buff = I2CBuffer(bytes.size)
@@ -32,9 +40,7 @@ abstract class I2CDevice(
     }
 
     suspend fun doTransaction(command: List<Int>, bytesToRead: Int): I2CBuffer {
-        val writeBuffer = I2CBuffer(command.size)
-        command.forEachIndexed { idx, v -> writeBuffer.set(idx, v) }
-        return doTransaction(writeBuffer, bytesToRead)
+        return doTransaction(command.toI2CBuffer(), bytesToRead)
     }
 
     suspend fun doTransaction(writeBuffer: I2CBuffer, bytesToRead: Int): I2CBuffer = withContext(threadContext) {

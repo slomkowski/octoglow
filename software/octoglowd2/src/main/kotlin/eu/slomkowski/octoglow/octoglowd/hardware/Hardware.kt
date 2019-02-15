@@ -8,6 +8,7 @@ interface Hardware : HasBrightness, AutoCloseable {
     val frontDisplay: FrontDisplay
     val geiger: Geiger
     val dac: Dac
+    val bme280: Bme280
 
     override suspend fun setBrightness(brightness: Int)
 
@@ -28,11 +29,13 @@ class PhysicalHardware(i2cBusNumber: Int) : Hardware {
 
     override val dac = Dac(threadContext, bus)
 
+    override val bme280 = Bme280(threadContext, bus)
+
     override suspend fun setBrightness(brightness: Int) {
         listOf<HasBrightness>(clockDisplay, frontDisplay, geiger).forEach { it.setBrightness(brightness) }
     }
 
     override fun close() {
-        listOf<AutoCloseable>(clockDisplay, frontDisplay, geiger, dac).forEach { it.close() }
+        listOf<AutoCloseable>(clockDisplay, frontDisplay, geiger, dac, bme280).forEach { it.close() }
     }
 }
