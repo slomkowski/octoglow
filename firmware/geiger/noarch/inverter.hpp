@@ -23,7 +23,7 @@ namespace octoglow {
                 constexpr double GEIGER_DIVIDER_UPPER_RESISTOR = 4 * 470;
                 constexpr double GEIGER_DIVIDER_LOWER_RESISTOR = 4.7;
                 constexpr double GEIGER_PWM_MIN_DUTY = 0.05;
-                constexpr double GEIGER_PWM_MAX_DUTY = 0.36;
+                constexpr double GEIGER_PWM_MAX_DUTY = 0.28;
                 constexpr uint32_t GEIGER_PWM_FREQUENCY = 33000;
 
                 constexpr double EYE_DIVIDER_UPPER_RESISTOR = 540;
