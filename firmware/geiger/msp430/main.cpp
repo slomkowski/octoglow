@@ -37,20 +37,23 @@ static inline void configureClockSystem() {
 int main() {
     volatile uint16_t i;
 
+    inverter::setPwmOutputsToSafeState();
+
     WDTCTL = WDTPW | WDTHOLD;
 
     P1DIR |= BIT0;
-
-    inverter::init();
-    magiceye::init();
-    i2c::init();
-    geiger_counter::init();
+    P2DIR |= BIT0 + BIT7; // configure unused pins as output
 
     i = 0xfff0;
     do i--;
     while (i != 0);
 
     configureClockSystem();
+
+    inverter::init();
+    magiceye::init();
+    i2c::init();
+    geiger_counter::init();
 
     __nop();
     __enable_interrupt();

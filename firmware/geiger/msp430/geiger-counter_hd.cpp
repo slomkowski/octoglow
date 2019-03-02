@@ -7,7 +7,10 @@ using namespace octoglow::geiger::geiger_counter;
 void octoglow::geiger::geiger_counter::init() {
     _state.cycleLength = GEIGER_CYCLE_DEFAULT_LENGTH;
 
-    P2IE |= BIT2;
+    // P2.2
+    P2SEL &= ~BIT2;
+    P2IE = BIT2;
+    P2IES = BIT2;
 }
 
 __attribute__ ((interrupt(PORT2_VECTOR))) void PORT2_ISR() {

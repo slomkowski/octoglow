@@ -30,23 +30,33 @@ __attribute__ ((interrupt(TIMER0_A0_VECTOR))) void TIMER0_A0_ISR() {
     }
 }
 
+void ::octoglow::geiger::inverter::setPwmOutputsToSafeState() {
+    // set eye to level high
+    P2OUT |= PWM_BIT_EYE;
+    P2SEL &= ~PWM_BIT_EYE;
+    P2SEL2 &= ~PWM_BIT_EYE;
+    P2DIR |= PWM_BIT_EYE;
+
+    P1OUT &= ~BIT2;
+    P1DIR |= BIT2;
+    P1SEL &= ~BIT2;
+    P1SEL2 &= ~BIT2;
+}
+
 void ::octoglow::geiger::inverter::init() {
 
     ADC10AE0 = BIT1 | BIT5;
     ADC10CTL0 &= (~ENC);
     ADC10CTL0 = SREF_1 | ADC10SHT_3 | REF2_5V | REFON | ADC10ON;
 
-
     P1DIR |= BIT2;
     P1SEL |= BIT2;
-    P2OUT &= ~BIT2;
 
     TA0CCR0 = _private::GEIGER_PWM_PERIOD;
     TA0CCTL0 = CCIE; // this interrupt is used for system tick
     TA0CCTL1 = OUTMOD_7;
     TA0CTL = TASSEL_2 | ID_0 | MC_1;
     TA0CCR1 = 10; // initial value
-
 
     P2DIR |= PWM_BIT_EYE;
     P2SEL |= PWM_BIT_EYE;

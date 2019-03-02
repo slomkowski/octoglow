@@ -7,6 +7,8 @@ namespace octoglow {
         namespace inverter {
             void init();
 
+            void setPwmOutputsToSafeState();
+
             void tick();
 
             void setEyeEnabled(bool enabled);
