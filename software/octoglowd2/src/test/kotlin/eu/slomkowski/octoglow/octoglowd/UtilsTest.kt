@@ -1,9 +1,39 @@
 package eu.slomkowski.octoglow.octoglowd
 
+import kotlinx.coroutines.runBlocking
+import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import kotlin.test.assertFails
 
 class UtilsTest {
+
+    companion object : KLogging()
+
+    @Test
+    fun testTrySeveralTimes() {
+        assertFails {
+            runBlocking {
+                trySeveralTimes(5, logger) {
+                    throw IllegalStateException("always fail")
+                }
+            }
+        }
+
+        runBlocking {
+            trySeveralTimes(5, logger) {
+                logger.info { "always run OK" }
+            }
+        }
+
+        runBlocking {
+            trySeveralTimes(5, logger) { tryNumber ->
+                if (tryNumber < 5) {
+                    throw IllegalStateException("only last attempt doesn't fail")
+                }
+            }
+        }
+    }
 
     @Test
     fun testFormatHumidity() {

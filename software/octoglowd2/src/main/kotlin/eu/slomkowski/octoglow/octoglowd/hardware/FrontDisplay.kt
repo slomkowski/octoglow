@@ -1,5 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import eu.slomkowski.octoglow.octoglowd.set
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking

@@ -14,8 +14,6 @@ abstract class I2CDevice(
         require(i2c.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
     }
 
-    protected fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
-
     suspend fun doWrite(vararg bytes: Int) {
         val buff = I2CBuffer(bytes.size)
         bytes.forEachIndexed { idx, v -> buff.set(idx, v) }
