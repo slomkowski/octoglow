@@ -1,5 +1,6 @@
 #include "i2c-slave.hpp"
 #include "magiceye.hpp"
+#include "inverter.hpp"
 
 #include <msp430.h>
 
@@ -7,6 +8,16 @@
 #define SCL_PIN BIT6
 
 using namespace octoglow::geiger;
+
+void ::octoglow::geiger::i2c::setClockToHigh() {
+    BCSCTL1 = XT2OFF | XTS | DIVA_2 | (0x0f & CALBC1_16MHZ);
+    DCOCTL = CALDCO_16MHZ;
+}
+
+void ::octoglow::geiger::i2c::setClockToLow() {
+    BCSCTL1 = XT2OFF | XTS | DIVA_2 | (0x0f & CALBC1_8MHZ);
+    DCOCTL = CALDCO_8MHZ;
+}
 
 void octoglow::geiger::i2c::init() {
     P1SEL |= SDA_PIN + SCL_PIN;               // Assign I2C pins to USCI_B0
@@ -39,8 +50,8 @@ protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
     state.eyeAnimationMode = magiceye::animationMode;
     state.eyePwmValue = TA1CCR1;
     state.geigerPwmValue = TA0CCR1;
-    state.geigerVoltage = 0x1234;
-    state.eyeVoltage = 0x5678;
+    state.geigerVoltage = inverter::geigerAdcReadout;
+    state.eyeVoltage = inverter::eyeAdcReadout;
 
     return state;
 }

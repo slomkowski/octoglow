@@ -69,20 +69,20 @@ void ::octoglow::geiger::inverter::init() {
     setEyeEnabled(false);
 }
 
-void ::octoglow::geiger::inverter::tick() {
+void octoglow::geiger::inverter::tick() {
 
-    const uint16_t eyeReadout = readAdcValue(INCH_5);
+    eyeAdcReadout = readAdcValue(INCH_5);
     uint16_t eyePwmValue = TA1CCR2;
-    _private::regulateEyeInverter(eyeReadout, &eyePwmValue);
+    _private::regulateEyeInverter(eyeAdcReadout, &eyePwmValue);
     TA1CCR1 = eyePwmValue;
 
-    const uint16_t geigerReadout = readAdcValue(INCH_1);
+    geigerAdcReadout = readAdcValue(INCH_1);
     uint16_t geigerPwmValue = TA1CCR1;
-    _private::regulateGeigerInverter(geigerReadout, &geigerPwmValue);
+    _private::regulateGeigerInverter(geigerAdcReadout, &geigerPwmValue);
     TA0CCR1 = geigerPwmValue;
 }
 
-void ::octoglow::geiger::inverter::setEyeEnabled(bool enabled) {
+void octoglow::geiger::inverter::setEyeEnabled(bool enabled) {
     if (enabled) {
         P2SEL |= PWM_BIT_EYE;
     } else {

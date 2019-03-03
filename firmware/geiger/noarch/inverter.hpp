@@ -15,6 +15,9 @@ namespace octoglow {
 
             extern uint16_t desiredEyeAdcValue;
 
+            extern volatile uint16_t eyeAdcReadout;
+            extern volatile uint16_t geigerAdcReadout;
+
             /**
              * These methods are not part of the interface.
              */
@@ -25,12 +28,12 @@ namespace octoglow {
                 constexpr double GEIGER_DIVIDER_UPPER_RESISTOR = 4 * 470;
                 constexpr double GEIGER_DIVIDER_LOWER_RESISTOR = 4.7;
                 constexpr double GEIGER_PWM_MIN_DUTY = 0.05;
-                constexpr double GEIGER_PWM_MAX_DUTY = 0.28;
+                constexpr double GEIGER_PWM_MAX_DUTY = 0.31;
                 constexpr uint32_t GEIGER_PWM_FREQUENCY = 33000;
 
                 constexpr double EYE_DIVIDER_UPPER_RESISTOR = 540;
                 constexpr double EYE_DIVIDER_LOWER_RESISTOR = 4.7;
-                constexpr double EYE_PWM_MIN_DUTY = 0.35;
+                constexpr double EYE_PWM_MIN_DUTY = 0.36;
                 constexpr double EYE_PWM_MAX_DUTY = 0.98;
                 constexpr uint32_t EYE_PWM_FREQUENCY = 60000; // 60 kHz
 

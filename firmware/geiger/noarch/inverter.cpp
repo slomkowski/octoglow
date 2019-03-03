@@ -4,6 +4,9 @@ using namespace octoglow::geiger::inverter::_private;
 
 namespace octoglow::geiger::inverter {
     uint16_t desiredEyeAdcValue;
+
+    volatile uint16_t eyeAdcReadout;
+    volatile uint16_t geigerAdcReadout;
 }
 
 void octoglow::geiger::inverter::_private::regulateEyeInverter(const uint16_t adcReadout, uint16_t *const pwmValue) {

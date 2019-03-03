@@ -50,9 +50,10 @@ namespace octoglow {
                 bool hasNewCycleStarted;
                 uint16_t numOfCountsCurrentCycle;
                 uint16_t numOfCountsPreviousCycle;
+                uint16_t currentCycleProgress; // in seconds
                 uint16_t cycleLength; // in seconds
             }__attribute__((packed));
-            static_assert(sizeof(GeigerState) == 7, "invalid size");
+            static_assert(sizeof(GeigerState) == 9, "invalid size");
 
             struct EyeConfiguration {
                 bool enabled;

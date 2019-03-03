@@ -31,6 +31,7 @@ void octoglow::geiger::geiger_counter::tick() {
 
 octoglow::geiger::protocol::GeigerState &octoglow::geiger::geiger_counter::getState() {
     _state.numOfCountsCurrentCycle = hd::numOfCountsCurrentCycle;
+    _state.currentCycleProgress = numberOfTicks / TICK_TIMER_FREQ;
     return _state;
 }
 

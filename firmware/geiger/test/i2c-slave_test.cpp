@@ -13,6 +13,14 @@ using namespace octoglow::geiger::i2c;
 
 static protocol::DeviceState deviceState;
 
+void ::octoglow::geiger::i2c::setClockToHigh() {
+    cout << "system clock set to high\n";
+}
+
+void ::octoglow::geiger::i2c::setClockToLow() {
+    cout << "system clock set to low\n";
+}
+
 protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
     cout << "get device state\n";
     deviceState.geigerVoltage = 0x5678;
