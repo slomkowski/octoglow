@@ -1,13 +1,14 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
 import io.dvlopt.linux.i2c.*
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
 abstract class I2CDevice(
         protected val threadContext: CoroutineContext,
-        private val i2c: I2CBus,
-        private val i2cAddress: Int) : AutoCloseable {
+        protected val i2c: I2CBus,
+        protected val i2cAddress: Int) : AutoCloseable {
 
     init {
         require(i2cAddress in 0..127)
@@ -30,9 +31,7 @@ abstract class I2CDevice(
     }
 
     suspend fun doTransaction(command: List<Int>, bytesToRead: Int): I2CBuffer {
-        val writeBuffer = I2CBuffer(command.size)
-        command.forEachIndexed { idx, v -> writeBuffer.set(idx, v) }
-        return doTransaction(writeBuffer, bytesToRead)
+        return doTransaction(command.toI2CBuffer(), bytesToRead)
     }
 
     suspend fun doTransaction(writeBuffer: I2CBuffer, bytesToRead: Int): I2CBuffer = withContext(threadContext) {
