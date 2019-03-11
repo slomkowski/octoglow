@@ -1,12 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.view
 
-import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
-import eu.slomkowski.octoglow.octoglowd.formatHumidity
-import eu.slomkowski.octoglow.octoglowd.formatTemperature
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.OutdoorWeatherReport
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import mu.KLogging
 import java.time.Duration
@@ -39,10 +37,12 @@ class OutdoorWeatherView(
 
     override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(30)
 
-    override suspend fun redrawDisplay() = coroutineScope {
+    override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
         val rep = currentReport
 
-        launch { fd.setStaticText(2, "Weather outside") }
+        if (firstTime) {
+            launch { fd.setStaticText(2, "Weather outside") }
+        }
 
         launch { fd.setStaticText(20, formatTemperature(rep?.lastMeasurement?.temperature)) }
         launch { fd.setStaticText(32, formatHumidity(rep?.lastMeasurement?.humidity)) }
@@ -50,31 +50,41 @@ class OutdoorWeatherView(
         if (rep != null) {
             launch { fd.setOneLineDiffChart(5 * 37, rep.lastMeasurement.humidity, rep.historicalHumidity, 1.0) }
             launch { fd.setOneLineDiffChart(5 * 28, rep.lastMeasurement.temperature, rep.historicalTemperature, 1.0) }
+
+            if (rep.lastMeasurement.batteryIsWeak) {
+                launch { fd.setStaticText(19, "!") }
+            }
         }
     }
 
-    override suspend fun poolStateUpdateAsync() = coroutineScope {
-        async {
-            val rep = hardware.clockDisplay.getOutdoorWeatherReport()
+    override suspend fun poolStateUpdate() = coroutineScope {
+        val rep = hardware.clockDisplay.getOutdoorWeatherReport()
 
-            if (rep == null) {
-                logger.warn { "Invalid report." }
-                UpdateStatus.FAILURE
-            } else {
-                when (rep.alreadyReadFlag) {
-                    false -> UpdateStatus.NO_NEW_DATA
-                    else -> {
-                        val ts = LocalDateTime.now()
-                        logger.info { "Got report : $rep." }
-                        databaseLayer.insertOutdoorWeatherReport(ts, rep).join()
+        if (rep == null) {
+            logger.warn { "Invalid report." }
+            UpdateStatus.FAILURE
+        } else {
+            when (rep.alreadyReadFlag) {
+                false -> UpdateStatus.NO_NEW_DATA
+                else -> {
+                    val ts = LocalDateTime.now()
+                    logger.info { "Got report : $rep." }
+                    listOf(
+                            databaseLayer.insertHistoricalValue(ts, OutdoorTemperature, rep.temperature),
+                            databaseLayer.insertHistoricalValue(ts, OutdoorHumidity, rep.humidity),
+                            databaseLayer.insertHistoricalValue(ts, OutdoorWeakBattery, if (rep.batteryIsWeak) {
+                                1.0
+                            } else {
+                                0.0
+                            })
+                    ).joinAll()
 
-                        currentReport = databaseLayer.getLastOutdoorWeatherReportsByHour(ts, HISTORIC_VALUES_LENGTH).await().let {
-                            check(it.size == HISTORIC_VALUES_LENGTH)
-                            CurrentReport(rep, it.map { it?.temperature }, it.map { it?.humidity })
-                        }
+                    val historicalTemperature = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
+                    val historicalHumidity = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorHumidity, HISTORIC_VALUES_LENGTH)
 
-                        UpdateStatus.FULL_SUCCESS
-                    }
+                    currentReport = CurrentReport(rep, historicalTemperature.await(), historicalHumidity.await())
+
+                    UpdateStatus.FULL_SUCCESS
                 }
             }
         }

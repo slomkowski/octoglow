@@ -1,6 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.view
 
-import kotlinx.coroutines.Deferred
 import java.time.Duration
 
 enum class UpdateStatus {
@@ -12,9 +11,9 @@ enum class UpdateStatus {
 
 interface FrontDisplayView {
 
-    suspend fun redrawDisplay()
+    suspend fun redrawDisplay(firstTime: Boolean)
 
-    suspend fun poolStateUpdateAsync(): Deferred<UpdateStatus>
+    suspend fun poolStateUpdate(): UpdateStatus
 
     fun getPreferredPoolingInterval(): Duration
 

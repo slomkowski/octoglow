@@ -23,12 +23,13 @@ enum class EyeInverterState {
 
 data class GeigerCounterState(
         val hasNewCycleStarted: Boolean,
+        val hasCycleEverCompleted: Boolean,
         val numOfCountsInCurrentCycle: Int,
         val numOfCountsInPreviousCycle: Int,
         val currentCycleProgress: Duration,
         val cycleLength: Duration) {
     companion object {
-        private val invalidBufferContent = listOf(0, 255, 255, 255, 255, 255, 255, 255, 255)
+        private val invalidBufferContent = listOf(255, 255, 255, 255, 255, 255, 255, 255)
 
         const val SIZE_IN_BYTES = 9
 
@@ -36,13 +37,16 @@ data class GeigerCounterState(
             require(readBuffer.length == SIZE_IN_BYTES)
             val buff = readBuffer.toList()
 
-            check(buff != invalidBufferContent) { "read buffer has characteristic invalid pattern" }
+            check(buff.subList(1, buff.size) != invalidBufferContent) { "read buffer has characteristic invalid pattern" }
 
             return GeigerCounterState(
-                    when (buff[0]) {
-                        0 -> false
+                    when (buff[0] and 0b1) {
                         1 -> true
-                        else -> throw IllegalStateException("invalid value for boolean flag: ${buff.get(0)}")
+                        else -> false
+                    },
+                    when (buff[0] and 0b10) {
+                        0b10 -> true
+                        else -> false
                     },
                     (buff[2] shl 8) + buff[1],
                     (buff[4] shl 8) + buff[3],

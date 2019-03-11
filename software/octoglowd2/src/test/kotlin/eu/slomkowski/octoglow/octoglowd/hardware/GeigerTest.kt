@@ -20,7 +20,8 @@ class GeigerTest {
 
     @Test
     fun testGeigerCounterStateParse() {
-        assertEquals(GeigerCounterState(false, 23, 32, Duration.ofSeconds(50), Duration.ofSeconds(200)),
+        assertEquals(GeigerCounterState(false, false, 23,
+                32, Duration.ofSeconds(50), Duration.ofSeconds(200)),
                 GeigerCounterState.parse(I2CBuffer(9)
                         .set(0, 0)
                         .set(1, 23)
@@ -31,6 +32,19 @@ class GeigerTest {
                         .set(6, 0)
                         .set(7, 200)
                         .set(8, 0)))
+
+        assertEquals(GeigerCounterState(true, true, 23,
+                92, Duration.ofSeconds(50), Duration.ofMinutes(5)),
+                GeigerCounterState.parse(I2CBuffer(9)
+                        .set(0, 3)
+                        .set(1, 23)
+                        .set(2, 0)
+                        .set(3, 92)
+                        .set(4, 0)
+                        .set(5, 50)
+                        .set(6, 0)
+                        .set(7, 44)
+                        .set(8, 1)))
 
         assertFails {
             val invalid = listOf(0, 255, 255, 255, 255, 255, 255, 255, 255).toI2CBuffer()

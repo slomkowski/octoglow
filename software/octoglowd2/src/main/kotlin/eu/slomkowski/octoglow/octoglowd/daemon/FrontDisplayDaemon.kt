@@ -1,7 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.daemon.view.FrontDisplayView
+import eu.slomkowski.octoglow.octoglowd.daemon.view.UpdateStatus
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -36,10 +37,16 @@ class FrontDisplayDaemon(
         for (t in ticker(100)) {
 
             val now = LocalDateTime.now()
+            val currentView = views[currentViewIdx]
 
             views.filter { it.lastPooled?.plus(it.view.getPreferredPoolingInterval())?.isBefore(now) ?: true }.forEach {
-                it.view.poolStateUpdateAsync()
                 it.lastPooled = now
+                launch {
+                    val status = it.view.poolStateUpdate()
+                    if (it == currentView && status in setOf(UpdateStatus.FULL_SUCCESS, UpdateStatus.PARTIAL_SUCCESS)) {
+                        launch { currentView.view.redrawDisplay(false) }
+                    }
+                }
             }
 
             val buttonReport = hardware.frontDisplay.getButtonReport()
@@ -57,7 +64,7 @@ class FrontDisplayDaemon(
 
                 launch {
                     hardware.frontDisplay.clear()
-                    newCurrentView.redrawDisplay()
+                    newCurrentView.redrawDisplay(true) // todo add redraw when still on the same display
                 }
 
                 currentViewIdx = newViewIndex

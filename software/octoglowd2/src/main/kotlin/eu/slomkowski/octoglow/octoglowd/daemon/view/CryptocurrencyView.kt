@@ -7,6 +7,7 @@ import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
 import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
+import eu.slomkowski.octoglow.octoglowd.Cryptocurrency
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
@@ -109,7 +110,7 @@ class CryptocurrencyView(
         }
     }
 
-    override suspend fun redrawDisplay() = coroutineScope {
+    override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
         val reports = currentReports
         val diffChartStep = config[CryptocurrenciesKey.diffChartFraction]
         logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
@@ -119,35 +120,34 @@ class CryptocurrencyView(
         Unit //todo
     }
 
-    override suspend fun poolStateUpdateAsync(): Deferred<UpdateStatus> = coroutineScope {
-        async {
-            val newReports = coinKeys.map { coinKey ->
-                async {
-                    val symbol = config[coinKey]
-                    val coinId = findCoinId(symbol)
-                    try {
-                        val ohlc = getLatestOhlc(coinId)
-                        val ts = LocalDateTime.ofInstant(ohlc.timeClose.toInstant(), ZoneId.systemDefault())
-                        val value = ohlc.close
-                        logger.info { "Value of $symbol at $ts is \$$value." }
-                        database.insertCryptocurrencyValue(ts, symbol, value)
+    override suspend fun poolStateUpdate(): UpdateStatus = coroutineScope {
+        val newReports = coinKeys.map { coinKey ->
+            async {
+                val symbol = config[coinKey]
+                val coinId = findCoinId(symbol)
+                try {
+                    val ohlc = getLatestOhlc(coinId)
+                    val ts = LocalDateTime.ofInstant(ohlc.timeClose.toInstant(), ZoneId.systemDefault())
+                    val value = ohlc.close
+                    val dbKey = Cryptocurrency(symbol)
+                    logger.info { "Value of $symbol at $ts is \$$value." }
+                    database.insertHistoricalValue(ts, dbKey, value)
 
-                        val history = database.getLastCryptoCurrencyValuesByHour(ts, symbol, HISTORIC_VALUES_LENGTH).await()
-                        coinKey to CurrentReport(symbol, ts, value, history)
-                    } catch (e: Exception) {
-                        logger.error(e) { "Failed to update status on $symbol." }
-                        null
-                    }
+                    val history = database.getLastHistoricalValuesByHour(ts, dbKey, HISTORIC_VALUES_LENGTH).await()
+                    coinKey to CurrentReport(symbol, ts, value, history)
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to update status on $symbol." }
+                    null
                 }
-            }.awaitAll()
-
-            currentReports = newReports.filterNotNull().toMap()
-
-            when (newReports.size) {
-                3 -> UpdateStatus.FULL_SUCCESS
-                0 -> UpdateStatus.FAILURE
-                else -> UpdateStatus.PARTIAL_SUCCESS
             }
+        }.awaitAll()
+
+        currentReports = newReports.filterNotNull().toMap()
+
+        when (newReports.size) {
+            3 -> UpdateStatus.FULL_SUCCESS
+            0 -> UpdateStatus.FAILURE
+            else -> UpdateStatus.PARTIAL_SUCCESS
         }
     }
 

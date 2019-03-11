@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd
 
 
-import eu.slomkowski.octoglow.octoglowd.hardware.OutdoorWeatherReport
 import kotlinx.coroutines.*
 import mu.KLogging
 import org.jetbrains.exposed.sql.Database
@@ -24,29 +23,12 @@ abstract class TimestampedTable(name: String) : Table(name) {
     val timestamp = datetime("created")
 }
 
-object OutdoorWeatherReports : TimestampedTable("outdoor_weather_report") {
-    val temperature = double("temperature")
-    val humidity = double("humidity")
-    val batteryIsWeak = bool("weak_battery")
-}
+object HistoricalValues : TimestampedTable("historical_values") {
+    val key = varchar("key", 50)
+    val value = double("value")
 
-object IndoorWeatherReports : TimestampedTable("indoor_weather_report") {
-    val temperature = double("temperature")
-    val humidity = double("humidity")
-    val pressure = double("pressure")
-}
-
-object CryptocurrencyValues : TimestampedTable("cryptocurrency_value") {
-    val symbol = varchar("symbol", 10)
-    val valueInDollars = double("value_in_dollars")
-}
-
-data class OutdoorWeatherReportRow(
-        val temperature: Double,
-        val humidity: Double) {
     init {
-        require(temperature in -40.0..60.0)
-        require(humidity in 0.0..100.0)
+        index(true, timestamp, key)
     }
 }
 
@@ -136,32 +118,18 @@ class DatabaseLayer(databaseFile: Path) {
         TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
 
         transaction {
-            SchemaUtils.create(IndoorWeatherReports, OutdoorWeatherReports, CryptocurrencyValues)
+            SchemaUtils.create(HistoricalValues)
         }
     }
 
-    suspend fun insertCryptocurrencyValue(ts: LocalDateTime, symbol: String, value: Double) = coroutineScope {
-        logger.debug { "Inserting data to DB: $symbol = \$ $value." }
+    suspend fun insertHistoricalValue(ts: LocalDateTime, key: HistoricalValueType, value: Double) = coroutineScope {
+        logger.debug { "Inserting data to DB: $key = $value." }
         launch(threadContext) {
             transaction {
-                CryptocurrencyValues.insert {
+                HistoricalValues.insert {
                     it[timestamp] = toJodaDateTime(ts)
-                    it[this.symbol] = symbol
-                    it[valueInDollars] = value
-                }
-            }
-        }
-    }
-
-    suspend fun insertOutdoorWeatherReport(ts: LocalDateTime, owr: OutdoorWeatherReport) = coroutineScope {
-        logger.debug { "Inserting data to DB: $owr" }
-        launch(threadContext) {
-            transaction {
-                OutdoorWeatherReports.insert {
-                    it[timestamp] = toJodaDateTime(ts)
-                    it[temperature] = owr.temperature
-                    it[humidity] = owr.humidity
-                    it[batteryIsWeak] = owr.batteryIsWeak
+                    it[this.key] = key.databaseSymbol
+                    it[this.value] = value
                 }
             }
         }
@@ -180,24 +148,15 @@ class DatabaseLayer(databaseFile: Path) {
         return result
     }
 
-    suspend fun getLastOutdoorWeatherReportsByHour(currentTime: LocalDateTime, numberOfPastHours: Int): Deferred<List<OutdoorWeatherReportRow?>> = coroutineScope {
-        val query = createAveragedByTimeInterval(OutdoorWeatherReports.tableName,
-                listOf("temperature", "humidity"), currentTime, Duration.ofHours(1), numberOfPastHours, true)
+    suspend fun getLastHistoricalValuesByHour(currentTime: LocalDateTime,
+                                              key: HistoricalValueType,
+                                              numberOfPastHours: Int): Deferred<List<Double?>> = coroutineScope {
+        val query = createAveragedByTimeInterval(HistoricalValues.tableName,
+                listOf("value"), currentTime, Duration.ofHours(1), numberOfPastHours, true, "key" to key.databaseSymbol)
 
         async(threadContext) {
             groupByBucketNo(transaction {
-                query.execAndMap { it.getInt(caseColumnName) to OutdoorWeatherReportRow(it.getDouble("temperature"), it.getDouble("humidity")) }
-            }, numberOfPastHours)
-        }
-    }
-
-    suspend fun getLastCryptoCurrencyValuesByHour(currentTime: LocalDateTime, symbol: String, numberOfPastHours: Int): Deferred<List<Double?>> = coroutineScope {
-        val query = createAveragedByTimeInterval(CryptocurrencyValues.tableName,
-                listOf("value_in_dollars"), currentTime, Duration.ofHours(1), numberOfPastHours, true, "symbol" to symbol)
-
-        async(threadContext) {
-            groupByBucketNo(transaction {
-                query.execAndMap { it.getInt(caseColumnName) to it.getDouble("value_in_dollars") }
+                query.execAndMap { it.getInt(caseColumnName) to it.getDouble("value") }
             }, numberOfPastHours)
         }
     }

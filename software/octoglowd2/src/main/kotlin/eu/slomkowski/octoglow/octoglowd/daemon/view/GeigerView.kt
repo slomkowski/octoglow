@@ -18,12 +18,10 @@ class GeigerView(
 
     }
 
-    override suspend fun redrawDisplay() = coroutineScope {
+    override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
     }
 
-    override suspend fun poolStateUpdateAsync(): Deferred<UpdateStatus> = coroutineScope {
-        TODO()
-    }
+    override suspend fun poolStateUpdate(): UpdateStatus = UpdateStatus.NO_NEW_DATA // todo
 
     override fun getPreferredPoolingInterval(): Duration = Duration.ofMinutes(2) // change to 5 min
 
