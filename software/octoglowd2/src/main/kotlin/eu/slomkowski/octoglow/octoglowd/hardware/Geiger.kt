@@ -87,6 +87,11 @@ data class GeigerDeviceState(
                     buff[7])
         }
     }
+
+    init {
+        require(geigerVoltage in 0.0..500.0)
+        require(eyeVoltage in 0.0..300.0)
+    }
 }
 
 class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), HasBrightness {

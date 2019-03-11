@@ -20,6 +20,7 @@ void octoglow::geiger::geiger_counter::tick() {
         _state.numOfCountsCurrentCycle = 0;
         _state.numOfCountsPreviousCycle = hd::numOfCountsCurrentCycle;
         _state.hasNewCycleStarted = true;
+        _state.hasCycleEverCompleted = true;
 
         hd::numOfCountsCurrentCycle = 0;
 
@@ -39,6 +40,7 @@ void ::octoglow::geiger::geiger_counter::resetCounters() {
     numberOfTicks = 0;
     hd::numOfCountsCurrentCycle = 0;
 
+    _state.hasCycleEverCompleted = false;
     _state.hasNewCycleStarted = true;
     _state.numOfCountsCurrentCycle = 0;
     _state.numOfCountsPreviousCycle = 0;

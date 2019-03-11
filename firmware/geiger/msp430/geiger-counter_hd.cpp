@@ -11,6 +11,8 @@ void octoglow::geiger::geiger_counter::init() {
     P2SEL &= ~BIT2;
     P2IE = BIT2;
     P2IES = BIT2;
+
+    resetCounters();
 }
 
 __attribute__ ((interrupt(PORT2_VECTOR))) void PORT2_ISR() {

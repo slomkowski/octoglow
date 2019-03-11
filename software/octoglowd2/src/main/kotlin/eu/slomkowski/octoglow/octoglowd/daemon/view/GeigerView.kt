@@ -4,13 +4,17 @@ import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.RadioactivityCpm
 import eu.slomkowski.octoglow.octoglowd.RadioactivityUSVH
+import eu.slomkowski.octoglow.octoglowd.hardware.EyeInverterState
 import eu.slomkowski.octoglow.octoglowd.hardware.GeigerDeviceState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
+import kotlin.math.floor
+import kotlin.math.roundToInt
 
 class GeigerView(
         private val config: Config,
@@ -18,13 +22,30 @@ class GeigerView(
         private val hardware: Hardware) : FrontDisplayView {
 
     companion object : KLogging() {
-        private const val HISTORIC_VALUES_LENGTH = 14
+        private const val HISTORIC_VALUES_LENGTH = 4 * 5 - 1
 
         private const val GEIGER_TUBE_SENSITIVITY = 25.0
 
-        fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.toMinutes()
+        fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.toMinutes().toDouble()
 
         fun calculateUSVh(v: Int, duration: Duration): Double = calculateCPM(v, duration) / 60.0 * 10.0 / GEIGER_TUBE_SENSITIVITY
+
+        fun formatVoltage(v: Double?): String = when (v) {
+            null -> "---V"
+            else -> String.format("%3.0fV", v)
+        }
+
+        fun formatUSVh(v: Double?): String = when (v) {
+            null -> "-.-- uSv/h"
+            else -> String.format("%1.2f uSv/h", v)
+        }
+
+        fun formatCPM(v: Double?): String = when (v) {
+            null -> "-- CPM"
+            else -> String.format("%2.0f CPM", v)
+        }
+
+        fun getSegmentNumber(currentTime: Duration, maxTime: Duration): Int = floor(20.0 * (currentTime.toMillis().toDouble() / maxTime.toMillis())).roundToInt().coerceIn(0, 19)
     }
 
     data class CounterReport(
@@ -47,6 +68,47 @@ class GeigerView(
 
     override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
         // todo cpm, uSv/h, graph,ring when radioactivity > 0.03 uSv/h, geiger voltage, eye voltage, eye status
+
+        val fd = hardware.frontDisplay
+        val dr = deviceReport
+        val cr = counterReport
+
+        if (firstTime) {
+            launch {
+                fd.setStaticText(14, "g:")
+                fd.setStaticText(14 + 20, "e:")
+            }
+        }
+
+        launch { fd.setStaticText(16, formatVoltage(deviceReport?.geigerVoltage)) }
+        launch { fd.setStaticText(16 + 20, formatVoltage(deviceReport?.eyeVoltage)) }
+
+        launch {
+            fd.setStaticText(11 + 20, when (dr?.eyeState) {
+                EyeInverterState.DISABLED -> "eD"
+                EyeInverterState.HEATING_LIMITED -> "e1"
+                EyeInverterState.HEATING_FULL -> "e2"
+                EyeInverterState.RUNNING -> "eR"
+                null -> "--"
+            })
+        }
+
+        if (cr?.historical != null && cr.lastUSVh != null) {
+            launch { fd.setOneLineDiffChart(5 * 8, cr.lastUSVh, cr.historical, 0.01) }
+        } else {
+            fd.setStaticText(8, "    ")
+        }
+
+        if (cr != null) {
+            launch { fd.setUpperBar(listOf(getSegmentNumber(cr.progress, cr.timeSpan))) }
+        } else {
+            launch { fd.setUpperBar(emptyList()) }
+        }
+
+        launch { fd.setStaticText(0, formatCPM(cr?.lastCPM)) }
+        launch { fd.setStaticText(20, formatUSVh(cr?.lastUSVh)) }
+
+        Unit
     }
 
     override suspend fun poolStateUpdate(): UpdateStatus {

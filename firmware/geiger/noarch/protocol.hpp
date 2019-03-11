@@ -47,7 +47,9 @@ namespace octoglow {
             static_assert(sizeof(GeigerConfiguration) == 2, "invalid size");
 
             struct GeigerState {
-                bool hasNewCycleStarted;
+                bool hasNewCycleStarted : 1;
+                bool hasCycleEverCompleted : 1;
+
                 uint16_t numOfCountsCurrentCycle;
                 uint16_t numOfCountsPreviousCycle;
                 uint16_t currentCycleProgress; // in seconds

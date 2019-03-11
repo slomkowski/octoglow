@@ -31,14 +31,13 @@ class OutdoorWeatherView(
         }
     }
 
-    private val fd = hardware.frontDisplay
-
     private var currentReport: CurrentReport? = null //todo maybe protected by mutex?
 
     override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(15)
 
     override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
         val rep = currentReport
+        val fd = hardware.frontDisplay
 
         if (firstTime) {
             launch { fd.setStaticText(2, "Weather outside") }
