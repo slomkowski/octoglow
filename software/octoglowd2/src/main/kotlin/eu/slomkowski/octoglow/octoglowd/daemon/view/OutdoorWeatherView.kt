@@ -35,7 +35,7 @@ class OutdoorWeatherView(
 
     private var currentReport: CurrentReport? = null //todo maybe protected by mutex?
 
-    override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(30)
+    override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(15)
 
     override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
         val rep = currentReport
@@ -62,6 +62,7 @@ class OutdoorWeatherView(
 
         if (rep == null) {
             logger.warn { "Invalid report." }
+            currentReport = null
             UpdateStatus.FAILURE
         } else {
             when (rep.alreadyReadFlag) {

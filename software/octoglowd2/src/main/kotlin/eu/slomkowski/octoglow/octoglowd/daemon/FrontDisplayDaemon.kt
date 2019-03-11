@@ -43,7 +43,7 @@ class FrontDisplayDaemon(
                 it.lastPooled = now
                 launch {
                     val status = it.view.poolStateUpdate()
-                    if (it == currentView && status in setOf(UpdateStatus.FULL_SUCCESS, UpdateStatus.PARTIAL_SUCCESS)) {
+                    if (it == currentView && status in setOf(UpdateStatus.FULL_SUCCESS, UpdateStatus.PARTIAL_SUCCESS)) { // todo if failure, should redraw too
                         launch { currentView.view.redrawDisplay(false) }
                     }
                 }

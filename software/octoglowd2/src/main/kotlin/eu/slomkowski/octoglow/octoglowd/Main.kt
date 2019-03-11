@@ -7,6 +7,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.view.AboutView
 import eu.slomkowski.octoglow.octoglowd.daemon.view.CryptocurrencyView
+import eu.slomkowski.octoglow.octoglowd.daemon.view.GeigerView
 import eu.slomkowski.octoglow.octoglowd.daemon.view.OutdoorWeatherView
 import eu.slomkowski.octoglow.octoglowd.hardware.PhysicalHardware
 import kotlinx.coroutines.joinAll
@@ -33,6 +34,7 @@ fun main(args: Array<String>) {
     val frontDisplayViews = listOf(
             AboutView(hardware),
             OutdoorWeatherView(database, hardware),
+            GeigerView(config, database, hardware),
             CryptocurrencyView(config, database, hardware))
 
     val controllers = listOf(

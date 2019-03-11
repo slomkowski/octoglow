@@ -11,6 +11,9 @@ sealed class HistoricalValueType {
     override fun toString(): String = databaseSymbol
 }
 
+object RadioactivityCpm : HistoricalValueType()
+object RadioactivityUSVH : HistoricalValueType() // uSv/h
+
 object OutdoorTemperature : HistoricalValueType()
 object OutdoorHumidity : HistoricalValueType()
 object OutdoorWeakBattery : HistoricalValueType()
