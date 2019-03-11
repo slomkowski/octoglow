@@ -273,14 +273,16 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                            <finalName>${project.artifactId}-prod</finalName>
                             <archive>
                                 <manifest>
-                                    <mainClass>${main.class}</mainClass>
+                                    <addClasspath>false</addClasspath>
+                                    <mainClass>eu.slomkowski.octoglow.octoglowd.MainKt</mainClass>
                                 </manifest>
                             </archive>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
+                            <descriptors>
+                                <descriptor>jar-with-dependencies-with-exclude-files.xml</descriptor>
+                            </descriptors>
                         </configuration>
                     </execution>
                 </executions>
