@@ -13,15 +13,41 @@
             <useProjectArtifact>true</useProjectArtifact>
             <unpack>true</unpack>
             <scope>runtime</scope>
+            <unpackOptions>
+                <excludes>
+                    <exclude>org/sqlite/native/Windows/**</exclude>
+                    <exclude>org/sqlite/native/FreeBSD/**</exclude>
+                    <exclude>org/sqlite/native/Mac/**</exclude>
+                    <exclude>org/sqlite/native/Linux/aarch64/**</exclude>
+                    <exclude>org/sqlite/native/Linux/android-arm/**</exclude>
+                    <exclude>org/sqlite/native/Linux/arm/**</exclude>
+                    <exclude>org/sqlite/native/Linux/armv6/**</exclude>
+                    <exclude>org/sqlite/native/Linux/ppc64/**</exclude>
+                    <exclude>org/sqlite/native/Linux/x86/**</exclude>
+
+                    <exclude>com/sun/jna/aix*/**</exclude>
+                    <exclude>com/sun/jna/darwin/**</exclude>
+                    <exclude>com/sun/jna/freebsd*/**</exclude>
+                    <exclude>com/sun/jna/openbsd*/**</exclude>
+                    <exclude>com/sun/jna/sunos*/**</exclude>
+                    <exclude>com/sun/jna/win32*/**</exclude>
+                    <exclude>com/sun/jna/linux-aarch64/**</exclude>
+                    <exclude>com/sun/jna/linux-armel/**</exclude>
+                    <exclude>com/sun/jna/linux-mips64el/**</exclude>
+                    <exclude>com/sun/jna/linux-ppc*/**</exclude>
+                    <exclude>com/sun/jna/linux-s390x/**</exclude>
+                    <exclude>com/sun/jna/linux-x86/**</exclude>
+
+                    <exclude>org/joda/time/tz/data/America/**</exclude>
+                    <exclude>org/joda/time/tz/data/Asia/**</exclude>
+                    <exclude>org/joda/time/tz/data/Africa/**</exclude>
+                    <exclude>org/joda/time/tz/data/Pacific/**</exclude>
+                    <exclude>org/joda/time/tz/data/Etc/**</exclude>
+                    <exclude>org/joda/time/tz/data/Australia/**</exclude>
+
+                    <exclude>**/*.kotlin_metadata</exclude>
+                </excludes>
+            </unpackOptions>
         </dependencySet>
     </dependencySets>
-    <fileSets>
-        <fileSet>
-            <outputDirectory>/</outputDirectory>
-            <directory>${project.build.outputDirectory}</directory>
-            <excludes>
-                <exclude>**/*.dll</exclude>
-            </excludes>
-        </fileSet>
-    </fileSets>
 </assembly>
