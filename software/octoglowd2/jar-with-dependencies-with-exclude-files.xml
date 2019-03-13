@@ -45,6 +45,8 @@
                     <exclude>org/joda/time/tz/data/Etc/**</exclude>
                     <exclude>org/joda/time/tz/data/Australia/**</exclude>
 
+                    <exclude>com/google/common/util/**</exclude>
+
                     <exclude>**/*.kotlin_metadata</exclude>
                 </excludes>
             </unpackOptions>
