@@ -17,11 +17,18 @@ class OutdoorWeatherView(
     override val name: String
         get() = "Outdoor weather"
 
+    override val preferredStatusPoolingInterval: Duration
+        get() = Duration.ofSeconds(20)
+
+    override val preferredInstantPoolingInterval: Duration
+        get() = Duration.ofSeconds(7)
+
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
     }
 
     data class CurrentReport(
+            val timestamp: LocalDateTime,
             val lastMeasurement: OutdoorWeatherReport,
             val historicalTemperature: List<Double?>,
             val historicalHumidity: List<Double?>) {
@@ -33,30 +40,42 @@ class OutdoorWeatherView(
 
     private var currentReport: CurrentReport? = null //todo maybe protected by mutex?
 
-    override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(15)
-
-    override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
         val rep = currentReport
         val fd = hardware.frontDisplay
 
-        if (firstTime) {
+        if (redrawStatic) {
             launch { fd.setStaticText(2, "Weather outside") }
         }
 
-        launch { fd.setStaticText(20, formatTemperature(rep?.lastMeasurement?.temperature)) }
-        launch { fd.setStaticText(32, formatHumidity(rep?.lastMeasurement?.humidity)) }
+        if (redrawStatus) {
+            launch { fd.setStaticText(20, formatTemperature(rep?.lastMeasurement?.temperature)) }
+            launch { fd.setStaticText(32, formatHumidity(rep?.lastMeasurement?.humidity)) }
 
-        if (rep != null) {
-            launch { fd.setOneLineDiffChart(5 * 37, rep.lastMeasurement.humidity, rep.historicalHumidity, 1.0) }
-            launch { fd.setOneLineDiffChart(5 * 28, rep.lastMeasurement.temperature, rep.historicalTemperature, 1.0) }
+            if (rep != null) {
+                launch { fd.setOneLineDiffChart(5 * 37, rep.lastMeasurement.humidity, rep.historicalHumidity, 1.0) }
+                launch { fd.setOneLineDiffChart(5 * 28, rep.lastMeasurement.temperature, rep.historicalTemperature, 1.0) }
 
-            if (rep.lastMeasurement.batteryIsWeak) {
-                launch { fd.setStaticText(19, "!") }
+                if (rep.lastMeasurement.batteryIsWeak) {
+                    launch { fd.setStaticText(19, "!") }
+                }
             }
         }
+
+        if (rep != null) {
+            val currentCycleDuration = Duration.between(rep.timestamp, LocalDateTime.now())
+            check(!currentCycleDuration.isNegative)
+            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, Duration.ofMinutes(5)))) }
+        } else {
+            launch { fd.setUpperBar(emptyList()) }
+        }
+
+        Unit
     }
 
-    override suspend fun poolStateUpdate() = coroutineScope {
+    override suspend fun poolInstantData(): UpdateStatus = UpdateStatus.FULL_SUCCESS
+
+    override suspend fun poolStatusData() = coroutineScope {
         val rep = hardware.clockDisplay.getOutdoorWeatherReport()
 
         if (rep == null) {
@@ -82,7 +101,7 @@ class OutdoorWeatherView(
                     val historicalTemperature = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
                     val historicalHumidity = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorHumidity, HISTORIC_VALUES_LENGTH)
 
-                    currentReport = CurrentReport(rep, historicalTemperature.await(), historicalHumidity.await())
+                    currentReport = CurrentReport(ts, rep, historicalTemperature.await(), historicalHumidity.await())
 
                     UpdateStatus.FULL_SUCCESS
                 }

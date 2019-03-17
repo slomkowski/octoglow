@@ -9,13 +9,25 @@ enum class UpdateStatus {
     FAILURE
 }
 
+/**
+ * There are two kinds of data:
+ * status - values provided by the view, updatable usually once a minute or so.
+ * instant - exact state of the processing on the device, updatable once every several seconds.
+ */
 interface FrontDisplayView {
 
-    suspend fun redrawDisplay(firstTime: Boolean)
-
-    suspend fun poolStateUpdate(): UpdateStatus
-
-    fun getPreferredPoolingInterval(): Duration
-
+    /**
+     * Human-readable name of the daemon. Visible mainly in logs.
+     */
     val name: String
+
+    val preferredStatusPoolingInterval: Duration
+
+    val preferredInstantPoolingInterval: Duration
+
+    suspend fun poolStatusData(): UpdateStatus
+
+    suspend fun poolInstantData(): UpdateStatus
+
+    suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean)
 }

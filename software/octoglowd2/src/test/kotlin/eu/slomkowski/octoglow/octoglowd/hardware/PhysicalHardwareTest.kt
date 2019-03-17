@@ -7,7 +7,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 
- class PhysicalHardwareTest {
+class PhysicalHardwareTest {
     @Test
     fun testBrightness() {
         runBlocking {

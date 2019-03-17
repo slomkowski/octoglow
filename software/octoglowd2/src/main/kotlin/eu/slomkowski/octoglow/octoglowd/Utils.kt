@@ -6,6 +6,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.dvlopt.linux.i2c.I2CBuffer
 import mu.KLogger
+import java.time.Duration
+import kotlin.math.floor
+import kotlin.math.roundToInt
 
 const val DEGREE: Char = '\u00B0'
 
@@ -23,6 +26,11 @@ fun formatTemperature(t: Double?): String = when (t) {
     null -> "---.-${DEGREE}C"
     else -> String.format("%+5.1f${DEGREE}C", t)
 }
+
+/**
+ * Used to calculate which segment to light of the upper progress bar on front display.
+ */
+fun getSegmentNumber(currentTime: Duration, maxTime: Duration): Int = floor(20.0 * (currentTime.toMillis().toDouble() / maxTime.toMillis())).roundToInt().coerceIn(0, 19)
 
 suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func: suspend (tryNo: Int) -> T): T {
     require(numberOfTries > 0)

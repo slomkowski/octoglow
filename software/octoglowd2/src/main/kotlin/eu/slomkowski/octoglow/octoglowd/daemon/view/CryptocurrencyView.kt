@@ -6,11 +6,8 @@ import com.github.kittinunf.fuel.coroutines.awaitObject
 import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
-import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
-import eu.slomkowski.octoglow.octoglowd.Cryptocurrency
-import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
 import kotlinx.coroutines.*
 import mu.KLogging
 import java.time.Duration
@@ -77,9 +74,8 @@ class CryptocurrencyView(
         }
     }
 
-    data class CurrentReport(
+    data class CoinReport(
             val symbol: String,
-            val timestamp: LocalDateTime,
             val latest: Double,
             val historical: List<Double?>) {
         init {
@@ -87,8 +83,12 @@ class CryptocurrencyView(
         }
     }
 
+    data class CurrentReport(
+            val timestamp: LocalDateTime,
+            val coins: Map<RequiredItem<String>, CoinReport>)
+
     private val availableCoins: List<CoinInfoDto>
-    private var currentReports: Map<RequiredItem<String>, CurrentReport> = emptyMap()
+    private var currentReport: CurrentReport? = null
 
     private val coinKeys = listOf(CryptocurrenciesKey.coin1, CryptocurrenciesKey.coin2, CryptocurrenciesKey.coin3)
 
@@ -97,7 +97,7 @@ class CryptocurrencyView(
         coinKeys.forEach { findCoinId(config[it]) }
     }
 
-    private suspend fun drawCurrencyInfo(cr: CurrentReport?, offset: Int, diffChartStep: Double) {
+    private suspend fun drawCurrencyInfo(cr: CoinReport?, offset: Int, diffChartStep: Double) {
         require(diffChartStep > 0)
         hardware.frontDisplay.apply {
             setStaticText(offset, cr?.symbol?.take(3) ?: "---")
@@ -110,41 +110,60 @@ class CryptocurrencyView(
         }
     }
 
-    override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
-        val reports = currentReports
-        val diffChartStep = config[CryptocurrenciesKey.diffChartFraction]
-        logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
-        launch { drawCurrencyInfo(reports[CryptocurrenciesKey.coin1], 0, diffChartStep) }
-        launch { drawCurrencyInfo(reports[CryptocurrenciesKey.coin2], 7, diffChartStep) }
-        launch { drawCurrencyInfo(reports[CryptocurrenciesKey.coin3], 14, diffChartStep) }
-        Unit //todo
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
+        val report = currentReport
+        val fd = hardware.frontDisplay
+
+        if (redrawStatus) {
+            val diffChartStep = config[CryptocurrenciesKey.diffChartFraction]
+            logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
+            launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin1), 0, diffChartStep) }
+            launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin2), 7, diffChartStep) }
+            launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin3), 14, diffChartStep) }
+        }
+
+        if (report != null) {
+            val currentCycleDuration = Duration.between(report.timestamp, LocalDateTime.now())
+            check(!currentCycleDuration.isNegative)
+            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, preferredStatusPoolingInterval))) }
+        } else {
+            launch { fd.setUpperBar(emptyList()) }
+        }
+
+        Unit
     }
 
-    override suspend fun poolStateUpdate(): UpdateStatus = coroutineScope {
-        val newReports = coinKeys.map { coinKey ->
+    /**
+     * Progress bar is dependent only on current time so always success.
+     */
+    override suspend fun poolInstantData(): UpdateStatus = UpdateStatus.FULL_SUCCESS
+
+    override suspend fun poolStatusData(): UpdateStatus = coroutineScope {
+        val ts = LocalDateTime.now()
+
+        val newReport = CurrentReport(ts, coinKeys.map { coinKey ->
             async {
                 val symbol = config[coinKey]
                 val coinId = findCoinId(symbol)
                 try {
                     val ohlc = getLatestOhlc(coinId)
-                    val ts = LocalDateTime.ofInstant(ohlc.timeClose.toInstant(), ZoneId.systemDefault())
                     val value = ohlc.close
+                    val ohlcTimestamp = LocalDateTime.ofInstant(ohlc.timeClose.toInstant(), ZoneId.systemDefault())
                     val dbKey = Cryptocurrency(symbol)
                     logger.info { "Value of $symbol at $ts is \$$value." }
-                    database.insertHistoricalValue(ts, dbKey, value)
-
+                    database.insertHistoricalValue(ohlcTimestamp, dbKey, value)
                     val history = database.getLastHistoricalValuesByHour(ts, dbKey, HISTORIC_VALUES_LENGTH).await()
-                    coinKey to CurrentReport(symbol, ts, value, history)
+                    coinKey to CoinReport(symbol, value, history)
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to update status on $symbol." }
                     null
                 }
             }
-        }.awaitAll()
+        }.awaitAll().filterNotNull().toMap())
 
-        currentReports = newReports.filterNotNull().toMap()
+        currentReport = newReport
 
-        when (newReports.size) {
+        when (newReport.coins.size) {
             3 -> UpdateStatus.FULL_SUCCESS
             0 -> UpdateStatus.FAILURE
             else -> UpdateStatus.PARTIAL_SUCCESS
@@ -154,7 +173,11 @@ class CryptocurrencyView(
     private fun findCoinId(symbol: String): String = checkNotNull(availableCoins.find { it.symbol == symbol }?.id)
     { "coin with symbol '$symbol' not found" }
 
-    override fun getPreferredPoolingInterval(): Duration = Duration.ofMinutes(2) // change to 5 min
+    override val preferredStatusPoolingInterval: Duration
+        get() = Duration.ofMinutes(5)
+
+    override val preferredInstantPoolingInterval: Duration
+        get() = Duration.ofSeconds(15)
 
     override val name: String
         get() = "Cryptocurrencies"

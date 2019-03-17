@@ -1,9 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.view
 
-import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.RadioactivityCpm
 import eu.slomkowski.octoglow.octoglowd.RadioactivityUSVH
+import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.EyeInverterState
 import eu.slomkowski.octoglow.octoglowd.hardware.GeigerDeviceState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -13,11 +13,8 @@ import kotlinx.coroutines.launch
 import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
-import kotlin.math.floor
-import kotlin.math.roundToInt
 
 class GeigerView(
-        private val config: Config,
         private val database: DatabaseLayer,
         private val hardware: Hardware) : FrontDisplayView {
 
@@ -44,8 +41,6 @@ class GeigerView(
             null -> "-- CPM"
             else -> String.format("%2.0f CPM", v)
         }
-
-        fun getSegmentNumber(currentTime: Duration, maxTime: Duration): Int = floor(20.0 * (currentTime.toMillis().toDouble() / maxTime.toMillis())).roundToInt().coerceIn(0, 19)
     }
 
     data class CounterReport(
@@ -66,17 +61,27 @@ class GeigerView(
 
     private var deviceReport: GeigerDeviceState? = null
 
-    override suspend fun redrawDisplay(firstTime: Boolean) = coroutineScope {
-        // todo cpm, uSv/h, graph,ring when radioactivity > 0.03 uSv/h, geiger voltage, eye voltage, eye status
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
 
         val fd = hardware.frontDisplay
         val dr = deviceReport
         val cr = counterReport
 
-        if (firstTime) {
+        if (redrawStatic) {
             launch {
                 fd.setStaticText(14, "g:")
                 fd.setStaticText(14 + 20, "e:")
+            }
+        }
+
+        if (redrawStatus) {
+            launch { fd.setStaticText(0, formatCPM(cr?.lastCPM)) }
+            launch { fd.setStaticText(20, formatUSVh(cr?.lastUSVh)) }
+
+            if (cr?.historical != null && cr.lastUSVh != null) {
+                launch { fd.setOneLineDiffChart(5 * 8, cr.lastUSVh, cr.historical, 0.01) }
+            } else {
+                fd.setStaticText(8, "    ")
             }
         }
 
@@ -93,34 +98,27 @@ class GeigerView(
             })
         }
 
-        if (cr?.historical != null && cr.lastUSVh != null) {
-            launch { fd.setOneLineDiffChart(5 * 8, cr.lastUSVh, cr.historical, 0.01) }
-        } else {
-            fd.setStaticText(8, "    ")
-        }
-
         if (cr != null) {
             launch { fd.setUpperBar(listOf(getSegmentNumber(cr.progress, cr.timeSpan))) }
         } else {
             launch { fd.setUpperBar(emptyList()) }
         }
 
-        launch { fd.setStaticText(0, formatCPM(cr?.lastCPM)) }
-        launch { fd.setStaticText(20, formatUSVh(cr?.lastUSVh)) }
-
         Unit
     }
 
-    override suspend fun poolStateUpdate(): UpdateStatus {
-
-        try {
+    override suspend fun poolInstantData(): UpdateStatus {
+        return try {
             deviceReport = hardware.geiger.getDeviceState()
+            UpdateStatus.FULL_SUCCESS
         } catch (e: Exception) {
             deviceReport = null
             logger.error(e) { "Cannot read device state." }
-            return UpdateStatus.FAILURE
+            UpdateStatus.FAILURE
         }
+    }
 
+    override suspend fun poolStatusData(): UpdateStatus {
         try {
             val cs = hardware.geiger.getCounterState()
 
@@ -154,7 +152,11 @@ class GeigerView(
         return UpdateStatus.FULL_SUCCESS
     }
 
-    override fun getPreferredPoolingInterval(): Duration = Duration.ofSeconds(5)
+    override val preferredStatusPoolingInterval: Duration
+        get() = Duration.ofSeconds(7)
+
+    override val preferredInstantPoolingInterval: Duration
+        get() = Duration.ofSeconds(3)
 
     override val name: String
         get() = "Geiger Counter"

@@ -64,7 +64,7 @@ class CryptocurrencyViewTest {
         runBlocking {
             val view = CryptocurrencyView(config, db, hardware)
 
-            view.redrawDisplay(true)
+            view.redrawDisplay(true, true)
 
             coVerify {
                 hardware.frontDisplay.setStaticText(0, "---")

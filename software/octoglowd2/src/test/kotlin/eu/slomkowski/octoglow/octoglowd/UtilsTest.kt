@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.time.Duration
 import kotlin.test.assertFails
 
 class UtilsTest {
@@ -53,5 +54,22 @@ class UtilsTest {
         assertEquals("-12.7\u00B0C", formatTemperature(-12.693423))
         assertEquals(" +0.0\u00B0C", formatTemperature(0.0))
         assertEquals("---.-\u00B0C", formatTemperature(null))
+    }
+
+    @Test
+    fun testCalculate() {
+        Duration.ofMinutes(5).let { min5 ->
+            assertEquals(0, getSegmentNumber(Duration.ZERO, min5))
+            assertEquals(0, getSegmentNumber(Duration.ofSeconds(3), min5))
+            assertEquals(0, getSegmentNumber(Duration.ofSeconds(14), min5))
+            assertEquals(0, getSegmentNumber(Duration.ofMillis(14_999), min5))
+
+            assertEquals(1, getSegmentNumber(Duration.ofSeconds(15), min5))
+            assertEquals(1, getSegmentNumber(Duration.ofSeconds(23), min5))
+
+            assertEquals(0, getSegmentNumber(Duration.ofSeconds(1), min5))
+            assertEquals(19, getSegmentNumber(Duration.ofSeconds(299), min5))
+            assertEquals(19, getSegmentNumber(min5, min5))
+        }
     }
 }

@@ -17,7 +17,8 @@ class FrontDisplayDaemon(
 
     data class ViewInfo(
             val view: FrontDisplayView,
-            var lastPooled: LocalDateTime?)
+            var lastPooledStatusUpdate: LocalDateTime?,
+            var lastPooledInstantUpdate: LocalDateTime?)
 
     companion object : KLogging() {
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
@@ -30,7 +31,7 @@ class FrontDisplayDaemon(
         require(frontDisplayViews.isNotEmpty())
 
         var currentViewIdx = 0
-        val views = frontDisplayViews.map { ViewInfo(it, null) }
+        val views = frontDisplayViews.map { ViewInfo(it, null, null) }
 
         hardware.frontDisplay.clear()
 
@@ -39,12 +40,26 @@ class FrontDisplayDaemon(
             val now = LocalDateTime.now()
             val currentView = views[currentViewIdx]
 
-            views.filter { it.lastPooled?.plus(it.view.getPreferredPoolingInterval())?.isBefore(now) ?: true }.forEach {
-                it.lastPooled = now
+            views.filter {
+                it.lastPooledInstantUpdate?.plus(it.view.preferredInstantPoolingInterval)?.isBefore(now) ?: true
+            }.forEach {
+                it.lastPooledInstantUpdate = now
                 launch {
-                    val status = it.view.poolStateUpdate()
-                    if (it == currentView && status in setOf(UpdateStatus.FULL_SUCCESS, UpdateStatus.PARTIAL_SUCCESS)) { // todo if failure, should redraw too
-                        launch { currentView.view.redrawDisplay(false) }
+                    val status = it.view.poolInstantData()
+                    if (it == currentView && status != UpdateStatus.NO_NEW_DATA) {
+                        launch { currentView.view.redrawDisplay(false, false) }
+                    }
+                }
+            }
+
+            views.filter {
+                it.lastPooledStatusUpdate?.plus(it.view.preferredStatusPoolingInterval)?.isBefore(now) ?: true
+            }.forEach {
+                it.lastPooledStatusUpdate = now
+                launch {
+                    val status = it.view.poolStatusData()
+                    if (it == currentView && status != UpdateStatus.NO_NEW_DATA) {
+                        launch { currentView.view.redrawDisplay(false, true) }
                     }
                 }
             }
@@ -64,7 +79,7 @@ class FrontDisplayDaemon(
 
                 launch {
                     hardware.frontDisplay.clear()
-                    newCurrentView.redrawDisplay(true) // todo add redraw when still on the same display
+                    newCurrentView.redrawDisplay(true, true) // todo add redraw when still on the same display
                 }
 
                 currentViewIdx = newViewIndex
