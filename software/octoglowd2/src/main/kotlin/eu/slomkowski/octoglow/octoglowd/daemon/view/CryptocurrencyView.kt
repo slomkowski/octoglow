@@ -18,7 +18,8 @@ import java.time.ZoneId
 class CryptocurrencyView(
         private val config: Config,
         private val database: DatabaseLayer,
-        private val hardware: Hardware) : FrontDisplayView {
+        private val hardware: Hardware)
+    : FrontDisplayView("Cryptocurrencies", Duration.ofMinutes(5), Duration.ofSeconds(15)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
@@ -172,13 +173,4 @@ class CryptocurrencyView(
 
     private fun findCoinId(symbol: String): String = checkNotNull(availableCoins.find { it.symbol == symbol }?.id)
     { "coin with symbol '$symbol' not found" }
-
-    override val preferredStatusPoolingInterval: Duration
-        get() = Duration.ofMinutes(5)
-
-    override val preferredInstantPoolingInterval: Duration
-        get() = Duration.ofSeconds(15)
-
-    override val name: String
-        get() = "Cryptocurrencies"
 }

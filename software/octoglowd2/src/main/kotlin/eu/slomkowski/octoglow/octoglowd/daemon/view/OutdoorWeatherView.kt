@@ -12,16 +12,8 @@ import java.time.LocalDateTime
 
 class OutdoorWeatherView(
         private val databaseLayer: DatabaseLayer,
-        private val hardware: Hardware) : FrontDisplayView {
-
-    override val name: String
-        get() = "Outdoor weather"
-
-    override val preferredStatusPoolingInterval: Duration
-        get() = Duration.ofSeconds(20)
-
-    override val preferredInstantPoolingInterval: Duration
-        get() = Duration.ofSeconds(7)
+        private val hardware: Hardware)
+    : FrontDisplayView("Outdoor weather", Duration.ofSeconds(20), Duration.ofSeconds(7)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14

@@ -16,7 +16,8 @@ import java.time.LocalDateTime
 
 class GeigerView(
         private val database: DatabaseLayer,
-        private val hardware: Hardware) : FrontDisplayView {
+        private val hardware: Hardware)
+    : FrontDisplayView("Geiger counter", Duration.ofSeconds(7), Duration.ofSeconds(3)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 4 * 5 - 1
@@ -151,13 +152,4 @@ class GeigerView(
 
         return UpdateStatus.FULL_SUCCESS
     }
-
-    override val preferredStatusPoolingInterval: Duration
-        get() = Duration.ofSeconds(7)
-
-    override val preferredInstantPoolingInterval: Duration
-        get() = Duration.ofSeconds(3)
-
-    override val name: String
-        get() = "Geiger Counter"
 }

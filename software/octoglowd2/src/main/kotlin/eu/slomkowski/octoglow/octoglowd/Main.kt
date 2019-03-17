@@ -5,6 +5,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.CpuUsageIndicatorDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
+import eu.slomkowski.octoglow.octoglowd.daemon.view.CalendarView
 import eu.slomkowski.octoglow.octoglowd.daemon.view.CryptocurrencyView
 import eu.slomkowski.octoglow.octoglowd.daemon.view.GeigerView
 import eu.slomkowski.octoglow.octoglowd.daemon.view.OutdoorWeatherView
@@ -31,6 +32,7 @@ fun main(args: Array<String>) {
     val database = DatabaseLayer(config[ConfKey.databaseFile])
 
     val frontDisplayViews = listOf(
+            CalendarView(config, hardware),
             OutdoorWeatherView(database, hardware),
             GeigerView(database, hardware),
             CryptocurrencyView(config, database, hardware))
