@@ -1,8 +1,10 @@
-package eu.slomkowski.octoglow.octoglowd
+package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
+import eu.slomkowski.octoglow.octoglowd.GeoPosKey
+import eu.slomkowski.octoglow.octoglowd.SleepKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.poznanCoordinates
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
@@ -14,8 +16,6 @@ import kotlin.test.assertEquals
 
 class BrightnessDaemonTest {
     companion object : KLogging()
-
-    private val poznanCoordinates = 52.395869 to 16.929220
 
     @Test
     fun testCalculateBrightnessFraction() {

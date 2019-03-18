@@ -6,7 +6,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.dvlopt.linux.i2c.I2CBuffer
 import mu.KLogger
-import java.time.Duration
+import org.shredzone.commons.suncalc.SunTimes
+import java.time.*
+import java.util.*
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -16,6 +18,22 @@ val jacksonObjectMapper: ObjectMapper = com.fasterxml.jackson.databind.ObjectMap
         .registerModules(JavaTimeModule(), KotlinModule())
         .configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true)
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+
+fun calculateSunriseAndSunset(latitude: Double, longitude: Double, ts: LocalDate): Pair<LocalTime, LocalTime> {
+
+    val sunTimes = SunTimes.compute()
+            .at(latitude, longitude)
+            .on(ts.year, ts.monthValue, ts.dayOfMonth)
+            .oneDay()
+            .execute()
+
+    val (sunrise, sunset) = listOf(sunTimes.rise, sunTimes.set).map {
+        checkNotNull(it?.toLocalDateTime()) { "cannot calculate sunrise/sunset for $ts." }.toLocalTime()
+    }
+    check(sunset > sunrise)
+
+    return sunrise to sunset
+}
 
 fun formatHumidity(h: Double?): String = when (h) {
     null -> "H:--%"
@@ -52,6 +70,8 @@ fun List<Int>.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {
     require(this@toI2CBuffer.isNotEmpty())
     this@toI2CBuffer.forEachIndexed { index, value -> this.set(index, value) }
 }
+
+fun Date.toLocalDateTime(): LocalDateTime = toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
 
 fun I2CBuffer.toByteArray(): ByteArray = (0 until length).map { get(it).toByte() }.toByteArray()
 

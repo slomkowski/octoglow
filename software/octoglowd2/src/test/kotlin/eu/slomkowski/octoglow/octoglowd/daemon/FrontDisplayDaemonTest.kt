@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd
+package eu.slomkowski.octoglow.octoglowd.daemon
 
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon.Companion.updateViewIndex
 import org.junit.jupiter.api.Assertions.assertEquals

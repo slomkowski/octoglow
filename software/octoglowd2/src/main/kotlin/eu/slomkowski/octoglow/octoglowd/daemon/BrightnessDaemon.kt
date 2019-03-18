@@ -3,14 +3,12 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.GeoPosKey
 import eu.slomkowski.octoglow.octoglowd.SleepKey
+import eu.slomkowski.octoglow.octoglowd.calculateSunriseAndSunset
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import mu.KLogging
-import org.shredzone.commons.suncalc.SunTimes
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.ZoneId
-import java.util.*
 
 class BrightnessDaemon(
         private val config: Config,
@@ -49,8 +47,6 @@ class BrightnessDaemon(
 
             return brightnessModes.first { it.isDay == isDay && it.isSleeping == isSleeping }.brightness
         }
-
-        private fun Date.toLocalDateTime(): LocalDateTime = toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
     }
 
     override suspend fun pool() {
@@ -64,16 +60,7 @@ class BrightnessDaemon(
         val sleepStart = config[SleepKey.startAt]
         val sleepDuration = config[SleepKey.duration]
 
-        val sunTimes = SunTimes.compute()
-                .at(config[GeoPosKey.latitude], config[GeoPosKey.longitude])
-                .on(ts.year, ts.monthValue, ts.dayOfMonth)
-                .oneDay()
-                .execute()
-
-        val (sunrise, sunset) = listOf(sunTimes.rise, sunTimes.set).map {
-            checkNotNull(it?.toLocalDateTime()) { "cannot calculate sunrise/sunset for $ts." }.toLocalTime()
-        }
-        check(sunset > sunrise)
+        val (sunrise, sunset) = calculateSunriseAndSunset(config[GeoPosKey.latitude], config[GeoPosKey.longitude], ts.toLocalDate())
         logger.debug { "On ${ts.toLocalDate()} sun is up from $sunrise to $sunset." }
 
         val br = calculateFromData(sunrise, sunset, sleepStart, sleepDuration, ts.toLocalTime())

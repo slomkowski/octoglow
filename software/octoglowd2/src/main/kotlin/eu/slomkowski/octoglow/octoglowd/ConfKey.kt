@@ -5,6 +5,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Duration
 import java.time.LocalTime
+import java.util.*
 
 //todo add validators to values
 object GeoPosKey : ConfigSpec("geo-position") {
@@ -27,4 +28,5 @@ object CryptocurrenciesKey : ConfigSpec("cryptocurrencies") {
 object ConfKey : ConfigSpec() {
     val i2cBus by required<Int>()
     val databaseFile by optional<Path>(Paths.get("data.db"))
+    val locale by optional(Locale("pl_PL"))
 }

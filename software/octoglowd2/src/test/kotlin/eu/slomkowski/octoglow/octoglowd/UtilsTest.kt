@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 import kotlin.test.assertFails
 
+val poznanCoordinates = 52.395869 to 16.929220
+
 class UtilsTest {
 
     companion object : KLogging()
