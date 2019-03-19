@@ -28,5 +28,5 @@ object CryptocurrenciesKey : ConfigSpec("cryptocurrencies") {
 object ConfKey : ConfigSpec() {
     val i2cBus by required<Int>()
     val databaseFile by optional<Path>(Paths.get("data.db"))
-    val locale by optional(Locale("pl_PL"))
+    val locale by optional(Locale("pl", "PL"))
 }

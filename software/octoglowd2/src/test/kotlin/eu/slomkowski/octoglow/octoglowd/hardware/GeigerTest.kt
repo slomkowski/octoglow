@@ -57,8 +57,9 @@ class GeigerTest {
         runBlocking {
             Geiger(coroutineContext, bus).use { geiger ->
                 for (i in 0..5) {
+                    logger.info { "Setting brightness to $i." }
                     geiger.setBrightness(i)
-                    delay(1000)
+                    delay(10_000)
                 }
 
                 geiger.setBrightness(3)

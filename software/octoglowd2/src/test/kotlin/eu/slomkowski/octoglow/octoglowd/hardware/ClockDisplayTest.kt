@@ -52,6 +52,7 @@ class ClockDisplayTest {
     fun testSetBrightness(i2CBus: I2CBus) {
         runBlocking {
             ClockDisplay(coroutineContext, i2CBus).apply {
+                setDisplay(12, 34, true, false)
                 for (brightness in 0..5) {
                     setBrightness(brightness)
                     delay(600)

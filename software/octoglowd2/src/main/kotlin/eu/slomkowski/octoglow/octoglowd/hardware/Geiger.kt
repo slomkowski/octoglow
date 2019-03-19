@@ -5,6 +5,7 @@ import eu.slomkowski.octoglow.octoglowd.toList
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import java.time.Duration
 import kotlin.coroutines.CoroutineContext
@@ -102,7 +103,9 @@ class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), Ha
         private const val I2C_READ_TRIES = 4
     }
 
-    override fun close() {}
+    override fun close() = runBlocking(threadContext) {
+        setBrightness(3)
+    }
 
     override suspend fun setBrightness(brightness: Int) {
         assert(brightness in 0..5) { "brightness should be in range 0..5" }

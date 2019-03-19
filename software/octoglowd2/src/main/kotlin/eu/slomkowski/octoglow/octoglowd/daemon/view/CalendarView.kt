@@ -58,6 +58,7 @@ class CalendarView(
 
     init {
         val locale = config[ConfKey.locale]
+        logger.info { "Initializing calendar for $locale." }
         nameDays = requireNotNull(CalendarView::class.java.getResourceAsStream("/name-day/${locale.country}.csv"))
         { "name day CSV for country ${locale.country} doesn't exist" }.use { loadNameDays(it).toSet() }
         holidayManager = HolidayManager.getInstance(ManagerParameters.create(locale))
@@ -71,8 +72,9 @@ class CalendarView(
 
         return listOfNotNull(
                 holiday?.description?.toUpperCase(),
-                "${sunrise.format(sunriseSunsetTimeFormatter)} - ${sunset.format(sunriseSunsetTimeFormatter)}",
-                names?.joinToString(", "))
+                "sunrise:${sunrise.format(sunriseSunsetTimeFormatter)}",
+                "sunset:${sunset.format(sunriseSunsetTimeFormatter)}",
+                names?.joinToString(","))
                 .joinToString("; ")
                 .let { StringUtils.capitalize(it) }
     }

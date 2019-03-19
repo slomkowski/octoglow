@@ -1,5 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import com.thedeanda.lorem.LoremIpsum
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -63,6 +64,20 @@ class FrontDisplayTest {
                 clear()
                 setScrollingText(Slot.SLOT0, 34, 5,
                         "The quick brown fox jumps over the lazy dog. 20\u00B0C Dość gróźb fuzją, klnę, pych i małżeństw!")
+            }
+        }
+    }
+
+    @Test
+    fun testSetBrightness(bus: I2CBus) {
+        runBlocking {
+            FrontDisplay(coroutineContext, bus).use { frontDisplay ->
+                frontDisplay.setStaticText(0, LoremIpsum.getInstance().getTitle(10).substring(0..39))
+
+                for (i in 0..5) {
+                    frontDisplay.setBrightness(i)
+                    delay(1000)
+                }
             }
         }
     }
