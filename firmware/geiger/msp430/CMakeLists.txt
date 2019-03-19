@@ -11,7 +11,7 @@ SET(CMAKE_CXX_COMPILER msp430-elf-g++)
 SET(SUPPORT_FILE_DIRECTORY /home/michal/projects/octoglow/msp430-gcc-support-files/include)
 
 SET(CMAKE_C_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -std=gnu99 -Wl,--gc-sections -Wall -Wextra -pedantic")
-SET(CMAKE_CXX_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -std=c++14 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
+SET(CMAKE_CXX_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -std=c++17 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
 #todo delete support line
 SET(CMAKE_EXE_LINKER_FLAGS "-L${SUPPORT_FILE_DIRECTORY}")
 include_directories(../noarch)

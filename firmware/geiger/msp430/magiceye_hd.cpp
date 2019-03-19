@@ -29,8 +29,6 @@ void ::octoglow::geiger::magiceye::hd::enableHeater2(bool enabled) {
 
 void ::octoglow::geiger::magiceye::init() {
 
-    setBrightness(3);
-
     // init heater
     P1DIR |= HEATING_1 | HEATING_2;
     hd::enableHeater2(false);
@@ -39,7 +37,7 @@ void ::octoglow::geiger::magiceye::init() {
     // init DAC
     P2DIR |= DAC_LATCH | DAC_IN | DAC_CLK;
 
-    inverter::desiredEyeAdcValue = _private::desiredAdcValues[protocol::MAX_BRIGHTNESS - 1];
+    setBrightness(3);
 
     setAdcValue(127); // set to half value
 }

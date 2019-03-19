@@ -26,13 +26,15 @@ namespace octoglow {
 
             namespace _private {
                 const uint16_t desiredAdcValues[] = {
-                        octoglow::geiger::inverter::eyeAdcVal(0),
+                        inverter::eyeAdcVal(0),
                         inverter::eyeAdcVal(100),
                         inverter::eyeAdcVal(140),
                         inverter::eyeAdcVal(180),
                         inverter::eyeAdcVal(210),
                         inverter::eyeAdcVal(250)
                 };
+
+                static_assert(sizeof(desiredAdcValues) / sizeof(desiredAdcValues[0] ==  protocol::MAX_BRIGHTNESS + 1), "invalid number of brightness values");
             }
 
             namespace hd {

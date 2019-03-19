@@ -25,7 +25,6 @@ using namespace octoglow::vfd_clock;
 using namespace octoglow::vfd_clock::display;
 
 constexpr uint8_t NUMBER_OF_POSITIONS = 4;
-constexpr uint8_t PWM_STEPS = 255;
 
 constexpr uint8_t RECEIVER_UPDATE_FLAG = 0b100;
 constexpr uint8_t RECEIVER_VALID_UPDATE_CHARACTER_SHAPE = 0b1100010;
@@ -34,6 +33,8 @@ constexpr uint8_t RECEIVER_INVALID_UPDATE_CHARACTER_SHAPE = 0b0000010;
 static_assert((RECEIVER_UPDATE_FLAG & protocol::LOWER_DOT) == 0);
 static_assert((RECEIVER_UPDATE_FLAG & protocol::UPPER_DOT) == 0);
 
+static const uint8_t BRIGHTNESS_PWM_VALUES[] PROGMEM = {0, 30, 70, 160, 220, 255};
+static_assert(sizeof(BRIGHTNESS_PWM_VALUES) == protocol::MAX_BRIGHTNESS + 1, "invalid number of brightness PWM values");
 
 /*
  * rows - display number
@@ -145,18 +146,14 @@ void octoglow::vfd_clock::display::init() {
     TCCR1A = _BV(COM1B1) | _BV(PWM1B);
     TCCR1B = _BV(PSR1) | _BV(CS13) | _BV(CS11); // clk / 512
 
-    OCR1C = PWM_STEPS;
-
-    setBrightness(protocol::MAX_BRIGHTNESS);
+    setBrightness(3);
 
     setDots(protocol::LOWER_DOT, false);
     setAllCharacters(const_cast<char *>("-_-_"));
 }
 
 void octoglow::vfd_clock::display::setBrightness(const uint8_t brightness) {
-    OCR1B = (brightness > protocol::MAX_BRIGHTNESS
-             ? protocol::MAX_BRIGHTNESS : brightness)
-            * PWM_STEPS / protocol::MAX_BRIGHTNESS;
+    OCR1B = pgm_read_byte(BRIGHTNESS_PWM_VALUES + (brightness > protocol::MAX_BRIGHTNESS ? protocol::MAX_BRIGHTNESS : brightness));
 }
 
 void octoglow::vfd_clock::display::setCharacter(const uint8_t position, const char character,

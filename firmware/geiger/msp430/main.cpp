@@ -50,8 +50,8 @@ int main() {
 
     configureClockSystem();
 
-    inverter::init();
     magiceye::init();
+    inverter::init();
     i2c::init();
     geiger_counter::init();
 

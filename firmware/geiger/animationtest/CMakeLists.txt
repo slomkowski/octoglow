@@ -4,7 +4,7 @@ project(octoglow-geiger-animationtest)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-SET(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -Wall -Wextra -pedantic -ansi -Wmissing-declarations -Winit-self -Woverloaded-virtual -Wuninitialized")
+SET(CMAKE_CXX_FLAGS "-g -O0 -std=c++17 -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -Wall -Wextra -pedantic -ansi -Wmissing-declarations -Winit-self -Woverloaded-virtual -Wuninitialized")
 include_directories(../noarch)
 include_directories(../../lib/libfixmath/libfixmath)
 

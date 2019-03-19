@@ -80,7 +80,11 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
 
     PORT(STB_PORT) &= ~_BV(STB_PIN);
 
-    PORT(CL_PORT) |= _BV(CL_PIN);
+    if (_brightness == 0) {
+        PORT(CL_PORT) &= ~_BV(CL_PIN);
+    } else {
+        PORT(CL_PORT) |= _BV(CL_PIN);
+    }
 
     const uint8_t *characterPtr = &_frameBuffer[(COLUMNS_IN_CHARACTER * position) %
                                                 (NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER)];
@@ -91,6 +95,10 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
         position -= 10;
     } else if (position >= 30) {
         position -= 10;
+    }
+
+    if (_brightness == 1) {
+        PORT(CL_PORT) &= ~_BV(CL_PIN);
     }
 
     if (position < 20) {
@@ -106,7 +114,7 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
         }
     }
 
-    if (_brightness == 1) {
+    if (_brightness == 2) {
         PORT(CL_PORT) &= ~_BV(CL_PIN);
     }
 
@@ -141,7 +149,7 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
     ckPulse();
     ckPulse();
 
-    if (_brightness == 2) {
+    if (_brightness == 3) {
         PORT(CL_PORT) &= ~_BV(CL_PIN);
     }
 
@@ -189,7 +197,7 @@ static inline void holdCharacterOnDisplayInputs(uint8_t position) {
         ckPulse();
     }
 
-    if (_brightness == 3) {
+    if (_brightness == 4) {
         PORT(CL_PORT) &= ~_BV(CL_PIN);
     }
 

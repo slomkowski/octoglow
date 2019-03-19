@@ -17,8 +17,6 @@ namespace octoglow::geiger::magiceye {
     EyeDisplayMode animationMode = EyeDisplayMode::ANIMATION;
 }
 
-static_assert(sizeof(_private::desiredAdcValues) / sizeof(_private::desiredAdcValues[0]) == protocol::MAX_BRIGHTNESS + 1, "define as many voltages as brightness levels");
-
 static uint16_t cyclesCounter = UINT16_MAX;
 
 void octoglow::geiger::magiceye::tick() {
