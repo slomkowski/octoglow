@@ -16,19 +16,42 @@ enum class UpdateStatus {
  */
 abstract class FrontDisplayView(
         val name: String,
-        val preferredStatusPoolingInterval: Duration,
-        val preferredInstantPoolingInterval: Duration) {
+        val poolStatusEvery: Duration,
+        val poolInstantEvery: Duration) {
 
     init {
         check(name.isNotBlank())
-        check(preferredStatusPoolingInterval > Duration.ZERO)
-        check(preferredInstantPoolingInterval > Duration.ZERO)
-        check(preferredStatusPoolingInterval > preferredInstantPoolingInterval)
+        check(poolStatusEvery > Duration.ZERO)
+        check(poolInstantEvery > Duration.ZERO)
+        check(poolStatusEvery > poolInstantEvery)
     }
+
+    open suspend fun getMenus(): List<Menu> = emptyList()
 
     abstract suspend fun poolStatusData(): UpdateStatus
 
     abstract suspend fun poolInstantData(): UpdateStatus
 
     abstract suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean)
+}
+
+data class MenuOption(val text: String) {
+    init {
+        require(text.isNotBlank())
+        require(text.length < 14)
+    }
+
+    override fun toString(): String = text
+}
+
+data class Menu(
+        val text: String,
+        val options: List<MenuOption>,
+        val getCurrentOptionFun: suspend () -> MenuOption,
+        val setCurrentOptionFun: suspend (MenuOption) -> Unit) {
+    init {
+        require(text.isNotBlank())
+        require(text.length <= 20)
+        require(options.isNotEmpty())
+    }
 }

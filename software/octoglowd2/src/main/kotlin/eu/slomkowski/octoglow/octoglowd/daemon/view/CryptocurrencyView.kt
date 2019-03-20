@@ -126,7 +126,7 @@ class CryptocurrencyView(
         if (report != null) {
             val currentCycleDuration = Duration.between(report.timestamp, LocalDateTime.now())
             check(!currentCycleDuration.isNegative)
-            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, preferredStatusPoolingInterval))) }
+            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, poolStatusEvery))) }
         } else {
             launch { fd.setUpperBar(emptyList()) }
         }

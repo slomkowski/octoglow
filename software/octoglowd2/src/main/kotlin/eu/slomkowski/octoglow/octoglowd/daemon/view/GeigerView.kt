@@ -108,6 +108,25 @@ class GeigerView(
         Unit
     }
 
+    override suspend fun getMenus(): List<Menu> {
+        val optOn = MenuOption("ON")
+        val optOff = MenuOption("OFF")
+        return listOf(Menu("Magic eye", listOf(optOn, optOff), {
+            val eyeState = hardware.geiger.getDeviceState().eyeState
+            logger.info { "Eye state is $eyeState." }
+            when (eyeState) {
+                EyeInverterState.DISABLED -> optOff
+                else -> optOn
+            }
+        }, { currentOpt ->
+            logger.info { "Magic eye set to $currentOpt." }
+            hardware.geiger.setEyeConfiguration(when (currentOpt) {
+                optOn -> true
+                else -> false
+            })
+        }))
+    }
+
     override suspend fun poolInstantData(): UpdateStatus {
         return try {
             deviceReport = hardware.geiger.getDeviceState()

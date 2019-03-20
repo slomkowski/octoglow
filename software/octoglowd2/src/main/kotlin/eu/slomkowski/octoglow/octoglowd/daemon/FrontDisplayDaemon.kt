@@ -1,11 +1,15 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
+import com.toxicbakery.kfinstatemachine.StateMachine
+import com.toxicbakery.kfinstatemachine.StateMachine.Companion.transition
 import eu.slomkowski.octoglow.octoglowd.daemon.view.FrontDisplayView
-import eu.slomkowski.octoglow.octoglowd.daemon.view.UpdateStatus
+import eu.slomkowski.octoglow.octoglowd.daemon.view.Menu
+import eu.slomkowski.octoglow.octoglowd.daemon.view.MenuOption
+import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
@@ -15,11 +19,6 @@ class FrontDisplayDaemon(
         private val frontDisplayViews: List<FrontDisplayView>)
     : Daemon(Duration.ofMillis(100)) {
 
-    data class ViewInfo(
-            val view: FrontDisplayView,
-            var lastPooledStatusUpdate: LocalDateTime?,
-            var lastPooledInstantUpdate: LocalDateTime?)
-
     companion object : KLogging() {
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0..(size - 1))
@@ -27,64 +26,62 @@ class FrontDisplayDaemon(
         }
     }
 
-    override suspend fun pool() = coroutineScope {
+    data class ViewInfo(
+            var active: Boolean,
+            val view: FrontDisplayView,
+            var lastSelected: LocalDateTime?,
+            var lastPooledStatusUpdate: LocalDateTime?,
+            var lastPooledInstantUpdate: LocalDateTime?)
+
+    private val views = frontDisplayViews.map { ViewInfo(false, it, null, null, null) }
+
+
+    private var lastDialActivity: LocalDateTime? = null
+
+    init {
         require(frontDisplayViews.isNotEmpty())
-
-        var currentViewIdx = 0
-        val views = frontDisplayViews.map { ViewInfo(it, null, null) }
-
-        hardware.frontDisplay.clear()
-
-        for (t in ticker(100)) {
-
-            val now = LocalDateTime.now()
-            val currentView = views[currentViewIdx]
-
-            views.filter {
-                it.lastPooledInstantUpdate?.plus(it.view.preferredInstantPoolingInterval)?.isBefore(now) ?: true
-            }.forEach {
-                it.lastPooledInstantUpdate = now
-                launch {
-                    val status = it.view.poolInstantData()
-                    if (it == currentView && status != UpdateStatus.NO_NEW_DATA) {
-                        launch { currentView.view.redrawDisplay(false, false) }
-                    }
-                }
-            }
-
-            views.filter {
-                it.lastPooledStatusUpdate?.plus(it.view.preferredStatusPoolingInterval)?.isBefore(now) ?: true
-            }.forEach {
-                it.lastPooledStatusUpdate = now
-                launch {
-                    val status = it.view.poolStatusData()
-                    if (it == currentView && status != UpdateStatus.NO_NEW_DATA) {
-                        launch { currentView.view.redrawDisplay(false, true) }
-                    }
-                }
-            }
-
-            val buttonReport = hardware.frontDisplay.getButtonReport()
-
-            if (buttonReport.encoderDelta != 0) {
-                logger.debug { "Encoder delta: ${buttonReport.encoderDelta}." }
-            }
-
-            val newViewIndex = updateViewIndex(currentViewIdx, buttonReport.encoderDelta, views.size)
-
-            if (newViewIndex != currentViewIdx) {
-                val newCurrentView = views[newViewIndex].view
-
-                logger.debug { "Switched view to ${newCurrentView.name}." }
-
-                launch {
-                    hardware.frontDisplay.clear()
-                    newCurrentView.redrawDisplay(true, true) // todo add redraw when still on the same display
-                }
-
-                currentViewIdx = newViewIndex
-            }
+        runBlocking {
+            hardware.frontDisplay.clear()
         }
     }
 
+    sealed class State {
+        object Normal : State()
+        object Menu : State()
+    }
+
+    sealed class Event {
+        object ButtonPressed : Event()
+       data class EncoderDelta(val delta: Int) : Event()
+    }
+
+    val stateMachine = StateMachine(State.Normal,
+            transition(State.Normal, Event.ButtonPressed::class, State.Menu)
+
+    )
+
+    /**
+     * Returns pair of: (views with status update, views with instant update)
+     */
+
+
+    private fun poolMenu(firstTime: Boolean, encoderDelta: Int, buttonPress: Boolean): Boolean {
+        return true
+    }
+
+    override suspend fun pool() = coroutineScope {
+       TODO()
+    }
+
+    private var currentOptionBrightness: MenuOption? = null //todo zrobić zapis w bazie
+
+    private val brightnessMenu: Menu
+        get() {
+            val optAuto = MenuOption("AUTO")
+            val optHard = (1..5).map { MenuOption(it.toString()) }
+
+            return Menu("Display brightness", optHard.plus(optAuto), {
+                currentOptionBrightness ?: optAuto //todo
+            }, { currentOptionBrightness = it }) //todo
+        }
 }

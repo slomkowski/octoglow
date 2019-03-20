@@ -135,6 +135,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.ToxicBakery.kfinstatemachine</groupId>
+            <artifactId>kfin-jvm</artifactId>
+            <version>3.0.17</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.kittinunf.fuel</groupId>
             <artifactId>fuel</artifactId>
             <version>${fuel.version}</version>
