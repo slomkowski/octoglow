@@ -7,6 +7,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.view.Menu
 import eu.slomkowski.octoglow.octoglowd.daemon.view.MenuOption
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -45,6 +46,23 @@ class FrontDisplayDaemon(
         }
     }
 
+    suspend fun drawMenu(menu : Menu) : MenuOption = coroutineScope{
+        val fd = hardware.frontDisplay
+        val currentOptionJob = async {  menu.getCurrentOptionFun() }
+
+        fd.clear()
+
+        val line1 = "< " + menu.text.padEnd(16) + " >"
+        launch { fd.setStaticText(0, line1) }
+
+        val currentOption = currentOptionJob.await()
+
+        val line2 = "Current: " + currentOption.text
+        launch { fd.setStaticText(20, line2) }
+
+        currentOption
+    }
+
     sealed class State {
         object Normal : State()
         object Menu : State()
@@ -55,18 +73,29 @@ class FrontDisplayDaemon(
        data class EncoderDelta(val delta: Int) : Event()
     }
 
-    val stateMachine = StateMachine(State.Normal,
-            transition(State.Normal, Event.ButtonPressed::class, State.Menu)
-
-    )
 
     /**
      * Returns pair of: (views with status update, views with instant update)
      */
 
 
-    private fun poolMenu(firstTime: Boolean, encoderDelta: Int, buttonPress: Boolean): Boolean {
-        return true
+    private suspend fun poolMenu(firstTime: Boolean, encoderDelta: Int, buttonPress: Boolean): Boolean  = coroutineScope {
+
+
+
+
+        val stateMachine = StateMachine(State.Normal,
+                transition(State.Normal, Event.ButtonPressed::class, State.Menu).reaction { machine, transition ->
+                    launch {
+                        views[0].view.poolStatusData()
+                   }
+                }
+
+        )
+
+
+
+         true
     }
 
     override suspend fun pool() = coroutineScope {
