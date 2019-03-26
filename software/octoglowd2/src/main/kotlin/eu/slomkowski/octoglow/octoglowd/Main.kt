@@ -31,19 +31,19 @@ fun main(args: Array<String>) {
 
     val database = DatabaseLayer(config[ConfKey.databaseFile])
 
-    val frontDisplayViews = listOf(
-            CalendarView(config, hardware),
-            OutdoorWeatherView(database, hardware),
-            GeigerView(database, hardware),
-            CryptocurrencyView(config, database, hardware))
-
-    val controllers = listOf(
-            CpuUsageIndicatorDaemon(hardware),
-            RealTimeClockDaemon(hardware),
-            BrightnessDaemon(config, hardware),
-            FrontDisplayDaemon(hardware, frontDisplayViews))
-
     runBlocking {
+        val frontDisplayViews = listOf(
+                CalendarView(config, hardware),
+                OutdoorWeatherView(database, hardware),
+                GeigerView(database, hardware),
+                CryptocurrencyView(coroutineContext, config, database, hardware))
+
+        val controllers = listOf(
+                CpuUsageIndicatorDaemon(hardware),
+                RealTimeClockDaemon(hardware),
+                BrightnessDaemon(config, hardware),
+                FrontDisplayDaemon(coroutineContext, hardware, frontDisplayViews))
+
         controllers.map { launch { it.startPooling() } }.joinAll()
     }
 }

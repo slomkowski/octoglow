@@ -14,8 +14,10 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import kotlin.coroutines.CoroutineContext
 
 class CryptocurrencyView(
+        coroutineContext: CoroutineContext,
         private val config: Config,
         private val database: DatabaseLayer,
         private val hardware: Hardware)
@@ -94,7 +96,7 @@ class CryptocurrencyView(
     private val coinKeys = listOf(CryptocurrenciesKey.coin1, CryptocurrenciesKey.coin2, CryptocurrenciesKey.coin3)
 
     init {
-        availableCoins = runBlocking { getCoins() }
+        availableCoins = runBlocking(coroutineContext) { getCoins() }
         coinKeys.forEach { findCoinId(config[it]) }
     }
 

@@ -135,9 +135,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.ToxicBakery.kfinstatemachine</groupId>
-            <artifactId>kfin-jvm</artifactId>
-            <version>3.0.17</version>
+            <groupId>org.softpark</groupId>
+            <artifactId>stateful4k</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>

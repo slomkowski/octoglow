@@ -62,7 +62,7 @@ class CryptocurrencyViewTest {
         coEvery { hardware.frontDisplay.setStaticText(any(), any()) } returns Unit
 
         runBlocking {
-            val view = CryptocurrencyView(config, db, hardware)
+            val view = CryptocurrencyView(coroutineContext, config, db, hardware)
 
             view.redrawDisplay(true, true)
 
