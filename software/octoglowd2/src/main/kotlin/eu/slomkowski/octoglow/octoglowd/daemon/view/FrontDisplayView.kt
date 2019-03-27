@@ -33,6 +33,8 @@ abstract class FrontDisplayView(
     abstract suspend fun poolInstantData(): UpdateStatus
 
     abstract suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean)
+
+    override fun toString(): String = "'$name'"
 }
 
 data class MenuOption(val text: String) {

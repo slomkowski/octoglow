@@ -50,9 +50,9 @@ class FrontDisplayDaemon(
         require(frontDisplayViews.isNotEmpty())
 
         stateExecutor = runBlocking(coroutineContext) {
-            hardware.frontDisplay.clear()
+            //hardware.frontDisplay.clear()
 
-            createStateMachineExecutor()
+           createStateMachineExecutor()
         }
     }
 
@@ -103,6 +103,8 @@ class FrontDisplayDaemon(
         val configurator = StateMachine.createConfigurator<FrontDisplayDaemon, State, Event>().apply {
 
             fun <T : State.ViewCycle> createCommonActions(klass: KClass<T>) {
+                event(klass, Event.ButtonPressed::class).loop() //todo enter menu
+
                 event(klass, Event.StatusUpdate::class)
                         .filter { event.info == state.info }
                         .loop { launch { state.info.view.redrawDisplay(false, true) } }
