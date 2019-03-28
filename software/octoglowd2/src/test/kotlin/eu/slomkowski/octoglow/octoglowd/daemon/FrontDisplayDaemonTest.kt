@@ -36,17 +36,28 @@ class FrontDisplayDaemonTest {
     }
 
     @Test
-    fun testStateMachineBasics() {
+    fun testStateMachineSwitchView() {
         runBlocking {
             val hardware = mockk<Hardware>()
-            val d = FrontDisplayDaemon(coroutineContext, hardware, listOf(TestView("T1"), TestView("T2")) )
 
             coEvery {hardware.frontDisplay.clear()} just Runs
 
             coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
 
-            // todo test
+            val v1 = mockk<FrontDisplayView>()
+            val v2 = mockk<FrontDisplayView>()
+
+            coEvery { v1.redrawDisplay(true, true) } just Runs
+            coEvery { v2.redrawDisplay(true, true) } just Runs
+
+            val d = FrontDisplayDaemon(coroutineContext, hardware, listOf(v1, v2))
+
             d.pool()
+
+            d.pool()
+
+            coVerify { v1.redrawDisplay(true, true) }
+            coVerify { v2.redrawDisplay(true, true) }
         }
     }
 

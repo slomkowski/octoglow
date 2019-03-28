@@ -5,10 +5,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.view.Menu
 import eu.slomkowski.octoglow.octoglowd.daemon.view.MenuOption
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import mu.KLogging
 import org.softpark.stateful4k.StateMachine
 import org.softpark.stateful4k.action.IExecutor
@@ -49,11 +46,11 @@ class FrontDisplayDaemon(
     init {
         require(frontDisplayViews.isNotEmpty())
 
-        stateExecutor = runBlocking(coroutineContext) {
-            //hardware.frontDisplay.clear()
-
-           createStateMachineExecutor()
+        runBlocking(coroutineContext) {
+            hardware.frontDisplay.clear()
         }
+
+        stateExecutor = createStateMachineExecutor(coroutineContext)
     }
 
     fun getNeighbourView(info: ViewInfo, number: Int): ViewInfo = when (number) {
@@ -98,7 +95,9 @@ class FrontDisplayDaemon(
         data class InstantUpdate(val info: ViewInfo) : Event()
     }
 
-    private suspend fun createStateMachineExecutor(): IExecutor<FrontDisplayDaemon, State, Event> = coroutineScope {
+    private fun createStateMachineExecutor(coroutineContext: CoroutineContext): IExecutor<FrontDisplayDaemon, State, Event> {
+
+        fun launchInBackground(lambda: suspend () -> Unit) = CoroutineScope(coroutineContext).launch { lambda() }
 
         val configurator = StateMachine.createConfigurator<FrontDisplayDaemon, State, Event>().apply {
 
@@ -107,18 +106,18 @@ class FrontDisplayDaemon(
 
                 event(klass, Event.StatusUpdate::class)
                         .filter { event.info == state.info }
-                        .loop { launch { state.info.view.redrawDisplay(false, true) } }
+                        .loop { launchInBackground { state.info.view.redrawDisplay(false, true) } }
 
                 event(klass, Event.InstantUpdate::class)
                         .filter { event.info == state.info }
-                        .loop { launch { state.info.view.redrawDisplay(false, false) } }
+                        .loop { launchInBackground { state.info.view.redrawDisplay(false, false) } }
 
                 event(klass, Event.EncoderDelta::class)
                         .filter { event.delta != 0 }
                         .goto {
                             val newView = getNeighbourView(state.info, event.delta)
                             logger.info { "Switching view from ${state.info} to $newView." }
-                            launch {
+                            launchInBackground {
                                 hardware.frontDisplay.clear()
                                 state.info.view.redrawDisplay(true, true)
                             }
@@ -139,17 +138,16 @@ class FrontDisplayDaemon(
                     .filter { event.info != state.info }
                     .goto {
                         logger.info { "Got status update from ${event.info}. Switching to it." }
-                        launch {
+                        launchInBackground {
                             hardware.frontDisplay.clear()
                             state.info.view.redrawDisplay(true, true)
                         }
                         State.ViewCycle.Auto(event.info)
                     }
 
-
         }
 
-        configurator.createExecutor(this@FrontDisplayDaemon, State.ViewCycle.Auto(views.first()))
+        return configurator.createExecutor(this@FrontDisplayDaemon, State.ViewCycle.Auto(views.first()))
     }
 
     override suspend fun pool() = coroutineScope {
