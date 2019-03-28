@@ -1,5 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.ConfKey
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
@@ -17,11 +19,11 @@ interface Hardware : HasBrightness, AutoCloseable {
     override fun close()
 }
 
-class PhysicalHardware(i2cBusNumber: Int) : Hardware {
+class PhysicalHardware(private val config: Config) : Hardware {
 
     private val threadContext = newSingleThreadContext("hardware")
 
-    private val bus = I2CBus(i2cBusNumber)
+    private val bus = I2CBus(config[ConfKey.i2cBus])
 
     override val clockDisplay = ClockDisplay(threadContext, bus)
 
@@ -37,7 +39,9 @@ class PhysicalHardware(i2cBusNumber: Int) : Hardware {
     // override val bme280 = Bme280(threadContext, bus)
 
     init {
-        runBlocking { clockDisplay.ringBell(Duration.ofMillis(500)) }
+        if(config[ConfKey.ringAtStartup]) {
+            runBlocking { clockDisplay.ringBell(Duration.ofMillis(70)) }
+        }
     }
 
     override suspend fun setBrightness(brightness: Int) {

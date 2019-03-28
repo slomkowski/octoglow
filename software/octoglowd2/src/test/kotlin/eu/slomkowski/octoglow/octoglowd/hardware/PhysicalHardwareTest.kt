@@ -1,6 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import com.thedeanda.lorem.LoremIpsum
+import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.TestConfKey
 import eu.slomkowski.octoglow.octoglowd.testConfig
 import kotlinx.coroutines.delay
@@ -14,8 +16,11 @@ class PhysicalHardwareTest {
 
     @Test
     fun testBrightness() {
+        val config = Config { addSpec(ConfKey) }
+        config[ConfKey.i2cBus] = testConfig[TestConfKey.i2cBus]
+
         runBlocking {
-            PhysicalHardware(testConfig[TestConfKey.i2cBus]).use { hardware ->
+            PhysicalHardware(config).use { hardware ->
                 hardware.frontDisplay.setStaticText(0, LoremIpsum.getInstance().getWords(20).take(39))
                 hardware.clockDisplay.setDisplay(12, 34, true, false)
 

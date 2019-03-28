@@ -77,9 +77,9 @@ class ClockDisplayTest {
     fun testRingBell(i2CBus: I2CBus) {
         runBlocking {
             ClockDisplay(coroutineContext, i2CBus).apply {
-                ringBell(Duration.ofSeconds(1))
+                ringBell(Duration.ofMillis(100))
                 delay(1000)
-                ringBell(Duration.ofSeconds(2))
+                ringBell(Duration.ofMillis(500))
             }
         }
     }

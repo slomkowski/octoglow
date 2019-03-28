@@ -23,7 +23,7 @@ fun main(args: Array<String>) {
         addSpec(SleepKey)
     }.from.yaml.file("config.yml").from.env().from.systemProperties()
 
-    val hardware = PhysicalHardware(config[ConfKey.i2cBus])
+    val hardware = PhysicalHardware(config)
 
     Runtime.getRuntime().addShutdownHook(Thread {
         hardware.close() //todo maybe find cleaner way?

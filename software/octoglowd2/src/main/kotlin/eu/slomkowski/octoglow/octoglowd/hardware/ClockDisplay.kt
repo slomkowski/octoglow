@@ -5,6 +5,7 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import mu.KLogging
 import java.time.Duration
 import kotlin.coroutines.CoroutineContext
 
@@ -49,7 +50,7 @@ data class OutdoorWeatherReport(
 
 class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x10), HasBrightness {
 
-    companion object {
+    companion object : KLogging() {
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
     }
@@ -89,6 +90,8 @@ class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
     suspend fun ringBell(duration: Duration) {
         require(!duration.isNegative)
         require(!duration.isZero)
+
+        logger.info { "Ringing for ${duration.toMillis()} ms." }
 
         try {
             doWrite(2, 0, 1)

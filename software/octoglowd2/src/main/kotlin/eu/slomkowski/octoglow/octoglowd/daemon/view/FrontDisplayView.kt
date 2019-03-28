@@ -56,4 +56,6 @@ data class Menu(
         require(text.length <= 20)
         require(options.isNotEmpty())
     }
+
+    override fun toString(): String = text
 }
