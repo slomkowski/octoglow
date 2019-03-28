@@ -2,6 +2,8 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runBlocking
+import java.time.Duration
 
 interface Hardware : HasBrightness, AutoCloseable {
     val clockDisplay: ClockDisplay
@@ -33,6 +35,10 @@ class PhysicalHardware(i2cBusNumber: Int) : Hardware {
         get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
 
     // override val bme280 = Bme280(threadContext, bus)
+
+    init {
+        runBlocking { clockDisplay.ringBell(Duration.ofMillis(500)) }
+    }
 
     override suspend fun setBrightness(brightness: Int) {
         listOf<HasBrightness>(clockDisplay, frontDisplay, geiger).forEach { it.setBrightness(brightness) }

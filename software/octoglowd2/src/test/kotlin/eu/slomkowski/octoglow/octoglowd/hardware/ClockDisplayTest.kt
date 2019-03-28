@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import java.time.Duration
 import kotlin.test.*
 
 @ExtendWith(I2CBusParameterResolver::class)
@@ -68,6 +69,17 @@ class ClockDisplayTest {
                 setDisplay(3, 58, true, false)
                 delay(1000)
                 setDisplay(21, 2, false, true)
+            }
+        }
+    }
+
+    @Test
+    fun testRingBell(i2CBus: I2CBus) {
+        runBlocking {
+            ClockDisplay(coroutineContext, i2CBus).apply {
+                ringBell(Duration.ofSeconds(1))
+                delay(1000)
+                ringBell(Duration.ofSeconds(2))
             }
         }
     }

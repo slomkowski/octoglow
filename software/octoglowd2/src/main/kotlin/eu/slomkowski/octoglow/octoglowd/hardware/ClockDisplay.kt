@@ -3,7 +3,9 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import java.time.Duration
 import kotlin.coroutines.CoroutineContext
 
 data class OutdoorWeatherReport(
@@ -82,5 +84,17 @@ class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
         }
 
         doWrite(1, 0x30 + hours / 10, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots)
+    }
+
+    suspend fun ringBell(duration: Duration) {
+        require(!duration.isNegative)
+        require(!duration.isZero)
+
+        try {
+            doWrite(2, 0, 1)
+            delay(duration.toMillis())
+        } finally {
+            doWrite(2, 0, 0)
+        }
     }
 }
