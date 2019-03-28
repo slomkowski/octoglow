@@ -108,7 +108,7 @@ class GeigerView(
         Unit
     }
 
-    override suspend fun getMenus(): List<Menu> {
+    override fun getMenus(): List<Menu> {
         val optOn = MenuOption("ON")
         val optOff = MenuOption("OFF")
         return listOf(Menu("Magic eye", listOf(optOn, optOff), {

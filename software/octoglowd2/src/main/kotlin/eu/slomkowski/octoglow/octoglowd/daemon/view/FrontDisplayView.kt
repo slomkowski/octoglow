@@ -26,7 +26,7 @@ abstract class FrontDisplayView(
         check(poolStatusEvery > poolInstantEvery)
     }
 
-    open suspend fun getMenus(): List<Menu> = emptyList()
+    open fun getMenus(): List<Menu> = emptyList()
 
     abstract suspend fun poolStatusData(): UpdateStatus
 
