@@ -10,6 +10,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.view.CryptocurrencyView
 import eu.slomkowski.octoglow.octoglowd.daemon.view.GeigerView
 import eu.slomkowski.octoglow.octoglowd.daemon.view.OutdoorWeatherView
 import eu.slomkowski.octoglow.octoglowd.hardware.PhysicalHardware
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -31,19 +32,19 @@ fun main(args: Array<String>) {
 
     val database = DatabaseLayer(config[ConfKey.databaseFile])
 
+    val frontDisplayViews = listOf(
+            CalendarView(config, hardware),
+            OutdoorWeatherView(database, hardware),
+            GeigerView(database, hardware),
+            CryptocurrencyView(GlobalScope.coroutineContext, config, database, hardware))
+
+    val controllers = listOf(
+            CpuUsageIndicatorDaemon(hardware),
+            RealTimeClockDaemon(hardware),
+            BrightnessDaemon(config, hardware),
+            FrontDisplayDaemon(GlobalScope.coroutineContext, hardware, frontDisplayViews))
+
     runBlocking {
-        val frontDisplayViews = listOf(
-                CalendarView(config, hardware),
-                OutdoorWeatherView(database, hardware),
-                GeigerView(database, hardware),
-                CryptocurrencyView(coroutineContext, config, database, hardware))
-
-        val controllers = listOf(
-                CpuUsageIndicatorDaemon(hardware),
-                RealTimeClockDaemon(hardware),
-                BrightnessDaemon(config, hardware),
-                FrontDisplayDaemon(coroutineContext, hardware, frontDisplayViews))
-
-        controllers.map { launch { it.startPooling() } }.joinAll()
+        controllers.map { GlobalScope.launch { it.startPooling() } }.joinAll()
     }
 }

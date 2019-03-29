@@ -122,9 +122,10 @@ class DatabaseLayer(databaseFile: Path) {
         }
     }
 
-    suspend fun insertHistoricalValue(ts: LocalDateTime, key: HistoricalValueType, value: Double) = coroutineScope {
+    fun insertHistoricalValue(ts: LocalDateTime, key: HistoricalValueType, value: Double) : Job {
         logger.debug { "Inserting data to DB: $key = $value." }
-        launch(threadContext) {
+
+        return CoroutineScope(threadContext).launch {
             transaction {
                 HistoricalValues.insert {
                     it[timestamp] = toJodaDateTime(ts)
@@ -148,13 +149,13 @@ class DatabaseLayer(databaseFile: Path) {
         return result
     }
 
-    suspend fun getLastHistoricalValuesByHour(currentTime: LocalDateTime,
-                                              key: HistoricalValueType,
-                                              numberOfPastHours: Int): Deferred<List<Double?>> = coroutineScope {
+    fun getLastHistoricalValuesByHour(currentTime: LocalDateTime,
+                                      key: HistoricalValueType,
+                                      numberOfPastHours: Int): Deferred<List<Double?>> {
         val query = createAveragedByTimeInterval(HistoricalValues.tableName,
                 listOf("value"), currentTime, Duration.ofHours(1), numberOfPastHours, true, "key" to key.databaseSymbol)
 
-        async(threadContext) {
+        return CoroutineScope(threadContext).async {
             groupByBucketNo(transaction {
                 query.execAndMap { it.getInt(caseColumnName) to it.getDouble("value") }
             }, numberOfPastHours)

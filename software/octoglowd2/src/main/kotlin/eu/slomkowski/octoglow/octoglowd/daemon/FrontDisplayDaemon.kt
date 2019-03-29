@@ -23,7 +23,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
 class FrontDisplayDaemon(
-        coroutineContext: CoroutineContext,
+        private val coroutineContext: CoroutineContext,
         private val hardware: Hardware,
         frontDisplayViews: List<FrontDisplayView>)
     : Daemon(Duration.ofMillis(100)) {
@@ -174,8 +174,9 @@ class FrontDisplayDaemon(
             fun <T : State.ViewCycle> createCommonActions(klass: KClass<T>) {
                 event(klass, Event.ButtonPressed::class).goto {
                     val menu = state.info.menus.firstOrNull() ?: allMenus.first()
-                    logger.info { "Going to menu overview: $menu." }
+
                     State.Menu.Overview(menu, runBlocking(coroutineContext) {
+                        logger.info { "Going to menu overview: $menu." }
                         val current = menu.getCurrentOptionFun()
                         drawMenuOverview(menu, current)
                         current
@@ -186,8 +187,9 @@ class FrontDisplayDaemon(
                         .loop {
                             event.info.bumpLastStatusAndInstant()
                             if (event.info == state.info) {
-                                logger.debug { "Updating state of active ${state.info}." }
+
                                 launchInBackground {
+                                    logger.debug { "Updating state of active ${state.info}." }
                                     state.info.view.redrawDisplay(false, true)
                                 }
                             }
@@ -197,8 +199,9 @@ class FrontDisplayDaemon(
                         .loop {
                             if (event.info == state.info) {
                                 state.info.apply {
-                                    logger.debug { "Updating instant of $this." }
+
                                     launchInBackground {
+                                        logger.debug { "Updating instant of $this." }
                                         view.redrawDisplay(false, false)
                                     }
                                 }
@@ -211,8 +214,9 @@ class FrontDisplayDaemon(
                         .filter { event.delta != 0 }
                         .goto {
                             val newView = getNeighbourView(state.info, event.delta)
-                            logger.info { "Switching view from ${state.info} to $newView." }
+
                             launchInBackground {
+                                logger.info { "Switching view from ${state.info} to $newView." }
                                 fd.clear()
                                 newView.view.redrawDisplay(true, true)
                             }
@@ -311,12 +315,12 @@ class FrontDisplayDaemon(
         return configurator.createExecutor(this@FrontDisplayDaemon, State.ViewCycle.Auto(views.first()))
     }
 
-    private suspend fun poolStatusAndInstant(now: LocalDateTime) = coroutineScope {
+    private suspend fun poolStatusAndInstant(now: LocalDateTime) {
         for (info in views) {
             if (info.lastStatusPool?.plus(info.view.poolStatusEvery)?.isBefore(now) != false) {
                 info.bumpLastStatusAndInstant()
 
-                launch {
+                CoroutineScope(coroutineContext).launch {
                     val status = info.view.poolStatusData()
                     if (status != UpdateStatus.NO_NEW_DATA) {
                         stateExecutorMutex.withLock {
@@ -328,7 +332,7 @@ class FrontDisplayDaemon(
                 info.bumpLastInstant()
 
                 if (stateExecutorMutex.withLock { (stateExecutor.state as? State.ViewCycle)?.info } == info) {
-                    launch {
+                    CoroutineScope(coroutineContext).launch {
                         val status = info.view.poolInstantData()
                         if (status != UpdateStatus.NO_NEW_DATA) {
                             stateExecutorMutex.withLock {

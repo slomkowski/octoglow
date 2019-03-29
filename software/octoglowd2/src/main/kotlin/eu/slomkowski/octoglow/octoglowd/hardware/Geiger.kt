@@ -103,8 +103,10 @@ class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), Ha
         private const val I2C_READ_TRIES = 4
     }
 
-    override fun close() = runBlocking(threadContext) {
-        setBrightness(3)
+    override fun close() {
+        runBlocking(threadContext) {
+            setBrightness(3)
+        }
     }
 
     override suspend fun setBrightness(brightness: Int) {

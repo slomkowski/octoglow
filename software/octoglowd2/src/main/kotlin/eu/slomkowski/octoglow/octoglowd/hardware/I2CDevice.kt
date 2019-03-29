@@ -8,7 +8,7 @@ import kotlin.coroutines.CoroutineContext
 abstract class I2CDevice(
         protected val threadContext: CoroutineContext,
         protected val i2c: I2CBus,
-        protected val i2cAddress: Int) : AutoCloseable {
+        private val i2cAddress: Int) : AutoCloseable {
 
     init {
         require(i2cAddress in 0..127)

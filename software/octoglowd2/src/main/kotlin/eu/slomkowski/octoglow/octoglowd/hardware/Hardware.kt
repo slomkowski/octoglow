@@ -42,6 +42,13 @@ class PhysicalHardware(private val config: Config) : Hardware {
         if(config[ConfKey.ringAtStartup]) {
             runBlocking { clockDisplay.ringBell(Duration.ofMillis(70)) }
         }
+
+        runBlocking {
+            frontDisplay.apply {
+                clear()
+                setStaticText(0, "Initializing...")
+            }
+        }
     }
 
     override suspend fun setBrightness(brightness: Int) {

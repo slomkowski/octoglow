@@ -4,6 +4,7 @@ import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.OutdoorWeatherReport
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import mu.KLogging
@@ -75,29 +76,27 @@ class OutdoorWeatherView(
             currentReport = null
             UpdateStatus.FAILURE
         } else {
-            when (rep.alreadyReadFlag) {
-                false -> UpdateStatus.NO_NEW_DATA
-                else -> {
-                    val ts = LocalDateTime.now()
-                    logger.info { "Got report : $rep." }
-                    listOf(
-                            databaseLayer.insertHistoricalValue(ts, OutdoorTemperature, rep.temperature),
-                            databaseLayer.insertHistoricalValue(ts, OutdoorHumidity, rep.humidity),
-                            databaseLayer.insertHistoricalValue(ts, OutdoorWeakBattery, if (rep.batteryIsWeak) {
-                                1.0
-                            } else {
-                                0.0
-                            })
-                    ).joinAll()
+            if(true ) { //todo remove
+            //if (!rep.alreadyReadFlag || currentReport == null) {
+                val ts = LocalDateTime.now()
+                logger.info { "Got report : $rep." }
+                listOf(
+                        databaseLayer.insertHistoricalValue(ts, OutdoorTemperature, rep.temperature),
+                        databaseLayer.insertHistoricalValue(ts, OutdoorHumidity, rep.humidity),
+                        databaseLayer.insertHistoricalValue(ts, OutdoorWeakBattery, if (rep.batteryIsWeak) {
+                            1.0
+                        } else {
+                            0.0
+                        })
+                ).joinAll()
 
-                    val historicalTemperature = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
-                    val historicalHumidity = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorHumidity, HISTORIC_VALUES_LENGTH)
+                val historicalTemperature = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
+                val historicalHumidity = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorHumidity, HISTORIC_VALUES_LENGTH)
 
-                    currentReport = CurrentReport(ts, rep, historicalTemperature.await(), historicalHumidity.await())
+                currentReport = CurrentReport(ts, rep, historicalTemperature.await(), historicalHumidity.await())
 
-                    UpdateStatus.FULL_SUCCESS
-                }
-            }
+                UpdateStatus.FULL_SUCCESS
+            } else UpdateStatus.NO_NEW_DATA
         }
     }
 }
