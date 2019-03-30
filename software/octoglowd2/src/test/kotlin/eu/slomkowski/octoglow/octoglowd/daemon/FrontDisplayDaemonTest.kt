@@ -35,6 +35,8 @@ class FrontDisplayDaemonTest {
 
     }
 
+    //todo better view tests
+
     @Test
     fun testStateMachineSwitchView() {
         runBlocking {
@@ -46,6 +48,9 @@ class FrontDisplayDaemonTest {
 
             val v1 = mockk<FrontDisplayView>()
             val v2 = mockk<FrontDisplayView>()
+
+            coEvery { v1.getMenus() } returns listOf()
+            coEvery { v2.getMenus() } returns listOf()
 
             coEvery { v1.redrawDisplay(true, true) } just Runs
             coEvery { v2.redrawDisplay(true, true) } just Runs

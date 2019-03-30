@@ -4,10 +4,7 @@ import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.confirmVerified
-import io.mockk.mockk
+import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -59,7 +56,8 @@ class CryptocurrencyViewTest {
         val db = mockk<DatabaseLayer>()
         val hardware = mockk<Hardware>()
 
-        coEvery { hardware.frontDisplay.setStaticText(any(), any()) } returns Unit
+        coEvery { hardware.frontDisplay.setUpperBar(any(), false) } just Runs
+        coEvery { hardware.frontDisplay.setStaticText(any(), any()) } just Runs
 
         runBlocking {
             val view = CryptocurrencyView(coroutineContext, config, db, hardware)
@@ -79,6 +77,5 @@ class CryptocurrencyViewTest {
 
             confirmVerified(hardware)
         }
-
     }
 }

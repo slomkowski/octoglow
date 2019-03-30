@@ -1,41 +1,72 @@
 package eu.slomkowski.octoglow.octoglowd
 
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.runBlocking
 import mu.KLogging
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.nio.file.Files
 import java.time.Duration
 import java.time.LocalDateTime
-import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class DatabaseTest {
 
     companion object : KLogging()
 
-//    @Test
-//    fun testDb() {
-//        runBlocking {
-//            val db = DatabaseLayer(Paths.get("unit-test.db"), coroutineContext)
-//            assertNotNull(db)
-//
-//            launch {
-//                sendEvent(OutdoorWeatherReport(20.0, 34.0, false, false))
-//                delay(3000)
-//                EventBus.close()
-//            }
-//        }
-//    }
-//
-//    @Test
-//    fun testGet() {
-//        runBlocking {
-//            val db = DatabaseLayer(Paths.get("unit-test.db"), coroutineContext)
-//
-//            val l = db.getLastOutdoorWeatherReportsByHour(LocalDateTime.of(2018, 1, 13, 13, 45), 5).await()
-//
-//            logger.info("Results: {}", l)
-//
-//            EventBus.close()
-//        }
-//    }
+    private fun <T : Any> createTestDbContext(func: (DatabaseLayer) -> T): T {
+        val dbFile = Files.createTempFile("unit-test-", ".db")
+        try {
+            val db = DatabaseLayer(dbFile)
+            assertNotNull(db)
+            logger.debug { "Opened DB file $dbFile" }
+            return func(db)
+        } finally {
+            Files.deleteIfExists(dbFile)
+        }
+    }
+
+    @Test
+    fun testInsertHistoricalValue() {
+        createTestDbContext { db ->
+            val now = LocalDateTime.now()
+
+            runBlocking {
+                listOf(
+                        now.minusDays(3) to -23.3,
+                        now.minusHours(2) to 15.0,
+                        now.minusHours(1) to 20.0,
+                        now to 25.0)
+                        .map { (dt, temp) -> db.insertHistoricalValueAsync(dt, OutdoorTemperature, temp) }
+                        .joinAll()
+
+                val results = db.getLastHistoricalValuesByHourAsync(now, OutdoorTemperature, 5).await()
+                assertEquals(5, results.size)
+                assertNull(results[0])
+                assertNull(results[1])
+                assertNull(results[2])
+                assertEquals(15.0, results[3]!!, 0.001)
+                assertEquals(20.0, results[4]!!, 0.001)
+            }
+        }
+    }
+
+    @Test
+    fun testChangeableSettings() {
+        val key = ChangeableSetting.BRIGHTNESS
+        createTestDbContext { db ->
+            runBlocking {
+                assertNull(db.getChangeableSettingAsync(key).await())
+                db.setChangeableSettingAsync(key, "5").join()
+                assertEquals("5", db.getChangeableSettingAsync(key).await())
+                db.setChangeableSettingAsync(key, "kek").join()
+                assertEquals("kek", db.getChangeableSettingAsync(key).await())
+                db.setChangeableSettingAsync(key, null).join()
+                assertNull(db.getChangeableSettingAsync(key).await())
+            }
+        }
+    }
 
     @Test
     fun testDateTimeFormat() {

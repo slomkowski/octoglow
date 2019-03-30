@@ -1,11 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.GeoPosKey
-import eu.slomkowski.octoglow.octoglowd.SleepKey
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.poznanCoordinates
 import io.mockk.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Test
@@ -20,6 +20,12 @@ class BrightnessDaemonTest {
     @Test
     fun testCalculateBrightnessFraction() {
         val hardwareMock = mockk<Hardware>()
+        val databaseMock = mockk<DatabaseLayer>()
+
+        coEvery { hardwareMock.setBrightness(any()) } just Runs
+        coEvery { databaseMock.getChangeableSettingAsync(ChangeableSetting.BRIGHTNESS) } returns CompletableDeferred("AUTO")
+        coEvery { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, any()) } returns Job()
+
         val bd = BrightnessDaemon(Config {
             addSpec(SleepKey)
             addSpec(GeoPosKey)
@@ -29,17 +35,20 @@ class BrightnessDaemonTest {
                 set(GeoPosKey.latitude, lat)
                 set(GeoPosKey.longitude, lng)
             }
-        }, mockk(), hardwareMock)
+        }, databaseMock, hardwareMock)
 
         assertEquals(3, bd.calculateBrightnessFraction(LocalDateTime.of(2019, 1, 23, 17, 21)))
         assertEquals(4, bd.calculateBrightnessFraction(LocalDateTime.of(2019, 1, 23, 8, 21)))
 
         runBlocking {
-            coEvery { hardwareMock.setBrightness(any()) } just Runs
+            bd.pool()
+
+            bd.setForcedMode(3)
 
             bd.pool()
 
-            coVerify(exactly = 1) { hardwareMock.setBrightness(any()) }
+            coVerify(exactly = 1) { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, "3") }
+            coVerify(exactly = 3) { hardwareMock.setBrightness(3) }
         }
     }
 

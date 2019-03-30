@@ -5,6 +5,7 @@ import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.time.Duration
@@ -74,6 +75,7 @@ class ClockDisplayTest {
     }
 
     @Test
+    @Disabled("ringing is scary, so only done when explicitly needed")
     fun testRingBell(i2CBus: I2CBus) {
         runBlocking {
             ClockDisplay(coroutineContext, i2CBus).apply {

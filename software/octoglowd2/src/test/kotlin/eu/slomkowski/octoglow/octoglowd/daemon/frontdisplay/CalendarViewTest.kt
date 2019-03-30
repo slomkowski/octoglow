@@ -37,11 +37,12 @@ internal class CalendarViewTest {
             assertEquals(text, realText)
         }
 
-        assertOk("NEW YEAR; 8:02 - 15:50; Mieszka, Mieczysława, Marii", 2018, 1, 1)
-        assertOk("CHRISTMAS; 8:02 - 15:43; Anastazji, Eugenii", 2019, 12, 25)
-        assertOk("6:30 - 19:24; Beniamina, Dobromierza, Leonarda", 2019, 3, 31)
+        assertOk("Sunrise:5:33; sunset:18:22; Anieli,Kwiryna,Leonarda", 2019, 3, 30)
+        assertOk("NEW YEAR; sunrise:8:02; sunset:15:50; Mieszka,Mieczysława,Marii", 2018, 1, 1)
+        assertOk("CHRISTMAS; sunrise:8:02; sunset:15:43; Anastazji,Eugenii", 2019, 12, 25)
+        assertOk("Sunrise:6:30; sunset:19:24; Beniamina,Dobromierza,Leonarda", 2019, 3, 31)
 
-        assertEquals("5:01 - 20:38; Serwacego, Roberta, Glorii; tomorrow: 4:59 - 20:39; Bonifacego, Dobiesława, Macieja", cv.getDayDescription(LocalDate.of(2019, 5, 13)))
+        assertEquals("Sunrise:5:01; sunset:20:38; Serwacego,Roberta,Glorii; tomorrow: Sunrise:4:59; sunset:20:39; Bonifacego,Dobiesława,Macieja", cv.getDayDescription(LocalDate.of(2019, 5, 13)))
     }
 
     @Test
