@@ -3,10 +3,7 @@ package eu.slomkowski.octoglow.octoglowd
 
 import kotlinx.coroutines.*
 import mu.KLogging
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.nio.file.Path
@@ -30,6 +27,11 @@ object HistoricalValues : TimestampedTable("historical_values") {
     init {
         index(true, timestamp, key)
     }
+}
+
+object ChangeableSettings : TimestampedTable("changeable_settings") {
+    val key = varchar("key", 50).uniqueIndex()
+    val value = varchar("value", 500).nullable()
 }
 
 class DatabaseLayer(databaseFile: Path) {
@@ -118,11 +120,41 @@ class DatabaseLayer(databaseFile: Path) {
         TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
 
         transaction {
-            SchemaUtils.create(HistoricalValues)
+            SchemaUtils.create(HistoricalValues, ChangeableSettings)
         }
     }
 
-    fun insertHistoricalValue(ts: LocalDateTime, key: HistoricalValueType, value: Double) : Job {
+    fun getChangeableSettingAsync(key: ChangeableSetting): Deferred<String?> = CoroutineScope(threadContext).async {
+        transaction {
+            val row = ChangeableSettings.select { ChangeableSettings.key eq key.name }.singleOrNull()
+            row?.get(ChangeableSettings.value)
+        }
+    }
+
+    fun setChangeableSettingAsync(key: ChangeableSetting, value: String?): Job {
+        logger.info { "Saving $key as $value." }
+        return CoroutineScope(threadContext).launch {
+            transaction {
+                val existingRow = ChangeableSettings.select { ChangeableSettings.key eq key.name }.singleOrNull()
+
+                if (existingRow != null) {
+                    ChangeableSettings.update({ ChangeableSettings.key eq key.name }) {
+                        it[timestamp] = org.joda.time.DateTime.now()
+                        it[this.value] = value
+                    }
+                } else {
+                    ChangeableSettings.insert {
+                        it[this.key] = key.name
+                        it[timestamp] = org.joda.time.DateTime.now()
+                        it[this.value] = value
+                    }
+                }
+                Unit
+            }
+        }
+    }
+
+    fun insertHistoricalValueAsync(ts: LocalDateTime, key: HistoricalValueType, value: Double): Job {
         logger.debug { "Inserting data to DB: $key = $value." }
 
         return CoroutineScope(threadContext).launch {
@@ -149,9 +181,9 @@ class DatabaseLayer(databaseFile: Path) {
         return result
     }
 
-    fun getLastHistoricalValuesByHour(currentTime: LocalDateTime,
-                                      key: HistoricalValueType,
-                                      numberOfPastHours: Int): Deferred<List<Double?>> {
+    fun getLastHistoricalValuesByHourAsync(currentTime: LocalDateTime,
+                                           key: HistoricalValueType,
+                                           numberOfPastHours: Int): Deferred<List<Double?>> {
         val query = createAveragedByTimeInterval(HistoricalValues.tableName,
                 listOf("value"), currentTime, Duration.ofHours(1), numberOfPastHours, true, "key" to key.databaseSymbol)
 

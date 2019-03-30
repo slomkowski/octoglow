@@ -110,7 +110,7 @@ class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), Ha
     }
 
     override suspend fun setBrightness(brightness: Int) {
-        assert(brightness in 0..5) { "brightness should be in range 0..5" }
+        assert(brightness in 0..MAX_BRIGHTNESS) { "brightness should be in range 0..5" }
         doWrite(7, brightness)
     }
 

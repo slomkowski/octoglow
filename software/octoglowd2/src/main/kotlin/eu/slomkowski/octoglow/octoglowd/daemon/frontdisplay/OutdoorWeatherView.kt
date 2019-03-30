@@ -1,10 +1,9 @@
-package eu.slomkowski.octoglow.octoglowd.daemon.view
+package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.OutdoorWeatherReport
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import mu.KLogging
@@ -76,22 +75,21 @@ class OutdoorWeatherView(
             currentReport = null
             UpdateStatus.FAILURE
         } else {
-            if(true ) { //todo remove
-            //if (!rep.alreadyReadFlag || currentReport == null) {
+            if (!rep.alreadyReadFlag || currentReport == null) {
                 val ts = LocalDateTime.now()
                 logger.info { "Got report : $rep." }
                 listOf(
-                        databaseLayer.insertHistoricalValue(ts, OutdoorTemperature, rep.temperature),
-                        databaseLayer.insertHistoricalValue(ts, OutdoorHumidity, rep.humidity),
-                        databaseLayer.insertHistoricalValue(ts, OutdoorWeakBattery, if (rep.batteryIsWeak) {
+                        databaseLayer.insertHistoricalValueAsync(ts, OutdoorTemperature, rep.temperature),
+                        databaseLayer.insertHistoricalValueAsync(ts, OutdoorHumidity, rep.humidity),
+                        databaseLayer.insertHistoricalValueAsync(ts, OutdoorWeakBattery, if (rep.batteryIsWeak) {
                             1.0
                         } else {
                             0.0
                         })
                 ).joinAll()
 
-                val historicalTemperature = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
-                val historicalHumidity = databaseLayer.getLastHistoricalValuesByHour(ts, OutdoorHumidity, HISTORIC_VALUES_LENGTH)
+                val historicalTemperature = databaseLayer.getLastHistoricalValuesByHourAsync(ts, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
+                val historicalHumidity = databaseLayer.getLastHistoricalValuesByHourAsync(ts, OutdoorHumidity, HISTORIC_VALUES_LENGTH)
 
                 currentReport = CurrentReport(ts, rep, historicalTemperature.await(), historicalHumidity.await())
 

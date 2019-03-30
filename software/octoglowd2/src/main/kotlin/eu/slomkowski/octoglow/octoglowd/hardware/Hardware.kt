@@ -39,7 +39,7 @@ class PhysicalHardware(private val config: Config) : Hardware {
     // override val bme280 = Bme280(threadContext, bus)
 
     init {
-        if(config[ConfKey.ringAtStartup]) {
+        if (config[ConfKey.ringAtStartup]) {
             runBlocking { clockDisplay.ringBell(Duration.ofMillis(70)) }
         }
 

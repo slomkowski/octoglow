@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.daemon.view
+package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.RadioactivityCpm
@@ -111,20 +111,28 @@ class GeigerView(
     override fun getMenus(): List<Menu> {
         val optOn = MenuOption("ON")
         val optOff = MenuOption("OFF")
-        return listOf(Menu("Magic eye", listOf(optOn, optOff), {
-            val eyeState = hardware.geiger.getDeviceState().eyeState
-            logger.info { "Eye state is $eyeState." }
-            when (eyeState) {
-                EyeInverterState.DISABLED -> optOff
-                else -> optOn
+
+        return listOf(object : Menu("Magic eye") {
+            override val options: List<MenuOption>
+                get() = listOf(optOn, optOff)
+
+            override suspend fun loadCurrentOption(): MenuOption {
+                val eyeState = hardware.geiger.getDeviceState().eyeState
+                logger.info { "Eye state is $eyeState." }
+                return when (eyeState) {
+                    EyeInverterState.DISABLED -> optOff
+                    else -> optOn
+                }
             }
-        }, { currentOpt ->
-            logger.info { "Magic eye set to $currentOpt." }
-            hardware.geiger.setEyeConfiguration(when (currentOpt) {
-                optOn -> true
-                else -> false
-            })
-        }))
+
+            override suspend fun saveCurrentOption(current: MenuOption) {
+                logger.info { "Magic eye set to $current." }
+                hardware.geiger.setEyeConfiguration(when (current) {
+                    optOn -> true
+                    else -> false
+                })
+            }
+        })
     }
 
     override suspend fun poolInstantData(): UpdateStatus {
@@ -149,12 +157,13 @@ class GeigerView(
 
                 logger.info { "Read radioactivity: ${cs.numOfCountsInPreviousCycle}, $usvh uSv/h." }
 
-                listOf(database.insertHistoricalValue(ts, RadioactivityCpm, cpm),
-                        database.insertHistoricalValue(ts, RadioactivityUSVH, usvh)).joinAll()
+                listOf(database.insertHistoricalValueAsync(ts, RadioactivityCpm, cpm),
+                        database.insertHistoricalValueAsync(ts, RadioactivityUSVH, usvh)).joinAll()
 
-                val historicalRadioactivity = database.getLastHistoricalValuesByHour(ts, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
+                val historicalRadioactivity = database.getLastHistoricalValuesByHourAsync(ts, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
 
                 counterReport = CounterReport(cpm, usvh, cs.currentCycleProgress, cs.cycleLength, historicalRadioactivity.await())
+                return UpdateStatus.FULL_SUCCESS
             } else {
                 val rep = counterReport
                 if (rep == null) {
@@ -162,13 +171,13 @@ class GeigerView(
                 } else {
                     rep.progress = cs.currentCycleProgress
                 }
+
+                return UpdateStatus.NO_NEW_DATA
             }
         } catch (e: Exception) {
             counterReport = null
             logger.error(e) { "Cannot read counter state." }
             return UpdateStatus.FAILURE
         }
-
-        return UpdateStatus.FULL_SUCCESS
     }
 }

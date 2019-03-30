@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.daemon.view
+package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.github.kittinunf.fuel.Fuel
@@ -154,8 +154,8 @@ class CryptocurrencyView(
                     val ohlcTimestamp = LocalDateTime.ofInstant(ohlc.timeClose.toInstant(), ZoneId.systemDefault())
                     val dbKey = Cryptocurrency(symbol)
                     logger.info { "Value of $symbol at $ts is \$$value." }
-                    database.insertHistoricalValue(ohlcTimestamp, dbKey, value)
-                    val history = database.getLastHistoricalValuesByHour(ts, dbKey, HISTORIC_VALUES_LENGTH).await()
+                    database.insertHistoricalValueAsync(ohlcTimestamp, dbKey, value)
+                    val history = database.getLastHistoricalValuesByHourAsync(ts, dbKey, HISTORIC_VALUES_LENGTH).await()
                     coinKey to CoinReport(symbol, value, history)
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to update status on $symbol." }

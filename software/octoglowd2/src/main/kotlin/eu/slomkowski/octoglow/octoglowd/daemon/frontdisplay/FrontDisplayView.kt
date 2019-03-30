@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.daemon.view
+package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import java.time.Duration
 
@@ -46,16 +46,17 @@ data class MenuOption(val text: String) {
     override fun toString(): String = text
 }
 
-data class Menu(
-        val text: String,
-        val options: List<MenuOption>,
-        val getCurrentOptionFun: suspend () -> MenuOption,
-        val setCurrentOptionFun: suspend (MenuOption) -> Unit) {
+abstract class Menu(val text: String) {
     init {
         require(text.isNotBlank())
-        require(text.length <= 20)
-        require(options.isNotEmpty())
+        require(text.length <= 16)
     }
+
+    abstract val options: List<MenuOption>
+
+    abstract suspend fun loadCurrentOption(): MenuOption
+
+    abstract suspend fun saveCurrentOption(current: MenuOption)
 
     override fun toString(): String = text
 }

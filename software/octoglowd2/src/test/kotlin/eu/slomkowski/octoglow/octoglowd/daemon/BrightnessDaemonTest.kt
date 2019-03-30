@@ -29,7 +29,7 @@ class BrightnessDaemonTest {
                 set(GeoPosKey.latitude, lat)
                 set(GeoPosKey.longitude, lng)
             }
-        }, hardwareMock)
+        }, mockk(), hardwareMock)
 
         assertEquals(3, bd.calculateBrightnessFraction(LocalDateTime.of(2019, 1, 23, 17, 21)))
         assertEquals(4, bd.calculateBrightnessFraction(LocalDateTime.of(2019, 1, 23, 8, 21)))

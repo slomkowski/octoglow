@@ -59,7 +59,7 @@ suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func:
             if (tryNo == numberOfTries) {
                 throw Exception("number of tries $numberOfTries exhausted, error: $e", e)
             } else {
-                logger.warn { "Operation $func failed with $e (try $tryNo/$numberOfTries)" }
+                logger.warn { "Operation $func failed with $e (try $tryNo/$numberOfTries)." }
             }
         }
     }

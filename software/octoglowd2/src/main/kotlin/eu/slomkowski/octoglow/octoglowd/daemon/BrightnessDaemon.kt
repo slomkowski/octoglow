@@ -1,10 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.GeoPosKey
-import eu.slomkowski.octoglow.octoglowd.SleepKey
-import eu.slomkowski.octoglow.octoglowd.calculateSunriseAndSunset
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
@@ -12,6 +11,7 @@ import java.time.LocalTime
 
 class BrightnessDaemon(
         private val config: Config,
+        private val database: DatabaseLayer,
         private val hardware: Hardware) : Daemon(Duration.ofSeconds(30)) {
 
     data class BrightnessMode(
@@ -49,8 +49,25 @@ class BrightnessDaemon(
         }
     }
 
+    var forced: Int? = null
+        private set
+
+    suspend fun setForcedMode(v: Int?) {
+        forced = v
+        database.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, v?.toString() ?: "AUTO")
+        pool()
+    }
+
+    init {
+        forced = runBlocking {
+            database.getChangeableSettingAsync(ChangeableSetting.BRIGHTNESS).await()?.toIntOrNull()?.apply {
+                hardware.setBrightness(this)
+            }
+        }
+    }
+
     override suspend fun pool() {
-        val br = calculateBrightnessFraction(LocalDateTime.now()).coerceIn(1, 5)
+        val br = (forced ?: calculateBrightnessFraction(LocalDateTime.now())).coerceIn(1, 5)
         logger.debug { "Setting brightness to $br." }
         hardware.setBrightness(br)
     }

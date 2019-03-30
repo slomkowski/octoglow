@@ -1,4 +1,4 @@
-package eu.slomkowski.octoglow.octoglowd.daemon.view
+package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey

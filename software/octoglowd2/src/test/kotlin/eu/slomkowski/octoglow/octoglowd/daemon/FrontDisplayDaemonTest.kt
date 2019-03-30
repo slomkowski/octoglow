@@ -1,8 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon.Companion.updateViewIndex
-import eu.slomkowski.octoglow.octoglowd.daemon.view.FrontDisplayView
-import eu.slomkowski.octoglow.octoglowd.daemon.view.UpdateStatus
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonReport
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -17,21 +17,21 @@ class FrontDisplayDaemonTest {
 
     companion object : KLogging()
 
-    class TestView(name : String) : FrontDisplayView(name, Duration.ofSeconds(10), Duration.ofSeconds(1)) {
+    class TestView(name: String) : FrontDisplayView(name, Duration.ofSeconds(10), Duration.ofSeconds(1)) {
 
         override suspend fun poolStatusData(): UpdateStatus {
-            logger.info { "Calll poolStatusData." }
+            logger.info { "Call poolStatusData." }
             return UpdateStatus.FULL_SUCCESS
         }
 
         override suspend fun poolInstantData(): UpdateStatus {
-            logger.info { "Calll poolInstantData." }
+            logger.info { "Call poolInstantData." }
             return UpdateStatus.FULL_SUCCESS
         }
 
         override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) {
             logger.info { "Screen redrawn." }
-       }
+        }
 
     }
 
@@ -40,7 +40,7 @@ class FrontDisplayDaemonTest {
         runBlocking {
             val hardware = mockk<Hardware>()
 
-            coEvery {hardware.frontDisplay.clear()} just Runs
+            coEvery { hardware.frontDisplay.clear() } just Runs
 
             coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
 
@@ -50,7 +50,7 @@ class FrontDisplayDaemonTest {
             coEvery { v1.redrawDisplay(true, true) } just Runs
             coEvery { v2.redrawDisplay(true, true) } just Runs
 
-            val d = FrontDisplayDaemon(coroutineContext, hardware, listOf(v1, v2))
+            val d = FrontDisplayDaemon(coroutineContext, hardware, listOf(v1, v2), emptyList())
 
             d.pool()
 

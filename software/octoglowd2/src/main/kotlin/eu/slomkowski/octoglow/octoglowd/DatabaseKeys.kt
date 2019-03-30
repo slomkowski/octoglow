@@ -27,3 +27,7 @@ data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
     override val databaseSymbol: String
         get() = "CRYPTOCURRENCY_$symbol".toUpperCase()
 }
+
+enum class ChangeableSetting {
+    BRIGHTNESS
+}

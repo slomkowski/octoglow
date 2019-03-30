@@ -1,9 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import eu.slomkowski.octoglow.octoglowd.daemon.view.FrontDisplayView
-import eu.slomkowski.octoglow.octoglowd.daemon.view.Menu
-import eu.slomkowski.octoglow.octoglowd.daemon.view.MenuOption
-import eu.slomkowski.octoglow.octoglowd.daemon.view.UpdateStatus
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.MenuOption
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.CoroutineScope
@@ -25,17 +25,26 @@ import kotlin.reflect.KClass
 class FrontDisplayDaemon(
         private val coroutineContext: CoroutineContext,
         private val hardware: Hardware,
-        frontDisplayViews: List<FrontDisplayView>)
+        frontDisplayViews: List<FrontDisplayView>,
+        additionalMenus: List<Menu>)
     : Daemon(Duration.ofMillis(100)) {
 
     companion object : KLogging() {
+        val DIAL_ACTIVITY_TIMEOUT = Duration.ofSeconds(40)
+
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0..(size - 1))
             return (10000 * size + current + delta) % size
         }
 
         // special menu to exit
-        private val exitMenu = Menu("EXIT MENU", listOf(MenuOption("dummy")), { throw IllegalStateException("get") }, { throw IllegalStateException("set") })
+        private val exitMenu = object : Menu("EXIT MENU") {
+            override val options: List<MenuOption>
+                get() = listOf(MenuOption("dummy"))
+
+            override suspend fun loadCurrentOption(): MenuOption = throw IllegalStateException()
+            override suspend fun saveCurrentOption(current: MenuOption) = throw IllegalStateException()
+        }
     }
 
     data class ViewInfo(
@@ -58,7 +67,7 @@ class FrontDisplayDaemon(
 
     private val views = frontDisplayViews.map { ViewInfo(it, it.getMenus(), null, null, null) }
 
-    private val allMenus = listOf(brightnessMenu).plus(views.flatMap { it.menus }).plus(exitMenu)
+    private val allMenus = additionalMenus.plus(views.flatMap { it.menus }).plus(exitMenu)
 
     private val stateExecutorMutex = Mutex()
     private val stateExecutor: IExecutor<FrontDisplayDaemon, State, Event>
@@ -128,15 +137,15 @@ class FrontDisplayDaemon(
     abstract class State {
 
         abstract class Menu : State() {
-            abstract val menu: eu.slomkowski.octoglow.octoglowd.daemon.view.Menu
+            abstract val menu: eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu
             abstract val current: MenuOption
             abstract val calledFrom: ViewInfo
 
-            data class Overview(override val menu: eu.slomkowski.octoglow.octoglowd.daemon.view.Menu,
+            data class Overview(override val menu: eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu,
                                 override val current: MenuOption,
                                 override val calledFrom: ViewInfo) : Menu()
 
-            data class SettingOption(override val menu: eu.slomkowski.octoglow.octoglowd.daemon.view.Menu,
+            data class SettingOption(override val menu: eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu,
                                      override val current: MenuOption,
                                      override val calledFrom: ViewInfo) : Menu()
         }
@@ -177,7 +186,7 @@ class FrontDisplayDaemon(
 
                     State.Menu.Overview(menu, runBlocking(coroutineContext) {
                         logger.info { "Going to menu overview: $menu." }
-                        val current = menu.getCurrentOptionFun()
+                        val current = menu.loadCurrentOption()
                         drawMenuOverview(menu, current)
                         current
                     }, state.info)
@@ -211,12 +220,12 @@ class FrontDisplayDaemon(
                         }
 
                 event(klass, Event.EncoderDelta::class)
-                        .filter { event.delta != 0 }
                         .goto {
+                            check(event.delta != 0)
                             val newView = getNeighbourView(state.info, event.delta)
 
                             launchInBackground {
-                                logger.info { "Switching view from ${state.info} to $newView." }
+                                logger.info { "Switching view from ${state.info} to $newView by dial." }
                                 fd.clear()
                                 newView.view.redrawDisplay(true, true)
                             }
@@ -228,7 +237,10 @@ class FrontDisplayDaemon(
             createCommonActions(State.ViewCycle.Manual::class)
 
             event(State.ViewCycle.Manual::class, Event.Timeout::class)
-                    .goto { State.ViewCycle.Auto(state.info) }             //todo add cyclic timeout reaction
+                    .goto {
+                        logger.info { "Switching to auto mode because of the timeout." }
+                        State.ViewCycle.Auto(state.info)
+                    }
 
             createCommonActions(State.ViewCycle.Auto::class)
 
@@ -236,12 +248,12 @@ class FrontDisplayDaemon(
                     .filter { event.info != state.info }
                     .goto {
                         val newView = event.info
-                        logger.info { "Got status update from $newView. Switching to it." }
+                        logger.info { "Got auto status update from $newView. Switching to it." }
                         launchInBackground {
                             fd.clear()
                             newView.view.redrawDisplay(true, true)
                         }
-                        State.ViewCycle.Auto(event.info)
+                        State.ViewCycle.Auto(newView)
                     }
 
             event(State.Menu::class, Event.StatusUpdate::class).loop()
@@ -259,13 +271,23 @@ class FrontDisplayDaemon(
                     else -> {
                         logger.info { "Switching to menu overview: $newMenu." }
                         State.Menu.Overview(newMenu, runBlocking(coroutineContext) {
-                            val current = newMenu.getCurrentOptionFun()
+                            val current = newMenu.loadCurrentOption()
                             drawMenuOverview(newMenu, current)
                             current
                         }, state.calledFrom)
                     }
                 }
             }
+
+            event(State.Menu::class, Event.Timeout::class)
+                    .goto {
+                        logger.info { "Leaving menu and going to ${state.calledFrom} because of timeout." }
+                        launchInBackground {
+                            fd.clear()
+                            state.calledFrom.view.redrawDisplay(true, true)
+                        }
+                        State.ViewCycle.Auto(state.calledFrom)
+                    }
 
             event(State.Menu.Overview::class, Event.ButtonPressed::class).goto {
                 when (state.menu) {
@@ -281,7 +303,7 @@ class FrontDisplayDaemon(
                         logger.info { "Going to value setting of ${state.menu}." }
                         State.Menu.SettingOption(state.menu, runBlocking(coroutineContext) {
                             //todo check if ok?
-                            val current = state.menu.getCurrentOptionFun()
+                            val current = state.menu.loadCurrentOption()
                             drawMenuSettingOption(state.menu, current, true)
                             current
                         }, state.calledFrom)
@@ -293,7 +315,7 @@ class FrontDisplayDaemon(
                 state.run {
                     logger.info { "Setting value of $menu to $current." }
                     launchInBackground {
-                        menu.setCurrentOptionFun(current)
+                        menu.saveCurrentOption(current)
                         drawMenuOverview(menu, current)
                     }
                     State.Menu.Overview(menu, current, calledFrom)
@@ -320,6 +342,7 @@ class FrontDisplayDaemon(
             if (info.lastStatusPool?.plus(info.view.poolStatusEvery)?.isBefore(now) != false) {
                 info.bumpLastStatusAndInstant()
 
+                //todo handling exceptions
                 CoroutineScope(coroutineContext).launch {
                     val status = info.view.poolStatusData()
                     if (status != UpdateStatus.NO_NEW_DATA) {
@@ -345,32 +368,30 @@ class FrontDisplayDaemon(
         }
     }
 
-    override suspend fun pool() = coroutineScope {
+    override suspend fun pool() {
         val buttonState = hardware.frontDisplay.getButtonReport()
         val now = LocalDateTime.now()
 
         when {
-            buttonState.button == ButtonState.JUST_RELEASED -> stateExecutorMutex.withLock {
-                lastDialActivity = now //todo lift out of mutex
-                stateExecutor.fire(Event.ButtonPressed)
+            buttonState.button == ButtonState.JUST_RELEASED -> {
+                lastDialActivity = now
+                stateExecutorMutex.withLock { stateExecutor.fire(Event.ButtonPressed) }
             }
-            buttonState.encoderDelta != 0 -> stateExecutorMutex.withLock {
-                lastDialActivity = now //todo lift out of mutex
-                stateExecutor.fire(Event.EncoderDelta(buttonState.encoderDelta))
+            buttonState.encoderDelta != 0 -> {
+                lastDialActivity = now
+                stateExecutorMutex.withLock { stateExecutor.fire(Event.EncoderDelta(buttonState.encoderDelta)) }
             }
-            else -> poolStatusAndInstant(now)
+            else -> {
+                if (Duration.between(lastDialActivity ?: now, now) > DIAL_ACTIVITY_TIMEOUT) {
+                    stateExecutorMutex.withLock {
+                        if (stateExecutor.state !is State.ViewCycle.Auto) {
+                            stateExecutor.fire(Event.Timeout)
+                        }
+                    }
+                }
+
+                poolStatusAndInstant(now)
+            }
         }
     }
-
-    private var currentOptionBrightness: MenuOption? = null //todo zrobić zapis w bazie
-
-    private val brightnessMenu: Menu
-        get() {
-            val optAuto = MenuOption("AUTO")
-            val optHard = (1..5).map { MenuOption(it.toString()) }
-
-            return Menu("Brightness", optHard.plus(optAuto), {
-                currentOptionBrightness ?: optAuto //todo
-            }, { currentOptionBrightness = it }) //todo
-        }
 }

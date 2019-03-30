@@ -5,10 +5,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.CpuUsageIndicatorDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
-import eu.slomkowski.octoglow.octoglowd.daemon.view.CalendarView
-import eu.slomkowski.octoglow.octoglowd.daemon.view.CryptocurrencyView
-import eu.slomkowski.octoglow.octoglowd.daemon.view.GeigerView
-import eu.slomkowski.octoglow.octoglowd.daemon.view.OutdoorWeatherView
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
 import eu.slomkowski.octoglow.octoglowd.hardware.PhysicalHardware
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.joinAll
@@ -38,11 +35,16 @@ fun main(args: Array<String>) {
             GeigerView(database, hardware),
             CryptocurrencyView(GlobalScope.coroutineContext, config, database, hardware))
 
+    val brightnessDaemon = BrightnessDaemon(config, database, hardware)
+
+    val menus = listOf(
+            BrightnessMenu(brightnessDaemon))
+
     val controllers = listOf(
             CpuUsageIndicatorDaemon(hardware),
             RealTimeClockDaemon(hardware),
-            BrightnessDaemon(config, hardware),
-            FrontDisplayDaemon(GlobalScope.coroutineContext, hardware, frontDisplayViews))
+            brightnessDaemon,
+            FrontDisplayDaemon(GlobalScope.coroutineContext, hardware, frontDisplayViews, menus))
 
     runBlocking {
         controllers.map { GlobalScope.launch { it.startPooling() } }.joinAll()
