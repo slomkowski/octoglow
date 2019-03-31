@@ -30,7 +30,7 @@ class FrontDisplayDaemon(
     : Daemon(Duration.ofMillis(100)) {
 
     companion object : KLogging() {
-        val DIAL_ACTIVITY_TIMEOUT = Duration.ofSeconds(40)
+        private val DIAL_ACTIVITY_TIMEOUT: Duration = Duration.ofSeconds(40)
 
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0..(size - 1))

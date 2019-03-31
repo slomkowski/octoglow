@@ -33,7 +33,7 @@ fun main(args: Array<String>) {
             CalendarView(config, hardware),
             OutdoorWeatherView(database, hardware),
             GeigerView(database, hardware),
-            CryptocurrencyView(GlobalScope.coroutineContext, config, database, hardware))
+            CryptocurrencyView(config, database, hardware))
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)
 

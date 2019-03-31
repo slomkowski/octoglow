@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.core.type.TypeReference
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.coroutines.awaitObject
 import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
@@ -8,16 +9,17 @@ import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
-import kotlin.coroutines.CoroutineContext
 
 class CryptocurrencyView(
-        coroutineContext: CoroutineContext,
         private val config: Config,
         private val database: DatabaseLayer,
         private val hardware: Hardware)
@@ -38,14 +40,6 @@ class CryptocurrencyView(
             return resp
         }
 
-        suspend fun getCoins(): List<CoinInfoDto> {
-            val url = "$COINPAPRIKA_API_BASE/coins"
-            logger.debug { "Downloading coin list from $url" }
-            val resp = Fuel.get(url).awaitObject<List<CoinInfoDto>>(jacksonDeserializerOf(jacksonObjectMapper))
-            logger.debug { "Got list of ${resp.size} coins." }
-            return resp
-        }
-
         fun formatDollars(amount: Double?): String {
             return when (amount) {
                 null -> "$-----"
@@ -55,6 +49,11 @@ class CryptocurrencyView(
                 else -> String.format("$%5.3f", amount)
             }
         }
+
+        fun fillAvailableCryptocurrencies(): Set<CoinInfoDto> = CryptocurrencyView::class.java
+                .getResourceAsStream("/coinpaprika-cryptocurrencies.json").use {
+                    jacksonObjectMapper.readValue(it, object : TypeReference<Set<CoinInfoDto>>() {})
+                }
     }
 
     data class CoinInfoDto(
@@ -90,13 +89,12 @@ class CryptocurrencyView(
             val timestamp: LocalDateTime,
             val coins: Map<RequiredItem<String>, CoinReport>)
 
-    private val availableCoins: List<CoinInfoDto>
+    private val availableCoins: Set<CoinInfoDto> = fillAvailableCryptocurrencies()
     private var currentReport: CurrentReport? = null
 
     private val coinKeys = listOf(CryptocurrenciesKey.coin1, CryptocurrenciesKey.coin2, CryptocurrenciesKey.coin3)
 
     init {
-        availableCoins = runBlocking(coroutineContext) { getCoins() }
         coinKeys.forEach { findCoinId(config[it]) }
     }
 

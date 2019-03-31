@@ -25,11 +25,6 @@ class CryptocurrencyViewTest {
                 assertTrue(high > 0)
                 assertTrue(low > 0)
             }
-
-            CryptocurrencyView.getCoins().apply {
-                assertTrue(isNotEmpty())
-                assertNotNull(this.find { it.symbol == "BTC" })
-            }
         }
     }
 
@@ -60,7 +55,7 @@ class CryptocurrencyViewTest {
         coEvery { hardware.frontDisplay.setStaticText(any(), any()) } just Runs
 
         runBlocking {
-            val view = CryptocurrencyView(coroutineContext, config, db, hardware)
+            val view = CryptocurrencyView(config, db, hardware)
 
             view.redrawDisplay(true, true)
 
