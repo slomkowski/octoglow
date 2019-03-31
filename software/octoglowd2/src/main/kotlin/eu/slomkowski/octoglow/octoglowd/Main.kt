@@ -44,8 +44,9 @@ fun main(args: Array<String>) {
             CpuUsageIndicatorDaemon(hardware),
             RealTimeClockDaemon(hardware),
             brightnessDaemon,
-            FrontDisplayDaemon(GlobalScope.coroutineContext, hardware, frontDisplayViews, menus))
+            FrontDisplayDaemon(config, GlobalScope.coroutineContext, hardware, frontDisplayViews, menus))
 
+    //todo add proper exception handling, with optional ringing
     runBlocking {
         controllers.map { GlobalScope.launch { it.startPooling() } }.joinAll()
     }

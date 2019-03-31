@@ -6,15 +6,25 @@ import java.time.LocalDateTime
 
 class RealTimeClockDaemon(
         private val hardware: Hardware) : Daemon(Duration.ofMillis(500)) {
-    override suspend fun pool() {
-        setClockDisplayContent(LocalDateTime.now())
+
+    data class DisplayContent(
+            val hour: Int,
+            val minute: Int,
+            val upperDot: Boolean,
+            val lowerDot: Boolean) {
+        constructor(dt: LocalDateTime) : this(dt.hour, dt.minute, dt.second >= 20, dt.second < 20 || dt.second > 40)
     }
 
-    suspend fun setClockDisplayContent(now: LocalDateTime) {
-        now.apply {
-            val upperDot = second >= 20
-            val lowerDot = second < 20 || second > 40
-            hardware.clockDisplay.setDisplay(hour, minute, upperDot, lowerDot)
+    private var previousDisplayContent: DisplayContent? = null
+
+    override suspend fun pool() {
+        val newDisplayContent = DisplayContent(LocalDateTime.now())
+
+        if (newDisplayContent != previousDisplayContent) {
+            newDisplayContent.apply {
+                hardware.clockDisplay.setDisplay(hour, minute, upperDot, lowerDot)
+            }
+            previousDisplayContent = newDisplayContent
         }
     }
 }

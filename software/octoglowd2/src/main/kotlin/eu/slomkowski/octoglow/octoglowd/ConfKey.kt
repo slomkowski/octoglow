@@ -7,6 +7,7 @@ import java.time.Duration
 import java.time.LocalTime
 import java.util.*
 
+/**/
 //todo add validators to values
 object GeoPosKey : ConfigSpec("geo-position") {
     val latitude by required<Double>()
@@ -29,5 +30,7 @@ object ConfKey : ConfigSpec() {
     val i2cBus by required<Int>()
     val databaseFile by optional<Path>(Paths.get("data.db"))
     val locale by optional(Locale("pl", "PL"))
-    val ringAtStartup by optional(false)
+    val ringAtStartup by optional(false, description = "Should the bell ring at the application startup.")
+    val viewAutomaticCycleTimeout by optional<Duration>(Duration.ofSeconds(40),
+            description = "When the dial is used, the device goes to manual mode. After this timeout, it switches back to automatic views cycling.")
 }

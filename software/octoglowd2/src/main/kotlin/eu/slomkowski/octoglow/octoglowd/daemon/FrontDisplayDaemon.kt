@@ -1,5 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
+import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.MenuOption
@@ -23,6 +25,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
 class FrontDisplayDaemon(
+        private val config: Config,
         private val coroutineContext: CoroutineContext,
         private val hardware: Hardware,
         frontDisplayViews: List<FrontDisplayView>,
@@ -30,7 +33,6 @@ class FrontDisplayDaemon(
     : Daemon(Duration.ofMillis(100)) {
 
     companion object : KLogging() {
-        private val DIAL_ACTIVITY_TIMEOUT: Duration = Duration.ofSeconds(40)
 
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0..(size - 1))
@@ -231,7 +233,6 @@ class FrontDisplayDaemon(
                             }
                             State.ViewCycle.Manual(newView)
                         }
-                //todo add check to instant update here
             }
 
             createCommonActions(State.ViewCycle.Manual::class)
@@ -382,7 +383,7 @@ class FrontDisplayDaemon(
                 stateExecutorMutex.withLock { stateExecutor.fire(Event.EncoderDelta(buttonState.encoderDelta)) }
             }
             else -> {
-                if (Duration.between(lastDialActivity ?: now, now) > DIAL_ACTIVITY_TIMEOUT) {
+                if (Duration.between(lastDialActivity ?: now, now) > config[ConfKey.viewAutomaticCycleTimeout]) {
                     stateExecutorMutex.withLock {
                         if (stateExecutor.state !is State.ViewCycle.Auto) {
                             stateExecutor.fire(Event.Timeout)

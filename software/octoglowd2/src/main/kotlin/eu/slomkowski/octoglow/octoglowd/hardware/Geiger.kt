@@ -58,7 +58,7 @@ data class GeigerCounterState(
 }
 
 data class GeigerDeviceState(
-        val geigerVoltage: Double, //todo
+        val geigerVoltage: Double,
         val geigerPwmValue: Int,
         val eyeState: EyeInverterState,
         val eyeAnimationState: EyeDisplayMode,

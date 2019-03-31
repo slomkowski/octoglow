@@ -1,17 +1,23 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
+import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.ConfKey
+import eu.slomkowski.octoglow.octoglowd.GeoPosKey
+import eu.slomkowski.octoglow.octoglowd.SleepKey
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon.Companion.updateViewIndex
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonReport
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.poznanCoordinates
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Duration
+import java.time.LocalTime
 
 class FrontDisplayDaemonTest {
 
@@ -39,6 +45,10 @@ class FrontDisplayDaemonTest {
 
     @Test
     fun testStateMachineSwitchView() {
+        val config = Config {
+            addSpec(ConfKey)
+        }
+
         runBlocking {
             val hardware = mockk<Hardware>()
 
@@ -55,7 +65,7 @@ class FrontDisplayDaemonTest {
             coEvery { v1.redrawDisplay(true, true) } just Runs
             coEvery { v2.redrawDisplay(true, true) } just Runs
 
-            val d = FrontDisplayDaemon(coroutineContext, hardware, listOf(v1, v2), emptyList())
+            val d = FrontDisplayDaemon(config, coroutineContext, hardware, listOf(v1, v2), emptyList())
 
             d.pool()
 

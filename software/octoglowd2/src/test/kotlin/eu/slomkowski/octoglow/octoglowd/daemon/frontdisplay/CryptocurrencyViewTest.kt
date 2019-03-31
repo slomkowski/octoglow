@@ -46,7 +46,6 @@ class CryptocurrencyViewTest {
             set(CryptocurrenciesKey.coin1, "BTC")
             set(CryptocurrenciesKey.coin2, "ETH")
             set(CryptocurrenciesKey.coin3, "EOS")
-
         }
         val db = mockk<DatabaseLayer>()
         val hardware = mockk<Hardware>()

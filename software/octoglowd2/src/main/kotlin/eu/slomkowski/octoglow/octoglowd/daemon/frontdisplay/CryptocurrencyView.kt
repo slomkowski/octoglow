@@ -59,8 +59,7 @@ class CryptocurrencyView(
     data class CoinInfoDto(
             val id: String,
             val name: String,
-            val symbol: String,
-            @JsonProperty("is_active") val isActive: Boolean)
+            val symbol: String)
 
     data class OhlcDto(
             @JsonProperty("time_open") val timeOpen: OffsetDateTime,
