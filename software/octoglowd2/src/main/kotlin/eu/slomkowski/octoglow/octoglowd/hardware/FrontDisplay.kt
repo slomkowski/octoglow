@@ -4,6 +4,7 @@ import eu.slomkowski.octoglow.octoglowd.set
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
+import mu.KLogging
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
@@ -32,7 +33,7 @@ data class ButtonReport(
 
 class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x14), HasBrightness {
 
-    companion object {
+    companion object : KLogging() {
         // we assume last value as pivot
         private const val maxValuesInChart = 5 * 20
     }
@@ -190,7 +191,6 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
 
         content.forEachIndexed { idx, v -> writeBuffer.set(idx + 4, v) }
 
-
         doWrite(writeBuffer)
     }
 
@@ -205,7 +205,7 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
         }, if (readBuffer[0] <= 127) {
             readBuffer[0]
         } else {
-            readBuffer[0] - 255
+            readBuffer[0] - 256
         })
     }
 }

@@ -5,6 +5,7 @@ import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.system.measureTimeMillis
@@ -77,6 +78,24 @@ class FrontDisplayTest {
                 for (i in 0..5) {
                     frontDisplay.setBrightness(i)
                     delay(1000)
+                }
+            }
+        }
+    }
+
+    @Test
+    @Disabled("only to test correct dial behavior")
+    fun testGetButtonReport2(i2CBus: I2CBus) {
+        runBlocking {
+            FrontDisplay(coroutineContext, i2CBus).apply {
+
+                repeat(100) {
+                    getButtonReport().apply {
+                        if (encoderDelta != 0) {
+                            logger.info { "Delta: $encoderDelta." }
+                        }
+                    }
+                    delay(100)
                 }
             }
         }
