@@ -76,7 +76,7 @@ class CalendarView(
                 "sunset:${sunset.format(sunriseSunsetTimeFormatter)}",
                 names?.joinToString(","))
                 .joinToString("; ")
-                .let { StringUtils.capitalize(it) }
+                .let { it.capitalize() }
     }
 
     fun getDayDescription(day: LocalDate): String = getInfoForDay(day) + "; tomorrow: " + getInfoForDay(day.plusDays(1))
