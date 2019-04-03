@@ -7,7 +7,6 @@ import java.time.Duration
 import java.time.LocalTime
 import java.util.*
 
-/**/
 //todo add validators to values
 object GeoPosKey : ConfigSpec("geo-position") {
     val latitude by required<Double>()
@@ -24,6 +23,12 @@ object CryptocurrenciesKey : ConfigSpec("cryptocurrencies") {
     val coin2 by required<String>()
     val coin3 by required<String>()
     val diffChartFraction by optional(0.005)
+}
+
+object NetworkViewKey : ConfigSpec("network-info") {
+    val ipBinary by optional(Paths.get("/bin/ip"))
+    val pingBinary by optional(Paths.get("/bin/ping"))
+    val pingAddress by required<String>(description = "IP address or domain used to check internet access on network view")
 }
 
 object ConfKey : ConfigSpec() {

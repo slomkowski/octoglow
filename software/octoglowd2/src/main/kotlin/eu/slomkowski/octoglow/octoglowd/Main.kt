@@ -19,6 +19,7 @@ fun main(args: Array<String>) {
         addSpec(CryptocurrenciesKey)
         addSpec(GeoPosKey)
         addSpec(SleepKey)
+        addSpec(NetworkViewKey)
     }.from.yaml.file("config.yml").from.env().from.systemProperties()
 
     val hardware = PhysicalHardware(config)
@@ -33,7 +34,8 @@ fun main(args: Array<String>) {
             CalendarView(config, hardware),
             OutdoorWeatherView(database, hardware),
             GeigerView(database, hardware),
-            CryptocurrencyView(config, database, hardware))
+            CryptocurrencyView(config, database, hardware),
+            NetworkView(config, hardware))
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)
 
