@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -25,7 +26,7 @@ import kotlin.math.roundToLong
 class NetworkView(
         private val config: Config,
         private val hardware: Hardware)
-    : FrontDisplayView("Network", Duration.ofSeconds(30), Duration.ofSeconds(15)) {
+    : FrontDisplayView("Network", Duration.ofSeconds(30), Duration.ofSeconds(3)) {
 
     data class RouteEntry(
             val dst: InetAddress,
@@ -59,7 +60,11 @@ class NetworkView(
         }
     }
 
-    private var activeInterface: InterfaceInfo? = null
+    data class CurrentReport(
+            val interfaceInfo: InterfaceInfo,
+            val currentPing: Duration?) //todo add historical ping values
+
+    private var currentReport: CurrentReport? = null
 
     private var currentWifiSignalInfo: WifiSignalInfo? = null
 
@@ -111,13 +116,14 @@ class NetworkView(
                     columns[4].toDouble())
         }.collect(Collectors.toList())
 
-        fun pingAddress(pingBinary: Path, iface: String, address: String, timeout: Duration): PingResult {
+        fun pingAddress(pingBinary: Path, iface: String, address: String, timeout: Duration, noPings: Int): PingResult {
             require(iface.isNotBlank())
             require(address.isNotBlank())
+            require(noPings > 0)
             require(!timeout.isNegative)
             val pb = ProcessBuilder(pingBinary.toAbsolutePath().toString(),
                     "-4",
-                    "-c", "3",
+                    "-c", noPings.toString(),
                     "-i", "0.2",
                     "-I", iface,
                     "-w", timeout.seconds.toString(),
@@ -158,27 +164,60 @@ class NetworkView(
             return PingResult(packetsTransmitted, packetsReceived, rttMin, rttAvg, rttMax)
         }
 
+        fun formatPingRtt(d: Duration?): String = when (val ms = d?.toMillis()?.toInt()) {
+            null -> "--- ms"
+            0 -> " <1 ms"
+            in 1..99 -> String.format(" %2d ms", ms)
+            in 100..999 -> String.format(" %3dms", ms)
+            else -> ">999ms"
+        }
+
         private fun NetworkInterface.isEthernet(): Boolean = listOf("eth", "enp").any { this.name.startsWith(it) }
     }
 
     override suspend fun poolStatusData(): UpdateStatus {
-        return try {
-            activeInterface = checkNotNull(getActiveInterfaceInfo()) { "cannot determine currently active network interface" }
-            UpdateStatus.FULL_SUCCESS
+        val (newReport, updateStatus) = try {
+            val iface = checkNotNull(getActiveInterfaceInfo()) { "cannot determine currently active network interface" }
+
+            try {
+                val address = config[NetworkViewKey.pingAddress]
+                logger.debug {
+                    "Pinging $address via interface ${iface.name} (" + when (iface.isWifi) {
+                        true -> "wireless"
+                        false -> "wired"
+                    } + ")."
+                }
+
+                val pingInfo = pingAddress(config[NetworkViewKey.pingBinary], iface.name, address, Duration.ofSeconds(4), 3)
+
+                val pingTime = pingInfo.rttAvg
+
+                logger.info { "RTT to $address is ${pingTime.toMillis()} ms." }
+
+                CurrentReport(iface, pingTime) to UpdateStatus.FULL_SUCCESS
+            } catch (e: Exception) {
+                logger.error(e) { "Error when ping." }
+                CurrentReport(iface, null) to UpdateStatus.PARTIAL_SUCCESS
+            }
         } catch (e: Exception) {
-            activeInterface = null
             logger.error(e) { "Cannot determine active network interface." }
-            UpdateStatus.FAILURE
+            null to UpdateStatus.FAILURE
         }
+
+        currentReport = newReport
+
+        return updateStatus
     }
 
     override suspend fun poolInstantData(): UpdateStatus {
-        val ai = activeInterface
+        val ai = currentReport?.interfaceInfo
         val (newReport, updateStatus) = if (ai?.isWifi == true) {
             try {
                 val wifiInterfaces = Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) } //todo use non-blocking api
                 val activeInfo = checkNotNull(wifiInterfaces.firstOrNull { it.ifName == ai.name })
                 { "cannot find interface $ai in $PROC_NET_WIRELESS_PATH" }
+
+                logger.debug { "Wi-Fi signal strength on ${activeInfo.ifName} is ${activeInfo.linkQuality}%." }
 
                 activeInfo to UpdateStatus.FULL_SUCCESS
             } catch (e: Exception) {
@@ -195,18 +234,37 @@ class NetworkView(
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
         val fd = hardware.frontDisplay
-        val ai = activeInterface
+        val cr = currentReport
+        val wifiInfo = currentWifiSignalInfo
 
         if (redrawStatic) {
             launch { fd.setStaticText(0, "IP:") }
+            launch { fd.setStaticText(29, "ping") }
         }
 
         if (redrawStatus) {
-            val text = ai?.ip?.hostAddress ?: "---.---.---.---"
+
+            val text = cr?.interfaceInfo?.ip?.hostAddress ?: "---.---.---.---"
             launch { fd.setStaticText(4, text) }
 
-            if (ai?.isWifi == false) {
-                launch { fd.setStaticText(20, "ethernet") }
+            if (cr != null) {
+                launch {
+                    fd.setStaticText(20,
+                            when (cr.interfaceInfo.isWifi) {
+                                false -> "wired"
+                                true -> "wifi"
+                            })
+                }
+
+                launch {
+                    fd.setStaticText(34, formatPingRtt(cr.currentPing))
+                }
+            }
+        }
+
+        if (cr?.interfaceInfo?.isWifi == true && wifiInfo != null) {
+            launch {
+                fd.setStaticText(25, String.format("%2.0f%%", wifiInfo.linkQuality))
             }
         }
     }

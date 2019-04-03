@@ -27,13 +27,13 @@ internal class NetworkViewTest {
 
         val active = checkNotNull(NetworkView.getActiveInterfaceInfo())
 
-        NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", Duration.ofSeconds(5)).apply {
+        NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", Duration.ofSeconds(5), 4).apply {
             assertNotNull(this)
             logger.info { "Ping stats: $this" }
         }
 
         assertFails {
-            NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "254.254.254.254", Duration.ofSeconds(3))
+            NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "254.254.254.254", Duration.ofSeconds(3), 2)
         }
     }
 
@@ -148,5 +148,16 @@ internal class NetworkViewTest {
         }
 
         //todo more tests on different files
+    }
+
+    @Test
+    fun testFormatPingRtt() {
+        assertEquals("-- ms", NetworkView.formatPingRtt(null))
+        assertEquals("<1 ms", NetworkView.formatPingRtt(Duration.ofNanos(44_000)))
+        assertEquals(">999ms", NetworkView.formatPingRtt(Duration.ofMillis(1500)))
+        assertEquals("21 ms", NetworkView.formatPingRtt(Duration.ofMillis(21)))
+        assertEquals(" 7 ms", NetworkView.formatPingRtt(Duration.ofNanos(7_800_000)))
+        assertEquals("534ms", NetworkView.formatPingRtt(Duration.ofMillis(534)))
+        assertEquals("999ms", NetworkView.formatPingRtt(Duration.ofMillis(999)))
     }
 }
