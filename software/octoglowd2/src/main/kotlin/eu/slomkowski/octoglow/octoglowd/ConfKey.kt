@@ -26,7 +26,6 @@ object CryptocurrenciesKey : ConfigSpec("cryptocurrencies") {
 }
 
 object NetworkViewKey : ConfigSpec("network-info") {
-    val ipBinary by optional(Paths.get("/bin/ip"))
     val pingBinary by optional(Paths.get("/bin/ping"))
     val pingAddress by required<String>(description = "IP address or domain used to check internet access on network view")
 }

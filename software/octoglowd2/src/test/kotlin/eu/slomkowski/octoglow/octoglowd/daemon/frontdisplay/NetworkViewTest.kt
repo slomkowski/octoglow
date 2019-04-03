@@ -2,7 +2,6 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
-import io.mockk.mockk
 import mu.KLogging
 import org.apache.commons.io.IOUtils
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -10,8 +9,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.net.InetAddress
 import java.nio.charset.StandardCharsets
-import java.nio.file.Paths
 import java.time.Duration
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -20,24 +19,21 @@ internal class NetworkViewTest {
     companion object : KLogging()
 
     @Test
-    fun testGetRouteEntries() {
-        val entries = NetworkView.getRouteEntries(Paths.get("/bin/ip"))
-        assertNotNull(entries)
-        assertTrue(entries.isNotEmpty())
-        logger.info { "Interfaces: $entries." }
-    }
-
-    @Test
     fun testPingAddress() {
         val config = com.uchuhimo.konf.Config {
             addSpec(ConfKey)
             addSpec(NetworkViewKey)
         }
 
-        val active = checkNotNull(NetworkView(config, mockk()).getActiveInterfaceInfo())
+        val active = checkNotNull(NetworkView.getActiveInterfaceInfo())
 
         NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", Duration.ofSeconds(5)).apply {
             assertNotNull(this)
+            logger.info { "Ping stats: $this" }
+        }
+
+        assertFails {
+            NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "254.254.254.254", Duration.ofSeconds(3))
         }
     }
 
@@ -55,6 +51,71 @@ internal class NetworkViewTest {
 
         assertFails("info about RTT not found in ping output") {
             NetworkView.parsePingOutput(readText("2.txt"))
+        }
+    }
+
+    @Test
+    fun testCreateIpFromHexString() {
+
+        fun checkIp(str: String, textual: String) {
+            val expected = InetAddress.getByName(textual)
+            logger.debug { "IP: $expected = str" }
+            assertEquals(expected, NetworkView.createIpFromHexString(str))
+        }
+
+        assertFails {
+            checkIp("000000003", "0.0.0.0")
+        }
+
+        assertFails {
+            checkIp("000000hh", "0.0.0.0")
+        }
+
+        checkIp("00000000", "0.0.0.0")
+        checkIp("0009A8C0", "192.168.9.0")
+        checkIp("0009000A", "10.0.9.0")
+    }
+
+    @Test
+    fun testParseProcNetRouteFile() {
+        fun getList(t: String): List<NetworkView.RouteEntry> = NetworkViewTest::class.java.getResourceAsStream("/proc-net-route/$t").use { inputStream ->
+            NetworkView.parseProcNetRouteFile(BufferedReader(InputStreamReader(inputStream, StandardCharsets.US_ASCII)))
+        }
+
+        getList("1.txt").apply {
+            assertEquals(4, size)
+
+            get(0).apply {
+                assertEquals("enp0s31f6", dev)
+                assertEquals(InetAddress.getByName("0.0.0.0"), dst)
+                assertEquals(InetAddress.getByName("192.168.9.1"), gateway)
+                assertEquals(100, metric)
+            }
+
+            get(1).apply {
+                assertEquals("wlp3s0", dev)
+                assertEquals(InetAddress.getByName("0.0.0.0"), dst)
+                assertEquals(InetAddress.getByName("192.168.9.1"), gateway)
+                assertEquals(600, metric)
+            }
+        }
+
+        getList("2.txt").apply {
+            assertEquals(3, size)
+
+            get(0).apply {
+                assertEquals("br0", dev)
+                assertEquals(InetAddress.getByName("0.0.0.0"), dst)
+                assertEquals(InetAddress.getByName("192.168.9.1"), gateway)
+                assertEquals(0, metric)
+            }
+
+            get(1).apply {
+                assertEquals("tun0", dev)
+                assertEquals(InetAddress.getByName("10.0.9.0"), dst)
+                assertEquals(InetAddress.getByName("0.0.0.0"), gateway)
+                assertEquals(0, metric)
+            }
         }
     }
 

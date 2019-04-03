@@ -1,16 +1,14 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.fasterxml.jackson.core.type.TypeReference
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import mu.KLogging
 import org.apache.commons.io.IOUtils
 import java.io.BufferedReader
 import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.NetworkInterface
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -30,10 +28,9 @@ class NetworkView(
     : FrontDisplayView("Network", Duration.ofSeconds(30), Duration.ofSeconds(15)) {
 
     data class RouteEntry(
-            val dst: String,
-            val gateway: String?,
+            val dst: InetAddress,
+            val gateway: InetAddress,
             val dev: String,
-            val protocol: String?,
             val metric: Int)
 
     data class InterfaceInfo(
@@ -69,23 +66,40 @@ class NetworkView(
     companion object : KLogging() {
 
         private val PROC_NET_WIRELESS_PATH: Path = Paths.get("/proc/net/wireless")
+        private val PROC_NET_ROUTE_PATH: Path = Paths.get("/proc/net/route")
 
-        fun getRouteEntries(ipBinary: Path): List<RouteEntry> {
-            val pb = ProcessBuilder(ipBinary.toAbsolutePath().toString(), "-json", "-pretty", "route")
-            val process = pb.start() //todo maybe coroutine?
-            val output = IOUtils.toString(process.inputStream, StandardCharsets.UTF_8)
-
-            process.waitFor(5, TimeUnit.SECONDS)
-
-            return jacksonObjectMapper.readValue(output, object : TypeReference<List<RouteEntry>>() {})
+        /**
+         * We assume that the interface has only one IP.
+         */
+        fun getActiveInterfaceInfo(): InterfaceInfo? = Files.newBufferedReader(PROC_NET_ROUTE_PATH).use { reader ->
+            getDefaultRouteEntry(parseProcNetRouteFile(reader))
+                    ?.let { NetworkInterface.getByName(it.dev) }
+                    ?.let { iface ->
+                        InterfaceInfo(iface.name,
+                                iface.inetAddresses.toList().first { it is Inet4Address } as Inet4Address,
+                                !iface.isEthernet())
+                    }
         }
 
         /**
          * We assume that only one interface is active and is routing all traffic.
          */
-        private fun getDefaultRouteEntry(entries: Collection<RouteEntry>): RouteEntry? = entries.filter { it.dst == "default" }.minBy { it.metric }
+        private fun getDefaultRouteEntry(entries: Collection<RouteEntry>): RouteEntry? = entries.filter { it.dst == InetAddress.getByAddress(byteArrayOf(0, 0, 0, 0)) }.minBy { it.metric }
 
+        fun createIpFromHexString(str: String): InetAddress {
+            require(str.length == 8) { "the string has to be 8 hex digits" }
+            return InetAddress.getByName(str.chunked(2).asReversed().joinToString(".") { it.toInt(16).toString() })
+        }
 
+        fun parseProcNetRouteFile(reader: BufferedReader): List<RouteEntry> = reader.lines().skip(1).map { line ->
+            val columns = line.trim().split(Regex("\\s+"))
+
+            RouteEntry(
+                    createIpFromHexString(columns[1].trim()),
+                    createIpFromHexString(columns[2].trim()),
+                    columns[0].trim(),
+                    columns[6].trim().toInt())
+        }.collect(Collectors.toList())
 
 
         fun parseProcNetWirelessFile(reader: BufferedReader): List<WifiSignalInfo> = reader.lines().skip(2).map { line ->
@@ -106,16 +120,24 @@ class NetworkView(
                     "-c", "3",
                     "-i", "0.2",
                     "-I", iface,
-                    "-D", timeout.seconds.toString())
+                    "-w", timeout.seconds.toString(),
+                    address)
 
             val process = pb.start()
+            val output = StringBuilder()
+
+            while (process.isAlive) {
+                output.append(IOUtils.toString(process.inputStream, StandardCharsets.UTF_8))
+            }
 
             process.waitFor(timeout.seconds + 2, TimeUnit.SECONDS)
-            val output = IOUtils.toString(process.inputStream, StandardCharsets.UTF_8)
 
-            check(output.isNotBlank()) { "ping returned no output" }
+            check(output.isNotBlank()) {
+                val errorMsg = IOUtils.toString(process.errorStream, StandardCharsets.UTF_8)
+                "ping returned no output, error is: $errorMsg"
+            }
 
-            return parsePingOutput(output)
+            return parsePingOutput(output.toString())
         }
 
         fun parsePingOutput(text: String): PingResult {
@@ -154,7 +176,7 @@ class NetworkView(
         val ai = activeInterface
         val (newReport, updateStatus) = if (ai?.isWifi == true) {
             try {
-                val wifiInterfaces = parseProcNetWirelessFile(Files.newBufferedReader(PROC_NET_WIRELESS_PATH))
+                val wifiInterfaces = Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) } //todo use non-blocking api
                 val activeInfo = checkNotNull(wifiInterfaces.firstOrNull { it.ifName == ai.name })
                 { "cannot find interface $ai in $PROC_NET_WIRELESS_PATH" }
 
@@ -189,11 +211,4 @@ class NetworkView(
         }
     }
 
-    /**
-     * We assume that the interface has only one IP.
-     */
-    fun getActiveInterfaceInfo(): InterfaceInfo? = getRouteEntries(config[NetworkViewKey.ipBinary])
-            .let { getDefaultRouteEntry(it) }
-            ?.let { NetworkInterface.getByName(it.dev) }
-            ?.let { InterfaceInfo(it.name, it.inetAddresses.toList().first { it is Inet4Address } as Inet4Address, !it.isEthernet()) }
 }
