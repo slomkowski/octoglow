@@ -168,7 +168,7 @@ class NetworkView(
         }
 
         fun formatPingRtt(d: Duration?): String = when (val ms = d?.toMillis()?.toInt()) {
-            null -> "--- ms"
+            null -> " -- ms"
             0 -> " <1 ms"
             in 1..99 -> String.format(" %2d ms", ms)
             in 100..999 -> String.format(" %3dms", ms)

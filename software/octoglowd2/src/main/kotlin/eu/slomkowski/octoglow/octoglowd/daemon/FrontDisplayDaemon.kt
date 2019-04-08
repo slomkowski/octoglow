@@ -35,6 +35,8 @@ class FrontDisplayDaemon(
 
     companion object : KLogging() {
 
+        private val LONG_TIME_AGO = LocalDateTime.of(2019, 1, 1, 0, 0)
+
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0..(size - 1))
             return (100000 * size + current + delta) % size
@@ -47,6 +49,17 @@ class FrontDisplayDaemon(
 
             override suspend fun loadCurrentOption(): MenuOption = throw IllegalStateException()
             override suspend fun saveCurrentOption(current: MenuOption) = throw IllegalStateException()
+        }
+
+        fun getMostSuitableViewInfo(views: Collection<ViewInfo>): ViewInfo {
+            return views.sortedByDescending {
+                val v1 = Duration.between(it.lastViewed ?: LONG_TIME_AGO, it.lastSuccessfulStatusUpdate
+                        ?: LONG_TIME_AGO).toMillis()
+                val v2 = Duration.between(it.lastViewed ?: LONG_TIME_AGO, LocalDateTime.now()).toMillis()
+
+                30 * v1 + 50 * v2
+            }.first()
+
         }
     }
 
@@ -103,12 +116,10 @@ class FrontDisplayDaemon(
 
         fun redrawInstant() {
             CoroutineScope(coroutineContext).launch {
-                logger.debug { "Updating instant of $this." }
+                logger.debug { "Updating instant of $view." }
                 view.redrawDisplay(false, false)
             }
         }
-
-
     }
 
     private val views = frontDisplayViews.map { ViewInfo(coroutineContext, hardware.frontDisplay, it) }
@@ -146,7 +157,7 @@ class FrontDisplayDaemon(
         else -> menu.options[updateViewIndex(menu.options.indexOf(current), number, menu.options.size)]
     }
 
-    suspend fun drawExitMenu() = coroutineScope {
+    private suspend fun drawExitMenu() = coroutineScope {
         val fd = hardware.frontDisplay
         fd.clear()
 
@@ -154,7 +165,7 @@ class FrontDisplayDaemon(
         launch { fd.setStaticText(0, line1) }
     }
 
-    suspend fun drawMenuOverview(menu: Menu, current: MenuOption) = coroutineScope {
+    private suspend fun drawMenuOverview(menu: Menu, current: MenuOption) = coroutineScope {
         val fd = hardware.frontDisplay
 
         fd.clear()
@@ -210,7 +221,7 @@ class FrontDisplayDaemon(
     sealed class Event {
         object ButtonPressed : Event()
 
-        object Timeout : Event()
+        data class Timeout(val now: LocalDateTime) : Event()
 
         data class EncoderDelta(val delta: Int) : Event()
 
@@ -220,21 +231,6 @@ class FrontDisplayDaemon(
         data class InstantUpdate(val info: ViewInfo,
                                  val status: UpdateStatus) : Event()
     }
-
-    /*
-    idea:
-    view ma preferred display time
-
-    - zaktualizowano jakiś widok
-    - minął preferred time dla danego widoku
-
-    - jeżeli obecny widok jest dłużej, niż preferred, przełącz na następny w kolejce
-    - jak nadejdzie status update, a obecny jest krócej, niż [połowa] czasu preffered, to dodaj do kolejki
-    - z kolejki bierze pierwszego.
-    - sort jest wyliczany wg czasu: ostatniego wyświetlenia + ostatniego update statusu
-
-    - czy wyświetlono obecny status - informacja
-     */
 
     private fun createStateMachineExecutor(coroutineContext: CoroutineContext): IExecutor<FrontDisplayDaemon, State, Event> {
 
@@ -292,11 +288,25 @@ class FrontDisplayDaemon(
 
             event(State.ViewCycle.Auto::class, Event.StatusUpdate::class)
                     .filter { event.info != state.info }
+                    .loop()
+
+            event(State.ViewCycle.Auto::class, Event.Timeout::class)
+                    .filter {
+                        Duration.between(state.info.lastViewed
+                                ?: event.now, event.now) >= state.info.view.preferredDisplayTime
+                    }
                     .goto {
-                        val newView = event.info
-                        logger.info { "Got auto status update from $newView. Switching to it." }
+                        val newView = getMostSuitableViewInfo(views)
+                        logger.info { "Going to view $newView because of timeout." }
                         State.ViewCycle.Auto(newView)
                     }
+
+            event(State.ViewCycle.Auto::class, Event.Timeout::class)
+                    .filter {
+                        Duration.between(state.info.lastViewed
+                                ?: event.now, event.now) < state.info.view.preferredDisplayTime
+                    }
+                    .loop()
 
             event(State.Menu::class, Event.StatusUpdate::class).loop()
             event(State.Menu::class, Event.InstantUpdate::class).loop()
@@ -386,7 +396,7 @@ class FrontDisplayDaemon(
                         }
                     }
                 }
-            } else if (info.lastInstantPool?.plus(info.view.poolInstantEvery)?.isBefore(now) != false) {
+            } else if (info.lastInstantPool?.plus(info.view.poolInstantEvery)?.isBefore(now) == true) {
                 info.bumpLastInstant()
 
                 if (stateExecutorMutex.withLock { (stateExecutor.state as? State.ViewCycle)?.info } == info) {
@@ -418,11 +428,10 @@ class FrontDisplayDaemon(
             }
             else -> {
                 // timeout
-                if (Duration.between(lastDialActivity ?: now, now) > config[ConfKey.viewAutomaticCycleTimeout]) {
+                if (Duration.between(lastDialActivity
+                                ?: LONG_TIME_AGO, now) > config[ConfKey.viewAutomaticCycleTimeout]) {
                     stateExecutorMutex.withLock {
-                        if (stateExecutor.state !is State.ViewCycle.Auto) {
-                            stateExecutor.fire(Event.Timeout)
-                        }
+                        stateExecutor.fire(Event.Timeout(now))
                     }
                 }
                 poolStatusAndInstant(now)

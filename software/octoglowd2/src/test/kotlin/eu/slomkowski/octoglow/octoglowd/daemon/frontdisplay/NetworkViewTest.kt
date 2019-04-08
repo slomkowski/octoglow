@@ -152,12 +152,12 @@ internal class NetworkViewTest {
 
     @Test
     fun testFormatPingRtt() {
-        assertEquals("-- ms", NetworkView.formatPingRtt(null))
-        assertEquals("<1 ms", NetworkView.formatPingRtt(Duration.ofNanos(44_000)))
+        assertEquals(" -- ms", NetworkView.formatPingRtt(null))
+        assertEquals(" <1 ms", NetworkView.formatPingRtt(Duration.ofNanos(44_000)))
         assertEquals(">999ms", NetworkView.formatPingRtt(Duration.ofMillis(1500)))
-        assertEquals("21 ms", NetworkView.formatPingRtt(Duration.ofMillis(21)))
-        assertEquals(" 7 ms", NetworkView.formatPingRtt(Duration.ofNanos(7_800_000)))
-        assertEquals("534ms", NetworkView.formatPingRtt(Duration.ofMillis(534)))
-        assertEquals("999ms", NetworkView.formatPingRtt(Duration.ofMillis(999)))
+        assertEquals(" 21 ms", NetworkView.formatPingRtt(Duration.ofMillis(21)))
+        assertEquals("  7 ms", NetworkView.formatPingRtt(Duration.ofNanos(7_800_000)))
+        assertEquals(" 534ms", NetworkView.formatPingRtt(Duration.ofMillis(534)))
+        assertEquals(" 999ms", NetworkView.formatPingRtt(Duration.ofMillis(999)))
     }
 }
