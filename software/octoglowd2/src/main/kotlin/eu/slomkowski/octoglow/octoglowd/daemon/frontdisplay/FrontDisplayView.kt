@@ -17,7 +17,8 @@ enum class UpdateStatus {
 abstract class FrontDisplayView(
         val name: String,
         val poolStatusEvery: Duration,
-        val poolInstantEvery: Duration) {
+        val poolInstantEvery: Duration,
+        val preferredDisplayTime: Duration) {
 
     init {
         check(name.isNotBlank())

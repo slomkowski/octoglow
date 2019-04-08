@@ -26,7 +26,10 @@ import kotlin.math.roundToLong
 class NetworkView(
         private val config: Config,
         private val hardware: Hardware)
-    : FrontDisplayView("Network", Duration.ofSeconds(30), Duration.ofSeconds(3)) {
+    : FrontDisplayView("Network",
+        Duration.ofSeconds(30),
+        Duration.ofSeconds(3),
+        Duration.ofSeconds(18)) {
 
     data class RouteEntry(
             val dst: InetAddress,

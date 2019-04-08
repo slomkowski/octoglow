@@ -25,7 +25,10 @@ import java.util.*
 class CalendarView(
         private val config: Config,
         private val hardware: Hardware)
-    : FrontDisplayView("Calendar", Duration.ofMinutes(3), Duration.ofMinutes(1)) {
+    : FrontDisplayView("Calendar",
+        Duration.ofMinutes(3),
+        Duration.ofMinutes(1),
+        Duration.ofSeconds(45)) {
 
     data class NameDayRow(
             val day: Int,

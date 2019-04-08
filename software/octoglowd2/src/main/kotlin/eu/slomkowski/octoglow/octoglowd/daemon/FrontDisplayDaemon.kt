@@ -7,6 +7,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.MenuOption
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
+import eu.slomkowski.octoglow.octoglowd.hardware.FrontDisplay
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
@@ -36,7 +37,7 @@ class FrontDisplayDaemon(
 
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0..(size - 1))
-            return (10000 * size + current + delta) % size
+            return (100000 * size + current + delta) % size
         }
 
         // special menu to exit
@@ -50,11 +51,24 @@ class FrontDisplayDaemon(
     }
 
     data class ViewInfo(
-            val view: FrontDisplayView,
-            val menus: List<Menu>,
-            var lastSelected: LocalDateTime?,
-            var lastStatusPool: LocalDateTime?,
-            var lastInstantPool: LocalDateTime?) {
+            private val coroutineContext: CoroutineContext,
+            private val frontDisplay: FrontDisplay,
+            val view: FrontDisplayView) {
+
+        var lastViewed: LocalDateTime? = null
+            private set
+
+        var lastSuccessfulStatusUpdate: LocalDateTime? = null
+            private set
+
+        var lastStatusPool: LocalDateTime? = null
+            private set
+
+        var lastInstantPool: LocalDateTime? = null
+            private set
+
+        val menus = view.getMenus()
+
         override fun toString(): String = view.toString()
 
         fun bumpLastStatusAndInstant() = LocalDateTime.now().let {
@@ -65,9 +79,39 @@ class FrontDisplayDaemon(
         fun bumpLastInstant() {
             lastInstantPool = LocalDateTime.now()
         }
+
+        fun bumpLastSuccessfulStatusUpdate() {
+            lastSuccessfulStatusUpdate = LocalDateTime.now()
+        }
+
+        fun redrawAll() {
+            lastViewed = LocalDateTime.now()
+            logger.debug { "Redrawing $view." }
+            CoroutineScope(coroutineContext).launch {
+                frontDisplay.clear()
+                view.redrawDisplay(true, true)
+            }
+        }
+
+        fun redrawStatus() {
+            lastViewed = LocalDateTime.now() //todo czy na pewno?
+            CoroutineScope(coroutineContext).launch {
+                logger.debug { "Updating state of active $view." }
+                view.redrawDisplay(false, true)
+            }
+        }
+
+        fun redrawInstant() {
+            CoroutineScope(coroutineContext).launch {
+                logger.debug { "Updating instant of $this." }
+                view.redrawDisplay(false, false)
+            }
+        }
+
+
     }
 
-    private val views = frontDisplayViews.map { ViewInfo(it, it.getMenus(), null, null, null) }
+    private val views = frontDisplayViews.map { ViewInfo(coroutineContext, hardware.frontDisplay, it) }
 
     private val allMenus = additionalMenus.plus(views.flatMap { it.menus }).plus(exitMenu)
 
@@ -152,11 +196,14 @@ class FrontDisplayDaemon(
                                      override val calledFrom: ViewInfo) : Menu()
         }
 
-        abstract class ViewCycle : State() {
-            abstract val info: ViewInfo
+        abstract class ViewCycle(val info: ViewInfo) : State() {
 
-            data class Auto(override val info: ViewInfo) : ViewCycle()
-            data class Manual(override val info: ViewInfo) : ViewCycle()
+            init {
+                info.redrawAll()
+            }
+
+            class Auto(info: ViewInfo) : ViewCycle(info)
+            class Manual(info: ViewInfo) : ViewCycle(info)
         }
     }
 
@@ -174,9 +221,22 @@ class FrontDisplayDaemon(
                                  val status: UpdateStatus) : Event()
     }
 
-    private fun createStateMachineExecutor(coroutineContext: CoroutineContext): IExecutor<FrontDisplayDaemon, State, Event> {
+    /*
+    idea:
+    view ma preferred display time
 
-        val fd = hardware.frontDisplay
+    - zaktualizowano jakiś widok
+    - minął preferred time dla danego widoku
+
+    - jeżeli obecny widok jest dłużej, niż preferred, przełącz na następny w kolejce
+    - jak nadejdzie status update, a obecny jest krócej, niż [połowa] czasu preffered, to dodaj do kolejki
+    - z kolejki bierze pierwszego.
+    - sort jest wyliczany wg czasu: ostatniego wyświetlenia + ostatniego update statusu
+
+    - czy wyświetlono obecny status - informacja
+     */
+
+    private fun createStateMachineExecutor(coroutineContext: CoroutineContext): IExecutor<FrontDisplayDaemon, State, Event> {
 
         fun launchInBackground(lambda: suspend () -> Unit) = CoroutineScope(coroutineContext).launch { lambda() }
 
@@ -198,24 +258,14 @@ class FrontDisplayDaemon(
                         .loop {
                             event.info.bumpLastStatusAndInstant()
                             if (event.info == state.info) {
-
-                                launchInBackground {
-                                    logger.debug { "Updating state of active ${state.info}." }
-                                    state.info.view.redrawDisplay(false, true)
-                                }
+                                state.info.redrawStatus()
                             }
                         } //todo możliwe, że wtedy przełączyć widok na nowy w auto
 
                 event(klass, Event.InstantUpdate::class)
                         .loop {
                             if (event.info == state.info) {
-                                state.info.apply {
-
-                                    launchInBackground {
-                                        logger.debug { "Updating instant of $this." }
-                                        view.redrawDisplay(false, false)
-                                    }
-                                }
+                                state.info.redrawInstant()
                             } else {
                                 logger.warn { "Spurious instant update from inactive ${event.info}." }
                             }
@@ -225,12 +275,7 @@ class FrontDisplayDaemon(
                         .goto {
                             check(event.delta != 0)
                             val newView = getNeighbourView(state.info, event.delta)
-
-                            launchInBackground {
                                 logger.info { "Switching view from ${state.info} to $newView by dial." }
-                                fd.clear()
-                                newView.view.redrawDisplay(true, true)
-                            }
                             State.ViewCycle.Manual(newView)
                         }
             }
@@ -250,10 +295,6 @@ class FrontDisplayDaemon(
                     .goto {
                         val newView = event.info
                         logger.info { "Got auto status update from $newView. Switching to it." }
-                        launchInBackground {
-                            fd.clear()
-                            newView.view.redrawDisplay(true, true)
-                        }
                         State.ViewCycle.Auto(newView)
                     }
 
@@ -283,10 +324,6 @@ class FrontDisplayDaemon(
             event(State.Menu::class, Event.Timeout::class)
                     .goto {
                         logger.info { "Leaving menu and going to ${state.calledFrom} because of timeout." }
-                        launchInBackground {
-                            fd.clear()
-                            state.calledFrom.view.redrawDisplay(true, true)
-                        }
                         State.ViewCycle.Auto(state.calledFrom)
                     }
 
@@ -294,10 +331,6 @@ class FrontDisplayDaemon(
                 when (state.menu) {
                     exitMenu -> {
                         logger.info { "Leaving menu." }
-                        launchInBackground {
-                            fd.clear()
-                            state.calledFrom.view.redrawDisplay(true, true)
-                        }
                         State.ViewCycle.Manual(state.calledFrom)
                     }
                     else -> {
@@ -347,6 +380,7 @@ class FrontDisplayDaemon(
                 CoroutineScope(coroutineContext).launch {
                     val status = info.view.poolStatusData()
                     if (status != UpdateStatus.NO_NEW_DATA) {
+                        info.bumpLastSuccessfulStatusUpdate()
                         stateExecutorMutex.withLock {
                             stateExecutor.fire(Event.StatusUpdate(info, status))
                         }
@@ -383,6 +417,7 @@ class FrontDisplayDaemon(
                 stateExecutorMutex.withLock { stateExecutor.fire(Event.EncoderDelta(buttonState.encoderDelta)) }
             }
             else -> {
+                // timeout
                 if (Duration.between(lastDialActivity ?: now, now) > config[ConfKey.viewAutomaticCycleTimeout]) {
                     stateExecutorMutex.withLock {
                         if (stateExecutor.state !is State.ViewCycle.Auto) {
@@ -390,7 +425,6 @@ class FrontDisplayDaemon(
                         }
                     }
                 }
-
                 poolStatusAndInstant(now)
             }
         }

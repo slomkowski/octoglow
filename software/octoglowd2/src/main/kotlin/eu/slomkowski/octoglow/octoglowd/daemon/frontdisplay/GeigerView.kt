@@ -17,7 +17,10 @@ import java.time.LocalDateTime
 class GeigerView(
         private val database: DatabaseLayer,
         private val hardware: Hardware)
-    : FrontDisplayView("Geiger counter", Duration.ofSeconds(7), Duration.ofSeconds(3)) {
+    : FrontDisplayView("Geiger counter",
+        Duration.ofSeconds(7),
+        Duration.ofSeconds(3),
+        Duration.ofSeconds(30)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 4 * 5 - 1

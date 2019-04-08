@@ -23,7 +23,10 @@ class CryptocurrencyView(
         private val config: Config,
         private val database: DatabaseLayer,
         private val hardware: Hardware)
-    : FrontDisplayView("Cryptocurrencies", Duration.ofMinutes(5), Duration.ofSeconds(15)) {
+    : FrontDisplayView("Cryptocurrencies",
+        Duration.ofMinutes(5),
+        Duration.ofSeconds(15),
+        Duration.ofSeconds(36)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
