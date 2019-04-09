@@ -25,7 +25,7 @@ namespace octoglow::front_display::display {
     inline void writeStaticText_P(const uint8_t position,
                                   const uint8_t maxLength,
                                   const char *const progmemText) {
-        writeStaticText(position, maxLength, const_cast<char *const>(progmemText), true);
+        writeStaticText(position, maxLength, const_cast<char *>(progmemText), true);
     }
 
     void writeScrollingText(uint8_t slotNumber,
@@ -38,7 +38,7 @@ namespace octoglow::front_display::display {
                                      const uint8_t position,
                                      const uint8_t windowLength,
                                      const char *const progmemText) {
-        writeScrollingText(slotNumber, position, windowLength, const_cast<char *const>(progmemText), true);
+        writeScrollingText(slotNumber, position, windowLength, const_cast<char *>(progmemText), true);
     }
 
     void drawGraphics(uint8_t columnPosition,
@@ -52,7 +52,7 @@ namespace octoglow::front_display::display {
                                const bool sumWithText,
                                const uint8_t *const progmemColumnBuffer) {
         drawGraphics(columnPosition, columnLength, sumWithText,
-                     const_cast<uint8_t *const>(progmemColumnBuffer), true);
+                     const_cast<uint8_t *>(progmemColumnBuffer), true);
     }
 
     void setUpperBarContent(uint32_t content);

@@ -236,7 +236,6 @@ void octoglow::front_display::display::drawGraphics(const uint8_t columnPosition
                                                     uint8_t *const columnBuffer,
                                                     const bool bufferInProgramSpace) {
     for (uint8_t p = 0; p < columnLength; ++p) {
-        //todo sum with text
         const uint8_t columnContent = bufferInProgramSpace
                                       ? pgm_read_byte(columnBuffer + p)
                                       : columnBuffer[p];

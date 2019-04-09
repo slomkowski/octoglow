@@ -1,18 +1,17 @@
 cmake_minimum_required(VERSION 3.7)
 project(octoglow-geiger-msp430)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 SET(DEVICE "msp430g2553")
 
 SET(CMAKE_C_COMPILER msp430-elf-gcc)
 SET(CMAKE_CXX_COMPILER msp430-elf-g++)
-SET(SUPPORT_FILE_DIRECTORY /home/michal/projects/octoglow/msp430-gcc-support-files/include)
+SET(SUPPORT_FILE_DIRECTORY /opt/ti/mspgcc/include/)
 
-SET(CMAKE_C_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -std=gnu99 -Wl,--gc-sections -Wall -Wextra -pedantic")
+SET(CMAKE_C_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -std=c11 -Wl,--gc-sections -Wall -Wextra -pedantic")
 SET(CMAKE_CXX_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -std=c++17 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
-#todo delete support line
 SET(CMAKE_EXE_LINKER_FLAGS "-L${SUPPORT_FILE_DIRECTORY}")
 include_directories(../noarch)
 include_directories(../../lib/libfixmath/libfixmath)

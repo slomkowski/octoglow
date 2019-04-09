@@ -38,7 +38,7 @@ TEST(I2C, GetEncoderState) {
 }
 
 TEST(I2C, ClearDisplay) {
-    display::writeStaticText(5, 20, "lorem ipsum");
+    display::writeStaticText(5, 20, const_cast<char *>("lorem ipsum"));
 
     onStart();
     onReceive(0x2);

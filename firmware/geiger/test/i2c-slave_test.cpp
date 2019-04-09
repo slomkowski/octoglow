@@ -59,7 +59,9 @@ TEST(I2C, ReadCommands) {
     // get geiger state
 
     geiger_counter::getState().hasNewCycleStarted = true;
+    geiger_counter::getState().hasCycleEverCompleted = false;
     geiger_counter::getState().numOfCountsPreviousCycle = 1231;
+    geiger_counter::getState().currentCycleProgress = 289;
     geiger_counter::getState().cycleLength = 300;
     octoglow::geiger::geiger_counter::hd::numOfCountsCurrentCycle = 52;
 
@@ -71,6 +73,8 @@ TEST(I2C, ReadCommands) {
     assertReadIs(0);
     assertReadIs(0xcf);
     assertReadIs(0x04);
+    assertReadIs(0); // number of ticks is driven by hardware
+    assertReadIs(0);
     assertReadIs(0x2c);
     assertReadIs(0x1);
 
@@ -88,6 +92,8 @@ TEST(I2C, ReadCommands) {
     assertReadIs(0);
     assertReadIs(0);
     assertReadIs(0);
+    assertReadIs(0);
+    assertReadIs(0);
     assertReadIs(0x2c);
     assertReadIs(0x1);
 
@@ -95,6 +101,8 @@ TEST(I2C, ReadCommands) {
     onReceive(0x2);
     onStart();
     assertReadIs(0); // calling getState() causes the new cycle-bit to be reset
+    assertReadIs(0);
+    assertReadIs(0);
     assertReadIs(0);
     assertReadIs(0);
     assertReadIs(0);
