@@ -26,6 +26,8 @@ static void showDemoOnDisplay() {
     display::writeStaticText_P(21, 19, PSTR("Controller boot..."));
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
 int main() {
     encoder::init();
     display::init();
@@ -51,3 +53,5 @@ int main() {
         }
     }
 }
+
+#pragma clang diagnostic pop

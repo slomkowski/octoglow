@@ -34,6 +34,8 @@ static inline void configureClockSystem() {
     i2c::setClockToLow();
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
 int main() {
     volatile uint16_t i;
 
@@ -55,13 +57,11 @@ int main() {
     i2c::init();
     geiger_counter::init();
 
+    WDTCTL = WDTPW + WDTSSEL + WDTIS0;
+
     __nop();
     __enable_interrupt();
     __nop();
-
-    //magiceye::setEnabled(true);
-
-    //uint8_t x = 0;
 
     while (true) {
         if (timerTicked) {
@@ -75,9 +75,11 @@ int main() {
             magiceye::tick();
             geiger_counter::tick();
 
-            //magiceye::setAdcValue(++x);
-
             P1OUT &= ~BIT0;
         }
+
+        WDTCTL = WDTPW + WDTCNTCL;
     }
 }
+
+#pragma clang diagnostic pop

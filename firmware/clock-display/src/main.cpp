@@ -62,6 +62,8 @@ static inline void processI2cCommands() {
     }
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
 int main() {
     i2c_initialize();
     display::init();
@@ -74,24 +76,15 @@ int main() {
 
     sei();
 
-    //display::setAllCharacters("2137");
-    //display::setDots(protocol::UPPER_DOT);
-
     while (true) {
         receiver433::pool();
 
         processI2cCommands();
-
-//        if (receiver433::currentWeatherSensorState.temperature != 0) {
-//            char text[5];
-//
-//            sprintf(text, "%2d %d", receiver433::currentWeatherSensorState.temperature / 10, receiver433::currentWeatherSensorState.temperature % 10);
-//            display::setAllCharacters(text);
-//            display::setDots(protocol::LOWER_DOT);
-//        }
 
         if (WATCHD0G_ENABLE) {
             wdt_reset();
         }
     }
 }
+
+#pragma clang diagnostic pop
