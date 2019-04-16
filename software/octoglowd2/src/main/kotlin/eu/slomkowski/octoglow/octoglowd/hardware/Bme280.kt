@@ -1,30 +1,59 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.toByteArray
+import eu.slomkowski.octoglow.octoglowd.toList
+import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
-import org.apache.commons.io.EndianUtils.readSwappedShort
-import org.apache.commons.io.EndianUtils.readSwappedUnsignedShort
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.coroutines.CoroutineContext
 
+/**
+ * Temperature in deg C, humidity in %, pressure in hPa.
+ */
 data class IndoorWeatherReport(
         val temperature: Double,
         val humidity: Double,
-        val pressure: Double) {
+        val realPressure: Double) {
 
     init {
-        require(temperature in (-10f..60f))
-        require(humidity in 0..100)
-        require(pressure in 800..1200)
+        require(temperature in (-10f..60f)) { "invalid temperature: $temperature deg C" }
+        require(humidity in 0f..100f) { "invalid humidity: $humidity%" }
+        require(realPressure in 900f..1100f) { "invalid pressure: $realPressure hPa" }
     }
 
     companion object {
-        fun parse(compensationData: CompensationData, adcP: Int, adcT: Int, adcH: Int): IndoorWeatherReport {
-            TODO()
+        /*
+        This code was directly transplanted from
+        https://github.com/ControlEverythingCommunity/BME280/blob/master/Java/BME280.java
+         */
+        fun parse(cd: CompensationData, adcP: Long, adcT: Long, adcH: Long): IndoorWeatherReport {
+            var var1 = (adcT.toDouble() / 16384.0 - cd.t1.toDouble() / 1024.0) * cd.t2.toDouble()
+            var var2 = (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * cd.t3.toDouble()
+            val tFine = (var1 + var2).toLong().toDouble()
+            val cTemp = (var1 + var2) / 5120.0
+
+            var1 = tFine / 2.0 - 64000.0
+            var2 = var1 * var1 * cd.p6.toDouble() / 32768.0
+            var2 += var1 * cd.p5.toDouble() * 2.0
+            var2 = var2 / 4.0 + cd.p4.toDouble() * 65536.0
+            var1 = (cd.p3.toDouble() * var1 * var1 / 524288.0 + cd.p2.toDouble() * var1) / 524288.0
+            var1 = (1.0 + var1 / 32768.0) * cd.p1.toDouble()
+            var p = 1048576.0 - adcP.toDouble()
+            p = (p - var2 / 4096.0) * 6250.0 / var1
+            var1 = cd.p9.toDouble() * p * p / 2147483648.0
+            var2 = p * cd.p8.toDouble() / 32768.0
+            val pressure = (p + (var1 + var2 + cd.p7.toDouble()) / 16.0) / 100
+
+            // Humidity offset calculations
+            var varH = tFine - 76800.0
+            varH = (adcH - (cd.h4 * 64.0 + cd.h5 / 16384.0 * varH)) * (cd.h2 / 65536.0 * (1.0 + cd.h6 / 67108864.0 * varH * (1.0 + cd.h3 / 67108864.0 * varH)))
+            val humidity = varH * (1.0 - cd.h1 * varH / 524288.0)
+
+            return IndoorWeatherReport(cTemp, humidity, pressure)
         }
     }
 }
@@ -56,65 +85,82 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
     companion object : KLogging() {
         private val uninitializedSensorReport = listOf(128, 0, 0, 128, 0, 0, 128, 0)
 
-        fun checkNot00andNotFF(list: ByteArray) {
+        fun checkNot00andNotFF(buffer: I2CBuffer) {
+            val list = buffer.toList()
 
-            if (list.all { it.toInt() == 0 }) {
+            if (list.all { it == 0 }) {
                 throw IllegalStateException("data is all zeroes")
             }
 
-            if (list.all { it.toInt() == 0xff }) {
+            if (list.all { it == 0xff }) {
                 throw IllegalStateException("data is all 0xff")
             }
         }
+
+        fun toSignedShort(ba: I2CBuffer, offset: Int): Int = toUnsignedShort(ba, offset).let { orig ->
+            if (orig > 32767) {
+                orig - 65536
+            } else {
+                orig
+            }
+        }
+
+        fun toUnsignedShort(ba: I2CBuffer, offset: Int): Int {
+            val bYounger = ba[offset].apply { check(this in 0..255) { "young byte: $this" } }
+            val bOlder = ba[offset + 1].apply { check(this in 0..255) { "old byte: $this" } }
+            return bYounger + 256 * bOlder
+        }
     }
 
-    override fun close() {}
+    override fun close() {
+        // doesn't need any closing action
+    }
 
     private val compensationData: CompensationData
 
     init {
-        val (cal1, cal2) = runBlocking {
+        val (b1, b2) = runBlocking {
             doWrite(0xe0, 0xb6)
 
             delay(30)
 
-            doWrite(0xf2, 0b101,
-                    0xf5, 0b10110000,
-                    0xf4, 0b10110111)
+            doWrite(0xf2, 0b100,
+                    0xf5, 0b100_100_0_0,
+                    0xf4, 0b100_100_11)
 
             delay(200)
 
             val id = doTransaction(listOf(0xd0), 1).get(0)
             check(id == 0x60) { String.format("this is not BME280 chip, it has ID 0x%x", id) }
 
-            doTransaction(listOf(0x88), 25).toByteArray() to
-                    doTransaction(listOf(0xe1), 8).toByteArray()
+            doTransaction(listOf(0x88), 25) to
+                    doTransaction(listOf(0xe1), 8)
         }
 
-        checkNot00andNotFF(cal1)
-        checkNot00andNotFF(cal2)
+        checkNot00andNotFF(b1)
+        checkNot00andNotFF(b2)
 
         compensationData = CompensationData(
-                t1 = readSwappedUnsignedShort(cal1, 0),
-                t2 = readSwappedShort(cal1, 2).toInt(),
-                t3 = readSwappedShort(cal1, 4).toInt(),
+                t1 = toUnsignedShort(b1, 0),
+                t2 = toSignedShort(b1, 2),
+                t3 = toSignedShort(b1, 4),
 
-                p1 = readSwappedUnsignedShort(cal1, 6),
-                p2 = readSwappedShort(cal1, 8).toInt(),
-                p3 = readSwappedShort(cal1, 10).toInt(),
-                p4 = readSwappedShort(cal1, 12).toInt(),
-                p5 = readSwappedShort(cal1, 14).toInt(),
-                p6 = readSwappedShort(cal1, 16).toInt(),
-                p7 = readSwappedShort(cal1, 18).toInt(),
-                p8 = readSwappedShort(cal1, 20).toInt(),
-                p9 = readSwappedShort(cal1, 22).toInt(),
+                p1 = toUnsignedShort(b1, 6),
+                p2 = toSignedShort(b1, 8),
+                p3 = toSignedShort(b1, 10),
+                p4 = toSignedShort(b1, 12),
+                p5 = toSignedShort(b1, 14),
+                p6 = toSignedShort(b1, 16),
+                p7 = toSignedShort(b1, 18),
+                p8 = toSignedShort(b1, 20),
+                p9 = toSignedShort(b1, 22),
 
-                h1 = java.lang.Byte.toUnsignedInt(cal1[24]),
-                h2 = readSwappedShort(cal2, 0).toInt(),
-                h3 = java.lang.Byte.toUnsignedInt(cal2[2]),
-                h4 = (cal2[3].toInt() shl 4) + (cal2[4].toInt() and 0x0f),
-                h5 = ((cal2[4].toInt() shr 4) and 0x0f) + (cal2[5].toInt() shl 4),
-                h6 = cal2[7].toInt())
+                h1 = b1[24],
+                h2 = toSignedShort(b2, 0),
+                h3 = b2[2],
+                h4 = (b2[3] shl 4) + (b2[4] and 0x0f),
+                h5 = ((b2[4] shr 4) and 0x0f) + (b2[5] shl 4),
+                h6 = b2[7])
 
         logger.debug { "Compensation data: $compensationData" }
     }
@@ -122,14 +168,14 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
     suspend fun readReport(): IndoorWeatherReport {
         val buf = doTransaction(listOf(0xf7), 8)
 
-        if (buf == uninitializedSensorReport) {
-            throw IllegalStateException("sensor is not initialized")
-        }
+        check(buf != uninitializedSensorReport) { "sensor is not initialized" }
 
         val bb = ByteBuffer.wrap(buf.toByteArray()).order(ByteOrder.BIG_ENDIAN)
-        val adcP = bb.getInt(0) shr 12
-        val adcT = bb.getInt(3) shr 12
-        val adcH = bb.getShort(6).toInt()
+        val adcP = (bb.getInt(0) shr 12).toLong()
+        val adcT = (bb.getInt(3) shr 12).toLong()
+        val adcH = bb.getShort(6).toLong()
+
+        logger.debug { "p: $adcP, t: $adcT, h: $adcH." }
 
         return IndoorWeatherReport.parse(compensationData, adcP, adcT, adcH)
     }

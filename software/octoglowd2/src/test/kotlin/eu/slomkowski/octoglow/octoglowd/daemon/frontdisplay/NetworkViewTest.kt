@@ -2,8 +2,8 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
+import eu.slomkowski.octoglow.octoglowd.readToString
 import mu.KLogging
-import org.apache.commons.io.IOUtils
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -39,7 +39,9 @@ internal class NetworkViewTest {
 
     @Test
     fun testParsePingOutput() {
-        fun readText(file: String): String = IOUtils.toString(NetworkViewTest::class.java.getResourceAsStream("/ping-output/$file"), StandardCharsets.UTF_8)
+        fun readText(file: String): String = NetworkViewTest::class.java.getResourceAsStream("/ping-output/$file").use {
+            it.readToString()
+        }
 
         NetworkView.parsePingOutput(readText("1.txt")).apply {
             assertEquals(3, packetsReceived)

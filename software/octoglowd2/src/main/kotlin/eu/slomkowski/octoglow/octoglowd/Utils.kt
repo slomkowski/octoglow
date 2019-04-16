@@ -7,6 +7,8 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.dvlopt.linux.i2c.I2CBuffer
 import mu.KLogger
 import org.shredzone.commons.suncalc.SunTimes
+import java.io.InputStream
+import java.nio.charset.StandardCharsets
 import java.time.*
 import java.util.*
 import kotlin.math.floor
@@ -80,3 +82,5 @@ fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
 fun I2CBuffer.contentToString(): String = (0 until this.length).map { this[it] }.joinToString(" ", prefix = "[", postfix = "]")
 
 fun I2CBuffer.toList(): List<Int> = (0 until this.length).map { this[it] }.toList()
+
+fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).readText()

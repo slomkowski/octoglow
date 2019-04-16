@@ -3,15 +3,14 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.readToString
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import mu.KLogging
-import org.apache.commons.io.IOUtils
 import java.io.BufferedReader
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -19,9 +18,6 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 import kotlin.math.roundToLong
-
-//todo ping gateway, ping dns, show ip of current interface, show wifi strength when is wifi
-//
 
 class NetworkView(
         private val config: Config,
@@ -136,13 +132,13 @@ class NetworkView(
             val output = StringBuilder()
 
             while (process.isAlive) {
-                output.append(IOUtils.toString(process.inputStream, StandardCharsets.UTF_8))
+                output.append(process.inputStream.readToString())
             }
 
             process.waitFor(timeout.seconds + 2, TimeUnit.SECONDS)
 
             check(output.isNotBlank()) {
-                val errorMsg = IOUtils.toString(process.errorStream, StandardCharsets.UTF_8)
+                val errorMsg = process.errorStream.readToString()
                 "ping returned no output, error is: $errorMsg"
             }
 

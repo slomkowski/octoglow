@@ -153,7 +153,7 @@ class GeigerView(
         try {
             val cs = hardware.geiger.getCounterState()
 
-            if (cs.hasNewCycleStarted || (cs.hasCycleEverCompleted && counterReport == null)) {
+            if (cs.hasCycleEverCompleted && (cs.hasNewCycleStarted || counterReport == null)) {
                 val ts = LocalDateTime.now()
                 val cpm = calculateCPM(cs.numOfCountsInPreviousCycle, cs.cycleLength)
                 val usvh = calculateUSVh(cs.numOfCountsInPreviousCycle, cs.cycleLength)
