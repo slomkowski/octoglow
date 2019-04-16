@@ -33,10 +33,7 @@ class PhysicalHardware(private val config: Config) : Hardware {
 
     override val dac = Dac(threadContext, bus)
 
-    override val bme280: Bme280
-        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
-
-    // override val bme280 = Bme280(threadContext, bus)
+    override val bme280 = Bme280(threadContext, bus)
 
     init {
         if (config[ConfKey.ringAtStartup]) {

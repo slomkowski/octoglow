@@ -6,6 +6,7 @@ import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
+import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertFails
@@ -14,6 +15,12 @@ import kotlin.test.assertNotNull
 @ExtendWith(I2CBusParameterResolver::class)
 class Bme280Test {
     companion object : KLogging()
+
+    @Test
+    fun testGetMeanSeaLevelPressure() {
+        assertEquals(1018.14, IndoorWeatherReport(22.0, 0.0, 1017.9).getMeanSeaLevelPressure(2.0), 0.01)
+        assertEquals(1027.25, IndoorWeatherReport(22.0, 0.0, 1017.9).getMeanSeaLevelPressure(79.0), 0.01)
+    }
 
     @Test
     fun testCheckNot00andNotFF() {

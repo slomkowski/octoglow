@@ -32,6 +32,7 @@ fun main(args: Array<String>) {
 
     val frontDisplayViews = listOf(
             CalendarView(config, hardware),
+            IndoorWeatherView(config, database, hardware),
             OutdoorWeatherView(database, hardware),
             GeigerView(database, hardware),
             CryptocurrencyView(config, database, hardware),

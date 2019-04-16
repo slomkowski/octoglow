@@ -11,6 +11,7 @@ import java.util.*
 object GeoPosKey : ConfigSpec("geo-position") {
     val latitude by required<Double>()
     val longitude by required<Double>()
+    val elevation by required<Double>() // in meters, above sea level
 }
 
 object SleepKey : ConfigSpec("sleep") {

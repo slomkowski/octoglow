@@ -10,6 +10,7 @@ import mu.KLogging
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.exp
 
 /**
  * Temperature in deg C, humidity in %, pressure in hPa.
@@ -23,6 +24,22 @@ data class IndoorWeatherReport(
         require(temperature in (-10f..60f)) { "invalid temperature: $temperature deg C" }
         require(humidity in 0f..100f) { "invalid humidity: $humidity%" }
         require(realPressure in 900f..1100f) { "invalid pressure: $realPressure hPa" }
+    }
+
+    /**
+     * Calculate mean sea-level pressure using elevation in meters.
+     */
+    fun getMeanSeaLevelPressure(elevation: Double): Double {
+        require(elevation in 0.0..1000.0)
+
+        val u = 0.0289644
+        val g = 9.81
+        val r = 8.3144598
+        val tempK = temperature + 273.15
+
+        val coeff = exp(-u * g * elevation / (r * tempK))
+
+        return realPressure / coeff
     }
 
     companion object {
@@ -174,9 +191,7 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
         val adcP = (bb.getInt(0) shr 12).toLong()
         val adcT = (bb.getInt(3) shr 12).toLong()
         val adcH = bb.getShort(6).toLong()
-
-        logger.debug { "p: $adcP, t: $adcT, h: $adcH." }
-
+        
         return IndoorWeatherReport.parse(compensationData, adcP, adcT, adcH)
     }
 }
