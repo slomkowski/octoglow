@@ -40,7 +40,7 @@ class OutdoorWeatherView(
         val fd = hardware.frontDisplay
 
         if (redrawStatic) {
-            launch { fd.setStaticText(2, "Weather outside") }
+            launch { fd.setStaticText(3, "Outdoor sensor") }
         }
 
         if (redrawStatus) {

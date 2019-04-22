@@ -43,6 +43,8 @@ class Bme280Test {
             Bme280(coroutineContext, i2cBus).use { bme280 ->
                 assertNotNull(bme280)
 
+                delay(1_000)
+
                 repeat(15) {
                     val report = bme280.readReport()
                     logger.info { "Indoor report: $report." }

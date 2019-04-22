@@ -47,6 +47,11 @@ fun formatTemperature(t: Double?): String = when (t) {
     else -> String.format("%+5.1f${DEGREE}C", t)
 }
 
+fun formatPressure(t: Double?): String = when (t) {
+    null -> "---- hPa"
+    else -> String.format("%4.0f hPa", t)
+}
+
 /**
  * Used to calculate which segment to light of the upper progress bar on front display.
  */

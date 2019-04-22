@@ -59,6 +59,13 @@ class UtilsTest {
     }
 
     @Test
+    fun testFormatPressure() {
+        assertEquals("1023 hPa", formatPressure(1022.99))
+        assertEquals(" 994 hPa", formatPressure(994.2))
+        assertEquals("---- hPa", formatPressure(null))
+    }
+
+    @Test
     fun testCalculate() {
         Duration.ofMinutes(5).let { min5 ->
             assertEquals(0, getSegmentNumber(Duration.ZERO, min5))

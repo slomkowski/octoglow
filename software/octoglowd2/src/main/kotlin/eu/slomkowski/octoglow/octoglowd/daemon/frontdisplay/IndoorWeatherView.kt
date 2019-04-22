@@ -3,7 +3,6 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.hardware.IndoorWeatherReport
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -26,7 +25,9 @@ class IndoorWeatherView(
 
     data class CurrentReport(
             val timestamp: LocalDateTime,
-            val lastMeasurement: IndoorWeatherReport,
+            val lastTemperature: Double?,
+            val lastHumidity: Double?,
+            val lastPressure: Double?,
             val historicalTemperature: List<Double?>,
             val historicalPressure: List<Double?>,
             val historicalHumidity: List<Double?>) {
@@ -43,20 +44,18 @@ class IndoorWeatherView(
         val rep = currentReport
         val fd = hardware.frontDisplay
 
-        //todo rewrite the whole view to use pressure
-
         if (redrawStatic) {
-            launch { fd.setStaticText(2, "Weather inside") }
+            launch { fd.setStaticText(0, "Indoor:") }
         }
 
         if (redrawStatus) {
-            launch { fd.setStaticText(20, formatTemperature(rep?.lastMeasurement?.temperature)) }
-            launch { fd.setStaticText(32, formatHumidity(rep?.lastMeasurement?.humidity)) }
+            launch { fd.setStaticText(8, formatPressure(rep?.lastPressure)) }
+            launch { fd.setStaticText(20, formatTemperature(rep?.lastTemperature)) }
+            launch { fd.setStaticText(32, formatHumidity(rep?.lastHumidity)) }
 
-            if (rep != null) {
-                launch { fd.setOneLineDiffChart(5 * 37, rep.lastMeasurement.humidity, rep.historicalHumidity, 1.0) }
-                launch { fd.setOneLineDiffChart(5 * 28, rep.lastMeasurement.temperature, rep.historicalTemperature, 1.0) }
-            }
+            rep?.lastPressure?.let { launch { fd.setOneLineDiffChart(5 * 17, it, rep.historicalPressure, 1.0) } }
+            rep?.lastHumidity?.let { launch { fd.setOneLineDiffChart(5 * 37, it, rep.historicalHumidity, 1.0) } }
+            rep?.lastPressure?.let { launch { fd.setOneLineDiffChart(5 * 28, it, rep.historicalTemperature, 1.0) } }
         }
 
         Unit
@@ -84,7 +83,13 @@ class IndoorWeatherView(
         val historicalHumidity = databaseLayer.getLastHistoricalValuesByHourAsync(ts, IndoorHumidity, HISTORIC_VALUES_LENGTH)
         val historicalPressure = databaseLayer.getLastHistoricalValuesByHourAsync(ts, MSLPressure, HISTORIC_VALUES_LENGTH)
 
-        currentReport = CurrentReport(ts, rep, historicalTemperature.await(), historicalPressure.await(), historicalHumidity.await())
+        currentReport = CurrentReport(ts,
+                rep.temperature,
+                rep.humidity,
+                mslPressure,
+                historicalTemperature.await(),
+                historicalPressure.await(),
+                historicalHumidity.await())
 
         UpdateStatus.FULL_SUCCESS
     }

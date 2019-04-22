@@ -139,13 +139,13 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
         val (b1, b2) = runBlocking {
             doWrite(0xe0, 0xb6)
 
-            delay(30)
+            delay(100)
 
             doWrite(0xf2, 0b100,
                     0xf5, 0b100_100_0_0,
                     0xf4, 0b100_100_11)
 
-            delay(200)
+            delay(300)
 
             val id = doTransaction(listOf(0xd0), 1).get(0)
             check(id == 0x60) { String.format("this is not BME280 chip, it has ID 0x%x", id) }
@@ -191,7 +191,7 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
         val adcP = (bb.getInt(0) shr 12).toLong()
         val adcT = (bb.getInt(3) shr 12).toLong()
         val adcH = bb.getShort(6).toLong()
-        
+
         return IndoorWeatherReport.parse(compensationData, adcP, adcT, adcH)
     }
 }
