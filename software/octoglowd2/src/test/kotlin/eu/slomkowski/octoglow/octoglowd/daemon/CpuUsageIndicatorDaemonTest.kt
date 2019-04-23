@@ -14,7 +14,7 @@ class CpuUsageIndicatorDaemonTest {
     @Test
     fun testBasic() {
         val hardware = mockk<Hardware>()
-        val d = CpuUsageIndicatorDaemon(hardware)
+        val d = CpuUsageIndicatorDaemon(mockk(), hardware)
 
         val dacValueSlot = slot<Int>()
         coEvery { hardware.dac.setValue(DacChannel.C2, capture(dacValueSlot)) } answers {

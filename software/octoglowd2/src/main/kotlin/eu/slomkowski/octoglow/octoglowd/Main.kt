@@ -44,8 +44,8 @@ fun main(args: Array<String>) {
             BrightnessMenu(brightnessDaemon))
 
     val controllers = listOf(
-            CpuUsageIndicatorDaemon(hardware),
-            RealTimeClockDaemon(hardware),
+            CpuUsageIndicatorDaemon(config, hardware),
+            RealTimeClockDaemon(config, hardware),
             brightnessDaemon,
             FrontDisplayDaemon(config, GlobalScope.coroutineContext, hardware, frontDisplayViews, menus))
 

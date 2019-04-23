@@ -5,7 +5,10 @@ import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Duration
+import java.time.LocalTime
 import kotlin.test.assertFails
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 val poznanCoordinates = 52.395869 to 16.929220
 
@@ -79,6 +82,24 @@ class UtilsTest {
             assertEquals(0, getSegmentNumber(Duration.ofSeconds(1), min5))
             assertEquals(19, getSegmentNumber(Duration.ofSeconds(299), min5))
             assertEquals(19, getSegmentNumber(min5, min5))
+        }
+    }
+
+    @Test
+    fun testIsSleeping() {
+        (LocalTime.of(22, 0) to Duration.ofHours(8)).let { (s, d) ->
+            assertTrue { isSleeping(s, d, LocalTime.of(23, 0)) }
+            assertFalse { isSleeping(s, d, LocalTime.of(12, 0)) }
+            assertTrue { isSleeping(s, d, LocalTime.of(3, 0)) }
+            assertFalse { isSleeping(s, d, LocalTime.of(21, 0)) }
+        }
+
+        (LocalTime.of(1, 20) to Duration.ofHours(7)).let { (s, d) ->
+            assertFalse { isSleeping(s, d, LocalTime.of(23, 0)) }
+            assertFalse { isSleeping(s, d, LocalTime.of(12, 0)) }
+            assertTrue { isSleeping(s, d, LocalTime.of(3, 0)) }
+            assertTrue { isSleeping(s, d, LocalTime.of(7, 0)) }
+            assertFalse { isSleeping(s, d, LocalTime.of(21, 0)) }
         }
     }
 }

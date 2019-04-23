@@ -1,11 +1,16 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
+import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
 
 class RealTimeClockDaemon(
-        private val hardware: Hardware) : Daemon(Duration.ofMillis(500)) {
+        config: Config,
+        private val hardware: Hardware) : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
+
+    companion object : KLogging()
 
     data class DisplayContent(
             val hour: Int,

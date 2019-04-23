@@ -1,16 +1,22 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.sun.management.OperatingSystemMXBean
+import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import mu.KLogging
 import java.lang.management.ManagementFactory
 import java.time.Duration
 import kotlin.math.roundToInt
 
 
 class CpuUsageIndicatorDaemon(
+        config: Config,
         private val hardware: Hardware)
-    : Daemon(Duration.ofMillis(500)) {
+    : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
+
+    companion object : KLogging()
+
     private val operatingSystemMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
 
     private var previousDacValue = -1

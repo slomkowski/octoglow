@@ -31,7 +31,7 @@ class FrontDisplayDaemon(
         private val hardware: Hardware,
         frontDisplayViews: List<FrontDisplayView>,
         additionalMenus: List<Menu>)
-    : Daemon(Duration.ofMillis(100)) {
+    : Daemon(config, hardware, logger, Duration.ofMillis(100)) {
 
     companion object : KLogging() {
 

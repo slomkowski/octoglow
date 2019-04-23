@@ -36,6 +36,7 @@ object ConfKey : ConfigSpec() {
     val databaseFile by optional<Path>(Paths.get("data.db"))
     val locale by optional(Locale("pl", "PL"))
     val ringAtStartup by optional(false, description = "Should the bell ring at the application startup.")
+    val ringAtError by optional(true, description = "Ring when demon error occurs.")
     val viewAutomaticCycleTimeout by optional<Duration>(Duration.ofSeconds(40),
             description = "When the dial is used, the device goes to manual mode. After this timeout, it switches back to automatic views cycling.")
 }

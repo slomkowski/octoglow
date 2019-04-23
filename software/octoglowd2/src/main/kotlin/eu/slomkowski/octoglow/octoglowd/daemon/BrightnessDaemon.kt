@@ -12,7 +12,7 @@ import java.time.LocalTime
 class BrightnessDaemon(
         private val config: Config,
         private val database: DatabaseLayer,
-        private val hardware: Hardware) : Daemon(Duration.ofSeconds(30)) {
+        private val hardware: Hardware) : Daemon(config, hardware, logger, Duration.ofSeconds(30)) {
 
     data class BrightnessMode(
             val isDay: Boolean,
@@ -39,11 +39,8 @@ class BrightnessDaemon(
             val dayRange = sr..ss
             val nowd = Duration.between(LocalTime.MIN, now)
 
-            val sleepTime = Duration.between(LocalTime.MIN, goToSleep)
-            val sleepRange = sleepTime..(sleepTime + sleepDuration)
-
             val isDay = nowd in dayRange
-            val isSleeping = nowd in sleepRange || nowd.plusDays(1) in sleepRange
+            val isSleeping = isSleeping(goToSleep, sleepDuration, now)
 
             return brightnessModes.first { it.isDay == isDay && it.isSleeping == isSleeping }.brightness
         }

@@ -21,6 +21,13 @@ val jacksonObjectMapper: ObjectMapper = com.fasterxml.jackson.databind.ObjectMap
         .configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true)
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
+fun isSleeping(start: LocalTime, duration: Duration, now: LocalTime): Boolean {
+    val sleepTime = Duration.between(LocalTime.MIN, start)
+    val sleepRange = sleepTime..(sleepTime + duration)
+    val nowd = Duration.between(LocalTime.MIN, now)
+    return nowd in sleepRange || nowd.plusDays(1) in sleepRange
+}
+
 fun calculateSunriseAndSunset(latitude: Double, longitude: Double, ts: LocalDate): Pair<LocalTime, LocalTime> {
 
     val sunTimes = SunTimes.compute()
