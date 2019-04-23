@@ -82,7 +82,6 @@ class NbpView(
             val url = "$NBP_API_BASE/exchangerates/rates/a/$currencyCode/last/$howMany"
 
             val resp = Fuel.get(url).awaitObject<CurrencyDto>(jacksonDeserializerOf(jacksonObjectMapper))
-            logger.debug { "Got: $resp" }
 
             return resp.let {
                 check(it.code == currencyCode)
@@ -97,7 +96,6 @@ class NbpView(
             val url = "$NBP_API_BASE/cenyzlota/last/$howMany"
 
             val resp = Fuel.get(url).awaitObject<List<GoldPrice>>(jacksonDeserializerOf(jacksonObjectMapper))
-            logger.debug { "Got: $resp" }
 
             return resp.apply {
                 check(isNotEmpty())
@@ -168,7 +166,6 @@ class NbpView(
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
         val report = currentReport
-        val fd = hardware.frontDisplay
 
         if (redrawStatus) {
             val diffChartStep = config[NbpKey.diffChartFraction]

@@ -100,7 +100,7 @@ class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), Ha
     companion object : KLogging() {
         private val cycleMaxDuration = Duration.ofSeconds(0xffff)
 
-        private const val I2C_READ_TRIES = 4
+        private const val I2C_READ_TRIES = 5
     }
 
     override fun close() {

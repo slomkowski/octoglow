@@ -7,10 +7,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
 import eu.slomkowski.octoglow.octoglowd.hardware.PhysicalHardware
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 
 fun main() {
 
@@ -29,7 +26,11 @@ fun main() {
         hardware.close() //todo maybe find cleaner way?
     })
 
-    val database = DatabaseLayer(config[ConfKey.databaseFile])
+    val database = DatabaseLayer(config[ConfKey.databaseFile], CoroutineExceptionHandler { context, throwable ->
+        runBlocking {
+            handleException(config, DatabaseLayer.logger, hardware, context, throwable)
+        }
+    })
 
     val frontDisplayViews = listOf(
             CalendarView(config, hardware),
@@ -51,7 +52,6 @@ fun main() {
             brightnessDaemon,
             FrontDisplayDaemon(config, GlobalScope.coroutineContext, hardware, frontDisplayViews, menus))
 
-    //todo add proper exception handling, with optional ringing
     runBlocking {
         controllers.map { GlobalScope.launch { it.startPooling() } }.joinAll()
     }

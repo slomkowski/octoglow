@@ -42,7 +42,6 @@ class CryptocurrencyView(
             logger.debug { "Downloading OHLC info from $url" }
 
             val resp = Fuel.get(url).awaitObject<OhlcDto>(jacksonDeserializerOf(jacksonObjectMapper))
-            logger.debug { "Got: $resp" }
 
             return resp
         }

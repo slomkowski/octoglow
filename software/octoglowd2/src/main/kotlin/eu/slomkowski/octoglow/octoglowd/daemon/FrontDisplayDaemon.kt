@@ -9,10 +9,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.FrontDisplay
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KLogging
@@ -65,6 +62,7 @@ class FrontDisplayDaemon(
 
     data class ViewInfo(
             private val coroutineContext: CoroutineContext,
+            private val exceptionHandler: CoroutineExceptionHandler,
             private val frontDisplay: FrontDisplay,
             val view: FrontDisplayView) {
 
@@ -100,29 +98,29 @@ class FrontDisplayDaemon(
         fun redrawAll() {
             lastViewed = LocalDateTime.now()
             logger.debug { "Redrawing $view." }
-            CoroutineScope(coroutineContext).launch {
+            CoroutineScope(coroutineContext).launch(exceptionHandler) {
                 frontDisplay.clear()
                 view.redrawDisplay(true, true)
             }
         }
 
         fun redrawStatus() {
-            lastViewed = LocalDateTime.now() //todo czy na pewno?
-            CoroutineScope(coroutineContext).launch {
+            lastViewed = LocalDateTime.now()
+            CoroutineScope(coroutineContext).launch(exceptionHandler) {
                 logger.debug { "Updating state of active $view." }
                 view.redrawDisplay(false, true)
             }
         }
 
         fun redrawInstant() {
-            CoroutineScope(coroutineContext).launch {
+            CoroutineScope(coroutineContext).launch(exceptionHandler) {
                 logger.debug { "Updating instant of $view." }
                 view.redrawDisplay(false, false)
             }
         }
     }
 
-    private val views = frontDisplayViews.map { ViewInfo(coroutineContext, hardware.frontDisplay, it) }
+    private val views = frontDisplayViews.map { ViewInfo(coroutineContext, exceptionHandler, hardware.frontDisplay, it) }
 
     private val allMenus = additionalMenus.plus(views.flatMap { it.menus }).plus(exitMenu)
 
@@ -162,7 +160,7 @@ class FrontDisplayDaemon(
         fd.clear()
 
         val line1 = "< " + exitMenu.text.padEnd(16) + " >"
-        launch { fd.setStaticText(0, line1) }
+        launch(exceptionHandler) { fd.setStaticText(0, line1) }
     }
 
     private suspend fun drawMenuOverview(menu: Menu, current: MenuOption) = coroutineScope {
@@ -171,10 +169,11 @@ class FrontDisplayDaemon(
         fd.clear()
 
         val line1 = "< " + menu.text.padEnd(16) + " >"
-        launch { fd.setStaticText(0, line1) }
-
         val line2 = "  Current: " + current.text
-        launch { fd.setStaticText(20, line2) }
+        launch(exceptionHandler) {
+            fd.setStaticText(0, line1)
+            fd.setStaticText(20, line2)
+        }
     }
 
     private suspend fun drawMenuSettingOption(menu: Menu, selected: MenuOption, redrawAll: Boolean) = coroutineScope {
@@ -184,11 +183,11 @@ class FrontDisplayDaemon(
             fd.clear()
 
             val line1 = "  " + menu.text.padEnd(16)
-            launch { fd.setStaticText(0, line1) }
+            launch(exceptionHandler) { fd.setStaticText(0, line1) }
         }
 
         val line2 = "< " + selected.text.padEnd(16) + " >"
-        launch { fd.setStaticText(20, line2) }
+        launch(exceptionHandler) { fd.setStaticText(20, line2) }
     }
 
     abstract class State {
@@ -234,7 +233,7 @@ class FrontDisplayDaemon(
 
     private fun createStateMachineExecutor(coroutineContext: CoroutineContext): IExecutor<FrontDisplayDaemon, State, Event> {
 
-        fun launchInBackground(lambda: suspend () -> Unit) = CoroutineScope(coroutineContext).launch { lambda() }
+        fun launchInBackground(lambda: suspend () -> Unit) = CoroutineScope(coroutineContext).launch(exceptionHandler) { lambda() }
 
         val configurator = StateMachine.createConfigurator<FrontDisplayDaemon, State, Event>().apply {
 
@@ -256,7 +255,7 @@ class FrontDisplayDaemon(
                             if (event.info == state.info) {
                                 state.info.redrawStatus()
                             }
-                        } //todo możliwe, że wtedy przełączyć widok na nowy w auto
+                        }
 
                 event(klass, Event.InstantUpdate::class)
                         .loop {
@@ -271,7 +270,7 @@ class FrontDisplayDaemon(
                         .goto {
                             check(event.delta != 0)
                             val newView = getNeighbourView(state.info, event.delta)
-                                logger.info { "Switching view from ${state.info} to $newView by dial." }
+                            logger.info { "Switching view from ${state.info} to $newView by dial." }
                             State.ViewCycle.Manual(newView)
                         }
             }
@@ -346,7 +345,6 @@ class FrontDisplayDaemon(
                     else -> {
                         logger.info { "Going to value setting of ${state.menu}." }
                         State.Menu.SettingOption(state.menu, runBlocking(coroutineContext) {
-                            //todo check if ok?
                             val current = state.menu.loadCurrentOption()
                             drawMenuSettingOption(state.menu, current, true)
                             current
@@ -386,8 +384,7 @@ class FrontDisplayDaemon(
             if (info.lastStatusPool?.plus(info.view.poolStatusEvery)?.isBefore(now) != false) {
                 info.bumpLastStatusAndInstant()
 
-                //todo handling exceptions
-                CoroutineScope(coroutineContext).launch {
+                CoroutineScope(coroutineContext).launch(exceptionHandler) {
                     val status = info.view.poolStatusData()
                     if (status != UpdateStatus.NO_NEW_DATA) {
                         info.bumpLastSuccessfulStatusUpdate()
@@ -400,7 +397,7 @@ class FrontDisplayDaemon(
                 info.bumpLastInstant()
 
                 if (stateExecutorMutex.withLock { (stateExecutor.state as? State.ViewCycle)?.info } == info) {
-                    CoroutineScope(coroutineContext).launch {
+                    CoroutineScope(coroutineContext).launch(exceptionHandler) {
                         val status = info.view.poolInstantData()
                         if (status != UpdateStatus.NO_NEW_DATA) {
                             stateExecutorMutex.withLock {

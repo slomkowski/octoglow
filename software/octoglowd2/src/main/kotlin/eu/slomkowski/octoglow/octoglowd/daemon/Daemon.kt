@@ -1,15 +1,16 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
-import eu.slomkowski.octoglow.octoglowd.SleepKey
+import eu.slomkowski.octoglow.octoglowd.handleException
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.isSleeping
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.channels.TickerMode
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import mu.KLogger
 import java.time.Duration
-import java.time.LocalTime
+import kotlin.coroutines.coroutineContext
 
 /**
  * Daemons implement features which are long-running and periodical.
@@ -26,28 +27,19 @@ abstract class Daemon(
     abstract suspend fun pool()
 
     suspend fun startPooling() {
-        for (t in ticker(poolInterval.toMillis(), initialDelayMillis = poolInterval.toMillis() % 2000)) {
+        for (t in ticker(poolInterval.toMillis(), initialDelayMillis = poolInterval.toMillis() % 2000, mode = TickerMode.FIXED_DELAY)) {
             try {
                 pool()
             } catch (e: Exception) {
-                if (config[ConfKey.ringAtError]) {
-                    val sleeping = isSleeping(config[SleepKey.startAt], config[SleepKey.duration], LocalTime.now())
-                    if (sleeping) {
-                        logger.error(e) { "Not ringing because of sleep time;" }
-                    } else {
-                        logger.error(e) { "Demon error, ringing a bell;" }
-                        try {
-                            hardware.clockDisplay.ringBell(Duration.ofMillis(100))
-                        } catch (ringException: Exception) {
-                            logger.error(ringException) { "Cannot ring a bell, perhaps I2C error;" }
-                        }
-                    }
-                } else {
-                    logger.error(e) { "Ringing at error disabled, only logging stack trace;" }
-                }
-
+                handleException(config, logger, hardware, coroutineContext, e)
                 delay(5_000)
             }
+        }
+    }
+
+    protected val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
+        runBlocking {
+            handleException(config, logger, hardware, coroutineContext, throwable)
         }
     }
 

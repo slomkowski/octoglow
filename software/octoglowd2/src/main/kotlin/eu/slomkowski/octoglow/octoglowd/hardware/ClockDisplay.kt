@@ -59,9 +59,16 @@ class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
         doWrite(3, brightness)
     }
 
+    init {
+        runBlocking(threadContext) {
+            doWrite(2, 0, 0)
+        }
+    }
+
     override fun close() {
         runBlocking(threadContext) {
             setBrightness(3)
+            doWrite(2, 0, 0)
             doWrite(1, 45, 45, 45, 45)
         }
     }

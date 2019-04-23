@@ -4,13 +4,17 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.dvlopt.linux.i2c.I2CBuffer
+import kotlinx.coroutines.delay
 import mu.KLogger
 import org.shredzone.commons.suncalc.SunTimes
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.time.*
 import java.util.*
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -70,6 +74,7 @@ suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func:
         try {
             return func(tryNo)
         } catch (e: Exception) {
+            delay(50)
             if (tryNo == numberOfTries) {
                 throw Exception("number of tries $numberOfTries exhausted, error: $e", e)
             } else {
@@ -78,6 +83,30 @@ suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func:
         }
     }
     throw IllegalStateException() // cannot be ever called
+}
+
+suspend fun handleException(config: Config,
+                            logger: KLogger,
+                            hardware: Hardware,
+                            coroutineContext: CoroutineContext,
+                            e: Throwable) {
+
+    logger.error("Exception caught in $coroutineContext.")
+    if (config[ConfKey.ringAtError]) {
+        val sleeping = isSleeping(config[SleepKey.startAt], config[SleepKey.duration], LocalTime.now())
+        if (sleeping) {
+            logger.error(e) { "Not ringing because of sleep time;" }
+        } else {
+            logger.error(e) { "Demon error, ringing a bell;" }
+            try {
+                hardware.clockDisplay.ringBell(Duration.ofMillis(100))
+            } catch (ringException: Exception) {
+                logger.error(ringException) { "Cannot ring a bell, perhaps I2C error;" }
+            }
+        }
+    } else {
+        logger.error(e) { "Ringing at error disabled, only logging stack trace;" }
+    }
 }
 
 fun List<Int>.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {

@@ -19,7 +19,7 @@ interface Hardware : HasBrightness, AutoCloseable {
     override fun close()
 }
 
-class PhysicalHardware(private val config: Config) : Hardware {
+class PhysicalHardware(config: Config) : Hardware {
 
     private val threadContext = newSingleThreadContext("hardware")
 

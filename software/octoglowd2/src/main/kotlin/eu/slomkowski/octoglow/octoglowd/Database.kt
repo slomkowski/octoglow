@@ -34,7 +34,9 @@ object ChangeableSettings : TimestampedTable("changeable_settings") {
     val value = varchar("value", 500).nullable()
 }
 
-class DatabaseLayer(databaseFile: Path) {
+class DatabaseLayer(
+        databaseFile: Path,
+        private val coroutineExceptionHandler: CoroutineExceptionHandler) {
     companion object : KLogging() {
         private const val caseColumnName = "bucket_no"
 
@@ -133,7 +135,7 @@ class DatabaseLayer(databaseFile: Path) {
 
     fun setChangeableSettingAsync(key: ChangeableSetting, value: String?): Job {
         logger.info { "Saving $key as $value." }
-        return CoroutineScope(threadContext).launch {
+        return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
             transaction {
                 val existingRow = ChangeableSettings.select { ChangeableSettings.key eq key.name }.singleOrNull()
 
@@ -157,7 +159,7 @@ class DatabaseLayer(databaseFile: Path) {
     fun insertHistoricalValueAsync(ts: LocalDateTime, key: HistoricalValueType, value: Double): Job {
         logger.debug { "Inserting data to DB: $key = $value." }
 
-        return CoroutineScope(threadContext).launch {
+        return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
             transaction {
                 HistoricalValues.insert {
                     it[timestamp] = toJodaDateTime(ts)
