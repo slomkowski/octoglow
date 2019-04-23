@@ -19,7 +19,8 @@ class FrontDisplayDaemonTest {
 
     companion object : KLogging()
 
-    class TestView(name: String) : FrontDisplayView(name,
+    class TestView(name: String) : FrontDisplayView(mockk(),
+            name,
             Duration.ofSeconds(10),
             Duration.ofSeconds(1),
             Duration.ofSeconds(7)) {

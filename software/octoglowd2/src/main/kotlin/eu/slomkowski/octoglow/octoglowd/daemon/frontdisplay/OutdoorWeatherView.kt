@@ -12,8 +12,9 @@ import java.time.LocalDateTime
 
 class OutdoorWeatherView(
         private val databaseLayer: DatabaseLayer,
-        private val hardware: Hardware)
-    : FrontDisplayView("Outdoor weather",
+        hardware: Hardware)
+    : FrontDisplayView(hardware,
+        "Outdoor weather",
         Duration.ofSeconds(20),
         Duration.ofSeconds(7),
         Duration.ofSeconds(25)) {
@@ -57,13 +58,7 @@ class OutdoorWeatherView(
             }
         }
 
-        if (rep != null) {
-            val currentCycleDuration = Duration.between(rep.timestamp, LocalDateTime.now())
-            check(!currentCycleDuration.isNegative)
-            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, Duration.ofMinutes(5)))) }
-        } else {
-            launch { fd.setUpperBar(emptyList()) }
-        }
+        drawProgressBar(rep?.timestamp)
 
         Unit
     }

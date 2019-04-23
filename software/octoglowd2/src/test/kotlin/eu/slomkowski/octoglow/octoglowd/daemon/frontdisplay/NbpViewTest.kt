@@ -88,4 +88,15 @@ class NbpViewTest {
         assertEquals(129.4, report.latest)
         assertFalse(report.isLatestFromToday)
     }
+
+    @Test
+    fun testFormatZloty() {
+        assertEquals("1.76zł", NbpView.formatZloty(1.764343))
+        assertEquals("43.2zł", NbpView.formatZloty(43.229434343))
+        assertEquals("76.0zł", NbpView.formatZloty(76.0))
+        assertEquals("232 zł", NbpView.formatZloty(232.29094))
+        assertEquals("3072zł", NbpView.formatZloty(3072.23))
+        assertEquals("10345", NbpView.formatZloty(10345.23323))
+        assertEquals("----zł", NbpView.formatZloty(null))
+    }
 }

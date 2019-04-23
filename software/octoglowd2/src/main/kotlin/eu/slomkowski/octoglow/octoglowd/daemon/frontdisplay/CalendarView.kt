@@ -24,8 +24,9 @@ import java.util.*
 
 class CalendarView(
         private val config: Config,
-        private val hardware: Hardware)
-    : FrontDisplayView("Calendar",
+        hardware: Hardware)
+    : FrontDisplayView(hardware,
+        "Calendar",
         Duration.ofMinutes(3),
         Duration.ofMinutes(1),
         Duration.ofSeconds(45)) {

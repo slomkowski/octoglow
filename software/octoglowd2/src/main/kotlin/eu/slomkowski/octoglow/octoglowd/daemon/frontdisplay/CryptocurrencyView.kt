@@ -7,8 +7,11 @@ import com.github.kittinunf.fuel.coroutines.awaitObject
 import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
-import eu.slomkowski.octoglow.octoglowd.*
+import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
+import eu.slomkowski.octoglow.octoglowd.Cryptocurrency
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -22,8 +25,9 @@ import java.time.ZoneId
 class CryptocurrencyView(
         private val config: Config,
         private val database: DatabaseLayer,
-        private val hardware: Hardware)
-    : FrontDisplayView("Cryptocurrencies",
+        hardware: Hardware)
+    : FrontDisplayView(hardware,
+        "Cryptocurrencies",
         Duration.ofMinutes(5),
         Duration.ofSeconds(15),
         Duration.ofSeconds(36)) {
@@ -115,7 +119,6 @@ class CryptocurrencyView(
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
         val report = currentReport
-        val fd = hardware.frontDisplay
 
         if (redrawStatus) {
             val diffChartStep = config[CryptocurrenciesKey.diffChartFraction]
@@ -125,13 +128,7 @@ class CryptocurrencyView(
             launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin3), 14, diffChartStep) }
         }
 
-        if (report != null) {
-            val currentCycleDuration = Duration.between(report.timestamp, LocalDateTime.now())
-            check(!currentCycleDuration.isNegative)
-            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, poolStatusEvery))) }
-        } else {
-            launch { fd.setUpperBar(emptyList()) }
-        }
+        drawProgressBar(report?.timestamp)
 
         Unit
     }
