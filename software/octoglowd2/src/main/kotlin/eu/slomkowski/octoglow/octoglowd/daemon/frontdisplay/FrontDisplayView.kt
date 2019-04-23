@@ -1,6 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
+import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.time.Duration
+import java.time.LocalDateTime
 
 enum class UpdateStatus {
     NO_NEW_DATA,
@@ -15,6 +20,7 @@ enum class UpdateStatus {
  * instant - exact state of the processing on the device, updatable once every several seconds.
  */
 abstract class FrontDisplayView(
+        val hardware: Hardware,
         val name: String,
         val poolStatusEvery: Duration,
         val poolInstantEvery: Duration,
@@ -36,6 +42,17 @@ abstract class FrontDisplayView(
     abstract suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean)
 
     override fun toString(): String = "'$name'"
+
+    protected suspend fun drawProgressBar(reportTimestamp: LocalDateTime?) = coroutineScope {
+        val fd = hardware.frontDisplay
+        if (reportTimestamp != null) {
+            val currentCycleDuration = Duration.between(reportTimestamp, LocalDateTime.now())
+            check(!currentCycleDuration.isNegative)
+            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, poolStatusEvery))) }
+        } else {
+            launch { fd.setUpperBar(emptyList()) }
+        }
+    }
 }
 
 data class MenuOption(val text: String) {

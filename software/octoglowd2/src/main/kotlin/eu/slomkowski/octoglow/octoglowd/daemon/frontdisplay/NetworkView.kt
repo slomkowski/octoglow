@@ -21,11 +21,12 @@ import kotlin.math.roundToLong
 
 class NetworkView(
         private val config: Config,
-        private val hardware: Hardware)
-    : FrontDisplayView("Network",
-        Duration.ofSeconds(30),
-        Duration.ofSeconds(3),
-        Duration.ofSeconds(18)) {
+        hardware: Hardware)
+    : FrontDisplayView(hardware,
+        "Network",
+        Duration.ofSeconds(44),
+        Duration.ofSeconds(2),
+        Duration.ofSeconds(9)) {
 
     data class RouteEntry(
             val dst: InetAddress,
@@ -61,7 +62,7 @@ class NetworkView(
 
     data class CurrentReport(
             val interfaceInfo: InterfaceInfo,
-            val currentPing: Duration?) //todo add historical ping values
+            val currentPing: Duration?)
 
     private var currentReport: CurrentReport? = null
 

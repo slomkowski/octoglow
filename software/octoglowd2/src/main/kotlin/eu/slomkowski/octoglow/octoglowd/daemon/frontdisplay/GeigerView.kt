@@ -16,8 +16,9 @@ import java.time.LocalDateTime
 
 class GeigerView(
         private val database: DatabaseLayer,
-        private val hardware: Hardware)
-    : FrontDisplayView("Geiger counter",
+        hardware: Hardware)
+    : FrontDisplayView(hardware,
+        "Geiger counter",
         Duration.ofSeconds(7),
         Duration.ofSeconds(3),
         Duration.ofSeconds(30)) {

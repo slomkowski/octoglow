@@ -53,6 +53,6 @@ class PhysicalHardware(private val config: Config) : Hardware {
     }
 
     override fun close() {
-        listOf<AutoCloseable>(clockDisplay, frontDisplay, geiger, dac /*todo bme280 */).forEach { it.close() }
+        listOf<AutoCloseable>(clockDisplay, frontDisplay, geiger, dac, bme280).forEach { it.close() }
     }
 }

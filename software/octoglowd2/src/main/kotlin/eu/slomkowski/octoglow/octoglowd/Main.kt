@@ -12,7 +12,7 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-fun main(args: Array<String>) {
+fun main() {
 
     val config = Config {
         addSpec(ConfKey)
@@ -20,6 +20,7 @@ fun main(args: Array<String>) {
         addSpec(GeoPosKey)
         addSpec(SleepKey)
         addSpec(NetworkViewKey)
+        addSpec(NbpKey)
     }.from.yaml.file("config.yml").from.env().from.systemProperties()
 
     val hardware = PhysicalHardware(config)
@@ -36,6 +37,7 @@ fun main(args: Array<String>) {
             OutdoorWeatherView(database, hardware),
             GeigerView(database, hardware),
             CryptocurrencyView(config, database, hardware),
+            NbpView(config, hardware),
             NetworkView(config, hardware))
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)

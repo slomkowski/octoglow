@@ -13,8 +13,9 @@ import java.time.LocalDateTime
 class IndoorWeatherView(
         private val config: Config,
         private val databaseLayer: DatabaseLayer,
-        private val hardware: Hardware)
-    : FrontDisplayView("Indoor weather",
+        hardware: Hardware)
+    : FrontDisplayView(hardware,
+        "Indoor weather",
         Duration.ofMinutes(4),
         Duration.ofMinutes(1),
         Duration.ofSeconds(31)) {
@@ -57,6 +58,8 @@ class IndoorWeatherView(
             rep?.lastHumidity?.let { launch { fd.setOneLineDiffChart(5 * 37, it, rep.historicalHumidity, 1.0) } }
             rep?.lastPressure?.let { launch { fd.setOneLineDiffChart(5 * 28, it, rep.historicalTemperature, 1.0) } }
         }
+
+        drawProgressBar(rep?.timestamp)
 
         Unit
     }

@@ -26,6 +26,13 @@ object CryptocurrenciesKey : ConfigSpec("cryptocurrencies") {
     val diffChartFraction by optional(0.005)
 }
 
+object NbpKey : ConfigSpec("nbp") {
+    val currency1 by required<String>()
+    val currency2 by required<String>()
+    val currency3 by required<String>()
+    val diffChartFraction by optional(0.005)
+}
+
 object NetworkViewKey : ConfigSpec("network-info") {
     val pingBinary by optional(Paths.get("/bin/ping"))
     val pingAddress by required<String>(description = "IP address or domain used to check internet access on network view")
