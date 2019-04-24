@@ -21,7 +21,7 @@ class GeigerView(
         "Geiger counter",
         Duration.ofSeconds(7),
         Duration.ofSeconds(3),
-        Duration.ofSeconds(30)) {
+        Duration.ofSeconds(24)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 4 * 5 - 1

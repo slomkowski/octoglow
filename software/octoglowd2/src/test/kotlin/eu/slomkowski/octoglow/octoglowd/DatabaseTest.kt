@@ -1,6 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd
 
-import io.mockk.mockk
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
@@ -19,7 +19,9 @@ class DatabaseTest {
     private fun <T : Any> createTestDbContext(func: (DatabaseLayer) -> T): T {
         val dbFile = Files.createTempFile("unit-test-", ".db")
         try {
-            val db = DatabaseLayer(dbFile, mockk())
+            val db = DatabaseLayer(dbFile, CoroutineExceptionHandler { coroutineContext, throwable ->
+                logger.error(throwable) { "Error within the coroutine $coroutineContext." }
+            })
             assertNotNull(db)
             logger.debug { "Opened DB file $dbFile" }
             return func(db)

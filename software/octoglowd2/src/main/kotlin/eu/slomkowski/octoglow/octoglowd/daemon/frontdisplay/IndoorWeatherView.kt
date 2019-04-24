@@ -18,7 +18,7 @@ class IndoorWeatherView(
         "Indoor weather",
         Duration.ofMinutes(4),
         Duration.ofMinutes(1),
-        Duration.ofSeconds(31)) {
+        Duration.ofSeconds(15)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14

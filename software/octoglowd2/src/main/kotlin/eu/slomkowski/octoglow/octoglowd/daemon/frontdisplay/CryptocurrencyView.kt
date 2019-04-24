@@ -30,7 +30,7 @@ class CryptocurrencyView(
         "Cryptocurrencies",
         Duration.ofMinutes(5),
         Duration.ofSeconds(15),
-        Duration.ofSeconds(36)) {
+        Duration.ofSeconds(19)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14

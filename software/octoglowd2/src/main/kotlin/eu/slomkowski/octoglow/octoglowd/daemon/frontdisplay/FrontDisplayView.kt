@@ -43,12 +43,12 @@ abstract class FrontDisplayView(
 
     override fun toString(): String = "'$name'"
 
-    protected suspend fun drawProgressBar(reportTimestamp: LocalDateTime?) = coroutineScope {
+    protected suspend fun drawProgressBar(reportTimestamp: LocalDateTime?, period: Duration = poolStatusEvery) = coroutineScope {
         val fd = hardware.frontDisplay
         if (reportTimestamp != null) {
             val currentCycleDuration = Duration.between(reportTimestamp, LocalDateTime.now())
             check(!currentCycleDuration.isNegative)
-            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, poolStatusEvery))) }
+            launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, period))) }
         } else {
             launch { fd.setUpperBar(emptyList()) }
         }

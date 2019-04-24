@@ -17,7 +17,7 @@ class OutdoorWeatherView(
         "Outdoor weather",
         Duration.ofSeconds(20),
         Duration.ofSeconds(7),
-        Duration.ofSeconds(25)) {
+        Duration.ofSeconds(17)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
@@ -52,13 +52,16 @@ class OutdoorWeatherView(
                 launch { fd.setOneLineDiffChart(5 * 37, rep.lastMeasurement.humidity, rep.historicalHumidity, 1.0) }
                 launch { fd.setOneLineDiffChart(5 * 28, rep.lastMeasurement.temperature, rep.historicalTemperature, 1.0) }
 
-                if (rep.lastMeasurement.batteryIsWeak) {
-                    launch { fd.setStaticText(19, "!") }
+                launch {
+                    fd.setStaticText(19, when (rep.lastMeasurement.batteryIsWeak) {
+                        true -> "!"
+                        else -> " "
+                    })
                 }
             }
         }
 
-        drawProgressBar(rep?.timestamp)
+        drawProgressBar(rep?.timestamp, Duration.ofMinutes(5))
 
         Unit
     }

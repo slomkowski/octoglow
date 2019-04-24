@@ -25,7 +25,7 @@ class NbpView(
         "NBP exchange rates",
         Duration.ofMinutes(10),
         Duration.ofSeconds(15),
-        Duration.ofSeconds(33)) {
+        Duration.ofSeconds(21)) {
 
     interface DatedPrice {
         val date: LocalDate

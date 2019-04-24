@@ -18,7 +18,7 @@ fun main() {
         addSpec(SleepKey)
         addSpec(NetworkViewKey)
         addSpec(NbpKey)
-    }.from.yaml.file("config.yml").from.env().from.systemProperties()
+    }.from.yaml.file("config.yml")
 
     val hardware = PhysicalHardware(config)
 

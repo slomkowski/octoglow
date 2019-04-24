@@ -116,13 +116,13 @@ class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), Ha
 
     suspend fun getDeviceState(): GeigerDeviceState = trySeveralTimes(I2C_READ_TRIES, logger) {
         val readBuffer = doTransaction(listOf(1), GeigerDeviceState.SIZE_IN_BYTES)
-        logger.debug { "Device state buffer: ${readBuffer.contentToString()}." }
+        logger.trace { "Device state buffer: ${readBuffer.contentToString()}." }
         GeigerDeviceState.parse(readBuffer)
     }
 
     suspend fun getCounterState(): GeigerCounterState = trySeveralTimes(I2C_READ_TRIES, logger) {
         val readBuffer = doTransaction(listOf(2), GeigerCounterState.SIZE_IN_BYTES)
-        logger.debug { "Counter state buffer: ${readBuffer.contentToString()}." }
+        logger.trace { "Counter state buffer: ${readBuffer.contentToString()}." }
         GeigerCounterState.parse(readBuffer)
     }
 

@@ -13,7 +13,6 @@ import kotlinx.coroutines.launch
 import mu.KLogging
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
-import org.apache.commons.lang3.StringUtils
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
@@ -29,7 +28,7 @@ class CalendarView(
         "Calendar",
         Duration.ofMinutes(3),
         Duration.ofMinutes(1),
-        Duration.ofSeconds(45)) {
+        Duration.ofSeconds(35)) {
 
     data class NameDayRow(
             val day: Int,
@@ -95,7 +94,7 @@ class CalendarView(
 
         if (redrawStatus) {
             launch { fd.setStaticText(0, now.format(displayDateFormatter)) }
-            launch { fd.setScrollingText(Slot.SLOT0, 20, 20, StringUtils.abbreviate(getDayDescription(now), Slot.SLOT0.capacity)) }
+            launch { fd.setScrollingText(Slot.SLOT0, 20, 20, getDayDescription(now).take(Slot.SLOT0.capacity)) }
         }
     }
 }

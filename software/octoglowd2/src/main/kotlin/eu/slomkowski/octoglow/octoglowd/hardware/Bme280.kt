@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.toByteArray
 import eu.slomkowski.octoglow.octoglowd.toList
+import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
@@ -21,9 +22,8 @@ data class IndoorWeatherReport(
         val realPressure: Double) {
 
     init {
-        require(temperature in (-10f..60f)) { "invalid temperature: $temperature deg C" }
-        require(humidity in 0f..100f) { "invalid humidity: $humidity%" }
-        require(realPressure in 900f..1100f) { "invalid pressure: $realPressure hPa" }
+        require(temperature in (-10f..60f) && humidity in (0.0..100.0) && realPressure in (900.0..1100.0))
+        { String.format("invalid report: %4.2f deg C, H: %3.0f%%, %4.0f hPa", temperature, humidity, realPressure) }
     }
 
     /**
@@ -182,7 +182,7 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
         logger.debug { "Compensation data: $compensationData" }
     }
 
-    suspend fun readReport(): IndoorWeatherReport {
+    suspend fun readReport(): IndoorWeatherReport = trySeveralTimes(3, logger) {
         val buf = doTransaction(listOf(0xf7), 8)
 
         check(buf != uninitializedSensorReport) { "sensor is not initialized" }
@@ -192,6 +192,6 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
         val adcT = (bb.getInt(3) shr 12).toLong()
         val adcH = bb.getShort(6).toLong()
 
-        return IndoorWeatherReport.parse(compensationData, adcP, adcT, adcH)
+        IndoorWeatherReport.parse(compensationData, adcP, adcT, adcH)
     }
 }

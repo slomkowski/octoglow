@@ -38,7 +38,7 @@ object NetworkViewKey : ConfigSpec("network-info") {
     val pingAddress by required<String>(description = "IP address or domain used to check internet access on network view")
 }
 
-object ConfKey : ConfigSpec() {
+object ConfKey : ConfigSpec("") {
     val i2cBus by required<Int>()
     val databaseFile by optional<Path>(Paths.get("data.db"))
     val locale by optional(Locale("pl", "PL"))
