@@ -15,11 +15,8 @@ object RadioactivityCpm : HistoricalValueType()
 object RadioactivityUSVH : HistoricalValueType() // uSv/h
 
 object OutdoorTemperature : HistoricalValueType()
-object OutdoorHumidity : HistoricalValueType()
 object OutdoorWeakBattery : HistoricalValueType()
-
 object IndoorTemperature : HistoricalValueType()
-object IndoorHumidity : HistoricalValueType()
 object RealPressure : HistoricalValueType()
 
 object MSLPressure : HistoricalValueType() {

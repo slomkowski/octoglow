@@ -115,14 +115,6 @@
                     <groupId>org.dom4j</groupId>
                     <artifactId>dom4j</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>com.typesafe</groupId>
-                    <artifactId>config</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.uchuhimo</groupId>
-                    <artifactId>kotlinx-bimap</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
 

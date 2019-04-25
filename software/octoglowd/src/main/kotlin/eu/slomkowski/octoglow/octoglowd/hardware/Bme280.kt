@@ -1,6 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.toByteArray
 import eu.slomkowski.octoglow.octoglowd.toList
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
@@ -8,8 +7,6 @@ import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.exp
 
@@ -47,7 +44,7 @@ data class IndoorWeatherReport(
         This code was directly transplanted from
         https://github.com/ControlEverythingCommunity/BME280/blob/master/Java/BME280.java
          */
-        fun parse(cd: CompensationData, adcP: Long, adcT: Long, adcH: Long): IndoorWeatherReport {
+        fun parse(cd: CompensationData, adcP: Int, adcT: Int, adcH: Int): IndoorWeatherReport {
             var var1 = (adcT.toDouble() / 16384.0 - cd.t1.toDouble() / 1024.0) * cd.t2.toDouble()
             var var2 = (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * cd.t3.toDouble()
             val tFine = (var1 + var2).toLong().toDouble()
@@ -145,7 +142,7 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
                     0xf5, 0b100_100_0_0,
                     0xf4, 0b100_100_11)
 
-            delay(300)
+            delay(100)
 
             val id = doTransaction(listOf(0xd0), 1).get(0)
             check(id == 0x60) { String.format("this is not BME280 chip, it has ID 0x%x", id) }
@@ -187,10 +184,11 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
 
         check(buf != uninitializedSensorReport) { "sensor is not initialized" }
 
-        val bb = ByteBuffer.wrap(buf.toByteArray()).order(ByteOrder.BIG_ENDIAN)
-        val adcP = (bb.getInt(0) shr 12).toLong()
-        val adcT = (bb.getInt(3) shr 12).toLong()
-        val adcH = bb.getShort(6).toLong()
+        val adcP = buf[0] shl 12 or (buf[1] shl 4) or (buf[2] shr 4)
+        val adcT = buf[3] shl 12 or (buf[4] shl 4) or (buf[5] shr 4)
+        val adcH = buf[6] shl 8 or buf[7]
+
+        logger.trace { "adcP: $adcP, adcT: $adcT, adcH: $adcH." }
 
         IndoorWeatherReport.parse(compensationData, adcP, adcT, adcH)
     }
