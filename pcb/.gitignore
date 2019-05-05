@@ -39,6 +39,7 @@ sym-lib-table
 *.stp
 
 *.pdf
+*.svg
 *.xml
 *.csv
 

@@ -42,7 +42,7 @@ class WeatherSensorView(
     data class OutdoorReport(
             val lastTemperature: Double,
             val historicalTemperature: List<Double?>,
-            val isWeekBattery: Boolean) {
+            val isWeakBattery: Boolean) {
         init {
             require(lastTemperature in (-40.0..45.0))
             require(historicalTemperature.size == HISTORIC_VALUES_LENGTH)
@@ -65,13 +65,18 @@ class WeatherSensorView(
         }
 
         if (redrawStatus) {
-            launch { fd.setStaticText(0, formatTemperature(rep?.outdoor?.lastTemperature)) }
+            launch {
+                fd.setStaticText(0, formatTemperature(rep?.outdoor?.lastTemperature) + when (rep?.outdoor?.isWeakBattery) {
+                    true -> "!"
+                    else -> ""
+                })
+            }
             launch { fd.setStaticText(13, formatTemperature(rep?.indoor?.lastTemperature)) }
             launch { fd.setStaticText(24, formatPressure(rep?.indoor?.lastPressure)) }
 
-            rep?.indoor?.let { launch { fd.setOneLineDiffChart(5 * 20, it.lastTemperature, it.historicalTemperature, 1.0) } }
+            rep?.outdoor?.let { launch { fd.setOneLineDiffChart(5 * 20, it.lastTemperature, it.historicalTemperature, 1.0) } }
             rep?.indoor?.let { launch { fd.setOneLineDiffChart(5 * 33, it.lastPressure, it.historicalPressure, 1.0) } }
-            rep?.outdoor?.let { launch { fd.setOneLineDiffChart(5 * 37, it.lastTemperature, it.historicalTemperature, 1.0) } }
+            rep?.indoor?.let { launch { fd.setOneLineDiffChart(5 * 37, it.lastTemperature, it.historicalTemperature, 1.0) } }
         }
 
         drawProgressBar(rep?.timestamp, MAXIMAL_DURATION_BETWEEN_MEASUREMENTS)
