@@ -1,8 +1,8 @@
-# Octoglow VFD
+# Octoglow VFD - Fallout-inspired post pocalyptic display
 
-## Boards
+todo photo
 
-* `front-display` - big board with dot-matrix VFD display, rotary encoder, power supply
-* `clock-display` - 4-digit display, 433 MHz receiver
-* `geiger` - Geiger counter, vintage crystal and vacuum tube, magic eye driver
+Design files of Octoglow, the post-apocalyptic desktop display device. Detailed article [pushlished on my website](https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display/).
+
+(C) Michał Słomkowski
 
