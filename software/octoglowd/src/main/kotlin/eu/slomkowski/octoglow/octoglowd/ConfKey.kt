@@ -7,11 +7,16 @@ import java.time.Duration
 import java.time.LocalTime
 import java.util.*
 
-//todo add validators to values
 object GeoPosKey : ConfigSpec("geo-position") {
     val latitude by required<Double>()
     val longitude by required<Double>()
     val elevation by required<Double>() // in meters, above sea level
+
+    init {
+        latitude.onSet { require(it !in (-90.0..90.0)) { "latitude has to be between -90 and 90" } }
+        longitude.onSet { require(it !in (-180.0..180.0)) { "longitude has to be between -180 and 180" } }
+        elevation.onSet { require(it !in (-200.0..8000.0)) { "invalid elevation" } }
+    }
 }
 
 object SleepKey : ConfigSpec("sleep") {

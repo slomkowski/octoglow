@@ -1,4 +1,5 @@
-geiger-and-magic-eye-board/
+# Octoglow VFD - `octoglowd` daemon
 
-* intended to run OrangePi Zero
-* drives I2C bus
+Requires JVM 8 to run. Compiles under *Maven*.
+
+More details under https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display/orange-pi-zero-board/
