@@ -26,7 +26,7 @@ class NetworkView(
         "Network",
         Duration.ofSeconds(44),
         Duration.ofSeconds(2),
-        Duration.ofSeconds(7)) {
+        Duration.ofSeconds(5)) {
 
     data class RouteEntry(
             val dst: InetAddress,

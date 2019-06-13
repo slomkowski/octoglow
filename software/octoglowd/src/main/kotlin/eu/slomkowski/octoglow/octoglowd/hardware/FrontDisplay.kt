@@ -60,7 +60,7 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
     /**
      * Sets the upper bar content - all 20 positions are needed.
      */
-    suspend fun setUpperBar(content: Array<Boolean>) {
+    suspend fun setUpperBar(content: BooleanArray) {
         require(content.size == 20) { "array size has to be 20" }
 
         val c = content.foldIndexed(0) { index, acc, value ->

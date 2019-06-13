@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -e
+set -u
+
 mvn -DskipTests package
 
 OCTOGLOW_HOST='octoglow'

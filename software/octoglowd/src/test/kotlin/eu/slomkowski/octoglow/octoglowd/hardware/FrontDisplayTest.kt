@@ -26,7 +26,7 @@ class FrontDisplayTest {
                 delay(100)
             }
 
-            frontDisplay.setUpperBar(arrayOf(
+            frontDisplay.setUpperBar(booleanArrayOf(
                     true, true, false, true, false,
                     false, false, false, false, false,
                     false, false, true, false, false,

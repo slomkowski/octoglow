@@ -3,7 +3,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.GeoPosKey
-import eu.slomkowski.octoglow.octoglowd.poznanCoordinates
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.CalendarView.Companion.formatDate
 import io.mockk.mockk
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.*
+import kotlin.test.assertTrue
 
 internal class CalendarViewTest {
 
@@ -22,10 +23,6 @@ internal class CalendarViewTest {
             addSpec(ConfKey)
             addSpec(GeoPosKey)
             set(ConfKey.locale, Locale("pl", "PL"))
-            poznanCoordinates.let { (lat, lng) ->
-                set(GeoPosKey.latitude, lat)
-                set(GeoPosKey.longitude, lng)
-            }
         }
 
         val cv = CalendarView(config, mockk())
@@ -37,20 +34,27 @@ internal class CalendarViewTest {
             assertEquals(text, realText)
         }
 
-        assertOk("Sunrise:5:33; sunset:18:22; Anieli,Kwiryna,Leonarda", 2019, 3, 30)
-        assertOk("NEW YEAR; sunrise:8:02; sunset:15:50; Mieszka,Mieczysława,Marii", 2018, 1, 1)
-        assertOk("CHRISTMAS; sunrise:8:02; sunset:15:43; Anastazji,Eugenii", 2019, 12, 25)
-        assertOk("Sunrise:6:30; sunset:19:24; Beniamina,Dobromierza,Leonarda", 2019, 3, 31)
-
-        assertEquals("Sunrise:5:01; sunset:20:38; Serwacego,Roberta,Glorii; tomorrow: Sunrise:4:59; sunset:20:39; Bonifacego,Dobiesława,Macieja", cv.getDayDescription(LocalDate.of(2019, 5, 13)))
+        assertOk("Anieli,Kwiryna,Leonarda", 2019, 3, 30)
+        assertOk("NEW YEAR; Mieszka,Mieczysława,Marii", 2018, 1, 1)
+        assertOk("CHRISTMAS; Anastazji,Eugenii", 2019, 12, 25)
+        assertOk("Beniamina,Dobromierza,Leonarda", 2019, 3, 31)
     }
 
     @Test
-    fun testFormattedDate() {
-        assertEquals("Sunday 2019-12-01", CalendarView.displayDateFormatter.format(LocalDate.of(2019, 12, 1)))
-        assertEquals("Monday 2019-03-18", CalendarView.displayDateFormatter.format(LocalDate.of(2019, 3, 18)))
-        assertEquals("Thursday 2019-02-21", CalendarView.displayDateFormatter.format(LocalDate.of(2019, 2, 21)))
+    fun testFormatDate() {
+        assertEquals("Sunday 1 Dec", formatDate(LocalDate.of(2019, 12, 1)))
+        assertEquals("Monday 18 Mar", formatDate(LocalDate.of(2019, 3, 18)))
+        assertEquals("Thursday 21 Feb", formatDate(LocalDate.of(2019, 2, 21)))
+        assertEquals("Wed, 20 Feb", formatDate(LocalDate.of(2019, 2, 20)))
 
+        for (noOfDays in (0..200L)) {
+            val str = formatDate(LocalDate.of(2019, 2, 1).plusDays(noOfDays))
+            assertTrue("$str has length ${str.length}") { str.length <= 15 }
+        }
+    }
+
+    @Test
+    fun testFormatSunriseSunset() {
         assertEquals("13:45", CalendarView.sunriseSunsetTimeFormatter.format(LocalTime.of(13, 45, 52)))
         assertEquals("6:21", CalendarView.sunriseSunsetTimeFormatter.format(LocalTime.of(6, 21, 1)))
     }

@@ -93,7 +93,10 @@ class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
             0
         }
 
-        doWrite(1, 0x30 + hours / 10, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots)
+        doWrite(1, when (hours < 10) {
+            true -> ' '.toInt()
+            else -> 0x30 + hours / 10
+        }, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots)
     }
 
     suspend fun ringBell(duration: Duration) {

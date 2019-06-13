@@ -21,7 +21,7 @@ class GeigerView(
         "Geiger counter",
         Duration.ofSeconds(7),
         Duration.ofSeconds(3),
-        Duration.ofSeconds(24)) {
+        Duration.ofSeconds(11)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 4 * 5 - 1
@@ -75,7 +75,6 @@ class GeigerView(
         if (redrawStatic) {
             launch {
                 fd.setStaticText(14, "g:")
-                fd.setStaticText(14 + 20, "e:")
             }
         }
 
@@ -91,14 +90,19 @@ class GeigerView(
         }
 
         launch { fd.setStaticText(16, formatVoltage(deviceReport?.geigerVoltage)) }
-        launch { fd.setStaticText(16 + 20, formatVoltage(deviceReport?.eyeVoltage)) }
+        launch {
+            fd.setStaticText(16 + 20, when (dr?.eyeState) {
+                EyeInverterState.DISABLED -> "    "
+                else -> formatVoltage(deviceReport?.eyeVoltage)
+            })
+        }
 
         launch {
             fd.setStaticText(11 + 20, when (dr?.eyeState) {
                 EyeInverterState.DISABLED -> "eD"
-                EyeInverterState.HEATING_LIMITED -> "e1"
-                EyeInverterState.HEATING_FULL -> "e2"
-                EyeInverterState.RUNNING -> "eR"
+                EyeInverterState.HEATING_LIMITED -> "e1 e:"
+                EyeInverterState.HEATING_FULL -> "e2 e:"
+                EyeInverterState.RUNNING -> "eR e:"
                 null -> "--"
             })
         }

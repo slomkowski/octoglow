@@ -18,6 +18,7 @@ import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
@@ -28,7 +29,7 @@ class CalendarView(
         "Calendar",
         Duration.ofMinutes(3),
         Duration.ofMinutes(1),
-        Duration.ofSeconds(35)) {
+        Duration.ofSeconds(20)) {
 
     data class NameDayRow(
             val day: Int,
@@ -51,8 +52,17 @@ class CalendarView(
             }
         }
 
-        val displayDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE yyyy-MM-dd", Locale.ENGLISH)
+        private val shortDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EE, d MMM", Locale.ENGLISH)
+        private val fullDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMM", Locale.ENGLISH)
         val sunriseSunsetTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm")
+
+        fun formatDate(day: LocalDate): String {
+            val str = day.format(fullDateFormatter)
+            return when {
+                str.length > 15 -> day.format(shortDateFormatter)
+                else -> str
+            }
+        }
     }
 
     private val nameDays: Set<NameDayRow>
@@ -71,18 +81,12 @@ class CalendarView(
         val holiday = holidayManager.getHolidays(day, day).firstOrNull()
         val names = nameDays.find { it.month == day.monthValue && it.day == day.dayOfMonth }?.names
 
-        val (sunrise, sunset) = calculateSunriseAndSunset(config[GeoPosKey.latitude], config[GeoPosKey.longitude], day)
-
         return listOfNotNull(
                 holiday?.description?.toUpperCase(),
-                "sunrise:${sunrise.format(sunriseSunsetTimeFormatter)}",
-                "sunset:${sunset.format(sunriseSunsetTimeFormatter)}",
                 names?.joinToString(","))
                 .joinToString("; ")
                 .let { it.capitalize() }
     }
-
-    fun getDayDescription(day: LocalDate): String = getInfoForDay(day) + "; tomorrow: " + getInfoForDay(day.plusDays(1))
 
     override suspend fun poolStatusData(): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
@@ -90,11 +94,20 @@ class CalendarView(
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
         val fd = hardware.frontDisplay
-        val now = LocalDate.now()
 
         if (redrawStatus) {
-            launch { fd.setStaticText(0, now.format(displayDateFormatter)) }
-            launch { fd.setScrollingText(Slot.SLOT0, 20, 20, getDayDescription(now).take(Slot.SLOT0.capacity)) }
+            val now = LocalDate.now()
+
+            launch {
+                val (sunrise, sunset) = calculateSunriseAndSunset(config[GeoPosKey.latitude], config[GeoPosKey.longitude], now)
+                check(sunrise < LocalTime.of(10, 0))
+
+                fd.setStaticText(0, formatDate(now))
+                fd.setStaticText(16, sunrise.format(sunriseSunsetTimeFormatter))
+                fd.setStaticText(35, sunset.format(sunriseSunsetTimeFormatter))
+            }
+
+            launch { fd.setScrollingText(Slot.SLOT0, 20, 14, getInfoForDay(now).take(Slot.SLOT0.capacity)) }
         }
     }
 }

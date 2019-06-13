@@ -18,7 +18,7 @@ class WeatherSensorView(
         "Weather sensor view",
         Duration.ofSeconds(20),
         Duration.ofSeconds(7),
-        Duration.ofSeconds(19)) {
+        Duration.ofSeconds(12)) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
@@ -142,6 +142,7 @@ class WeatherSensorView(
             val newRep = CurrentReport(ts, indoorReport, outdoorReport)
             when {
                 statuses == setOf(UpdateStatus.FAILURE, UpdateStatus.FAILURE) -> UpdateStatus.FAILURE to null
+                statuses == setOf(UpdateStatus.NO_NEW_DATA, UpdateStatus.FAILURE) -> UpdateStatus.PARTIAL_SUCCESS to oldReport
                 statuses.contains(UpdateStatus.FAILURE) -> UpdateStatus.PARTIAL_SUCCESS to newRep
                 statuses == setOf(UpdateStatus.NO_NEW_DATA, UpdateStatus.NO_NEW_DATA) -> UpdateStatus.NO_NEW_DATA to oldReport
                 else -> UpdateStatus.FULL_SUCCESS to newRep
