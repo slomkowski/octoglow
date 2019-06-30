@@ -161,16 +161,16 @@ class GeigerView(
             if (cs.hasCycleEverCompleted && (cs.hasNewCycleStarted || counterReport == null)) {
                 val ts = LocalDateTime.now()
                 val cpm = calculateCPM(cs.numOfCountsInPreviousCycle, cs.cycleLength)
-                val usvh = calculateUSVh(cs.numOfCountsInPreviousCycle, cs.cycleLength)
+                val uSvh = calculateUSVh(cs.numOfCountsInPreviousCycle, cs.cycleLength)
 
-                logger.info { "Read radioactivity: ${cs.numOfCountsInPreviousCycle}, $usvh uSv/h." }
+                logger.info(String.format("Read radioactivity: %d counts = %.2f uSv/h.", cs.numOfCountsInPreviousCycle, uSvh))
 
                 listOf(database.insertHistoricalValueAsync(ts, RadioactivityCpm, cpm),
-                        database.insertHistoricalValueAsync(ts, RadioactivityUSVH, usvh)).joinAll()
+                        database.insertHistoricalValueAsync(ts, RadioactivityUSVH, uSvh)).joinAll()
 
                 val historicalRadioactivity = database.getLastHistoricalValuesByHourAsync(ts, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
 
-                counterReport = CounterReport(cpm, usvh, cs.currentCycleProgress, cs.cycleLength, historicalRadioactivity.await())
+                counterReport = CounterReport(cpm, uSvh, cs.currentCycleProgress, cs.cycleLength, historicalRadioactivity.await())
                 return UpdateStatus.FULL_SUCCESS
             } else {
                 val rep = counterReport

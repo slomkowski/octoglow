@@ -101,7 +101,7 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
         require(text.isNotEmpty()) { "text length has to be at least 1" }
         require(lastPosition < 40) {
             "end of the string cannot exceed position 39, but has length ${text.length} " +
-                    "and position $position, which sums to ${text.length + position}"
+                    "and position $position, which sums to ${text.length + position}, text: $text"
         }
 
         setText(text.toByteArray(StandardCharsets.UTF_8), intArrayOf(4, position, text.length))
@@ -113,7 +113,7 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
         require(slot.capacity > textBytes.size) { "UTF-8 text length ({} bytes) cannot exceed the capacity of the selected slot $slot, which is ${slot.capacity}" }
         require(position < 40) { "position has to be between 0 and 39, $position provided" }
         require(text.isNotEmpty()) { "text length has to be at least 1" }
-        require(lastPosition < 40) { "end of the string cannot exceed position 39, but has length ${textBytes.size} and position $position, which sums to $lastPosition" }
+        require(lastPosition < 40) { "end of the string cannot exceed position 39, but has length ${textBytes.size} and position $position, which sums to $lastPosition, text: $text" }
 
         setText(textBytes, intArrayOf(5, slot.ordinal, position, length))
     }
