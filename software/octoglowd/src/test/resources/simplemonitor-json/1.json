@@ -1,0 +1,57 @@
+{
+  "generated": "2019-04-17 11:58:27",
+  "monitors": {
+    "monitor1": {
+      "status": "OK",
+      "virtual_fail_count": 0,
+      "last_run_duration": 0.00011849403381347656,
+      "dependencies": [],
+      "result": "",
+      "first_failure_time": ""
+    },
+    "monitor2": {
+      "status": "Skipped",
+      "virtual_fail_count": 0,
+      "last_run_duration": 0.0420079231262207,
+      "dependencies": [],
+      "result": "lorem ipsum",
+      "first_failure_time": ""
+    },
+    "monitor3": {
+      "status": "OK",
+      "virtual_fail_count": 0,
+      "last_run_duration": 0.003001689910888672,
+      "dependencies": [],
+      "result": "200 in 0.00s",
+      "first_failure_time": ""
+    },
+    "monitor4": {
+      "status": "OK",
+      "virtual_fail_count": 0,
+      "last_run_duration": 0.24998998641967773,
+      "dependencies": [
+        "monitor1"
+      ],
+      "result": "200 in 0.25s",
+      "first_failure_time": ""
+    },
+    "monitor5": {
+      "status": "OK",
+      "virtual_fail_count": 0,
+      "last_run_duration": 5.078315734863281e-05,
+      "dependencies": [],
+      "result": "result message",
+      "first_failure_time": ""
+    },
+    "monitor6":{
+      "status":"Fail",
+      "virtual_fail_count":1,
+      "last_run_duration":0.00525665283203125,
+      "dependencies":[],
+      "result":"",
+      "first_failure_time":{
+        "__simplemonitor_datetime":"2019-06-17 10:48:01.871130"
+      }
+    }
+  }
+}

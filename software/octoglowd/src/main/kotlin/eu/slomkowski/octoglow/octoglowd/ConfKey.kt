@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import com.uchuhimo.konf.ConfigSpec
+import java.net.URL
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Duration
@@ -22,6 +23,12 @@ object GeoPosKey : ConfigSpec("geo-position") {
 object SleepKey : ConfigSpec("sleep") {
     val startAt by required<LocalTime>()
     val duration by optional<Duration>(Duration.ofHours(8))
+}
+
+object SimpleMonitorKey : ConfigSpec("simplemonitor") {
+    val url by required<URL>()
+    val user by optional("")
+    val password by optional("")
 }
 
 object CryptocurrenciesKey : ConfigSpec("cryptocurrencies") {

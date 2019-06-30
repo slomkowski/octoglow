@@ -35,7 +35,7 @@ class FrontDisplayDaemon(
         private val LONG_TIME_AGO = LocalDateTime.of(2019, 1, 1, 0, 0)
 
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
-            require(current in 0..(size - 1))
+            require(current in 0 until size)
             return (100000 * size + current + delta) % size
         }
 
@@ -311,9 +311,7 @@ class FrontDisplayDaemon(
             event(State.Menu::class, Event.InstantUpdate::class).loop()
 
             event(State.Menu.Overview::class, Event.EncoderDelta::class).goto {
-                val newMenu = getNeighbourMenu(state.menu, event.delta)
-
-                when (newMenu) {
+                when (val newMenu = getNeighbourMenu(state.menu, event.delta)) {
                     exitMenu -> {
                         logger.info { "Switching to exit menu." }
                         launchInBackground { drawExitMenu() }
