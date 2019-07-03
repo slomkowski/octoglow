@@ -8,23 +8,27 @@ import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.coroutines.awaitObject
 import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
 import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.SimpleMonitorKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
+import eu.slomkowski.octoglow.octoglowd.ringBellIfNotSleeping
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import mu.KLogging
 import java.net.URL
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class SimpleMonitorView(
         private val config: Config,
         hardware: Hardware)
     : FrontDisplayView(hardware,
         "SimpleMonitor",
-        Duration.ofMinutes(1),
+        Duration.ofSeconds(90),
         Duration.ofSeconds(15),
-        Duration.ofSeconds(7)) {
+        Duration.ofSeconds(8)) {
 
     enum class MonitorStatus(@JsonValue val jsonName: String) {
         OK("OK"),
@@ -63,8 +67,29 @@ class SimpleMonitorView(
 
     private var currentReport: CurrentReport? = null
 
-    override suspend fun poolStatusData(): UpdateStatus {
-        TODO()
+    override suspend fun poolStatusData(): UpdateStatus = coroutineScope {
+        val now = LocalDateTime.now()
+
+        val (status, newReport) = try {
+            val json = getLatestSimpleMonitorJson(config[SimpleMonitorKey.url],
+                    config[SimpleMonitorKey.user], config[SimpleMonitorKey.password])
+
+            if (json.monitors.filterValues { it.status == MonitorStatus.FAIL }.isNotEmpty()) {
+                logger.warn { "Some monitors are failed." }
+                if (config[SimpleMonitorKey.ringAtFail]) {
+                    launch { ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(100)) }
+                }
+            }
+
+            UpdateStatus.FULL_SUCCESS to CurrentReport(now, json)
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to download status from Simplemonitor URL." }
+            UpdateStatus.FAILURE to CurrentReport(now, null)
+        }
+
+        currentReport = newReport
+
+        status
     }
 
     override suspend fun poolInstantData(): UpdateStatus = UpdateStatus.FULL_SUCCESS
@@ -74,13 +99,44 @@ class SimpleMonitorView(
         val fd = hardware.frontDisplay
 
         if (redrawStatus) {
+            fd.clear()
+
             logger.debug { "Redrawing SimpleMonitor status." }
 
-            launch { fd.setStaticText(0, "Monitors") }
+            fun monitors(status: MonitorStatus) = report?.data?.monitors?.filterValues { it.status == status }
+            val failedMonitors = monitors(MonitorStatus.FAIL)
 
+            launch {
+                val time = report?.data?.generated?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--:--"
+                fd.setStaticText(0, time)
+            }
+
+            launch {
+                val okMonitorsCount = monitors(MonitorStatus.OK)?.size
+                val skippedMonitorsCount = monitors(MonitorStatus.SKIPPED)?.size
+
+                val allMonitorsCount = report?.data?.monitors?.size
+
+                val upperText = "OK:${okMonitorsCount ?: "--"},${skippedMonitorsCount
+                        ?: "--"}/${allMonitorsCount ?: "--"}"
+
+                fd.setStaticText(20 - upperText.length, upperText)
+            }
+
+            launch {
+                when (failedMonitors?.size) {
+                    null -> fd.setStaticText(21, "SERVER COMM ERROR!")
+                    0 -> fd.setStaticText(22, "All monitors OK")
+                    else -> {
+                        val failedText = "${failedMonitors.size} FAILED"
+                        fd.setStaticText(20, failedText)
+                        fd.setScrollingText(Slot.SLOT0, 21 + failedText.length, 19 - failedText.length, failedMonitors.keys.joinToString(","))
+                    }
+                }
+            }
         }
 
-        drawProgressBar(report?.timestamp) //todo
+        drawProgressBar(report?.timestamp)
 
         Unit
     }

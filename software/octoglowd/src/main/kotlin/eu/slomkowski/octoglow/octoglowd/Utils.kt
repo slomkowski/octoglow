@@ -85,25 +85,26 @@ suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func:
     throw IllegalStateException() // cannot be ever called
 }
 
+suspend fun ringBellIfNotSleeping(config: Config,
+                                  logger: KLogger,
+                                  hardware: Hardware,
+                                  ringDuration: Duration) = when (isSleeping(config[SleepKey.startAt], config[SleepKey.duration], LocalTime.now())) {
+    true -> try {
+        hardware.clockDisplay.ringBell(ringDuration)
+    } catch (ringException: Exception) {
+        logger.error(ringException) { "Cannot ring a bell, perhaps I2C error;" }
+    }
+    false -> logger.warn { "Skipping ringing because it is sleep time." }
+}
+
 suspend fun handleException(config: Config,
                             logger: KLogger,
                             hardware: Hardware,
                             coroutineContext: CoroutineContext,
                             e: Throwable) {
-
     logger.error("Exception caught in $coroutineContext.")
     if (config[ConfKey.ringAtError]) {
-        val sleeping = isSleeping(config[SleepKey.startAt], config[SleepKey.duration], LocalTime.now())
-        if (sleeping) {
-            logger.error(e) { "Not ringing because of sleep time;" }
-        } else {
-            logger.error(e) { "Demon error, ringing a bell;" }
-            try {
-                hardware.clockDisplay.ringBell(Duration.ofMillis(100))
-            } catch (ringException: Exception) {
-                logger.error(ringException) { "Cannot ring a bell, perhaps I2C error;" }
-            }
-        }
+        ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(150))
     } else {
         logger.error(e) { "Ringing at error disabled, only logging stack trace;" }
     }

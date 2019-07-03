@@ -18,6 +18,7 @@ fun main() {
         addSpec(SleepKey)
         addSpec(NetworkViewKey)
         addSpec(NbpKey)
+        addSpec(SimpleMonitorKey)
     }.from.yaml.file("config.yml")
 
     val hardware = PhysicalHardware(config)
@@ -38,6 +39,7 @@ fun main() {
             GeigerView(database, hardware),
             CryptocurrencyView(config, database, hardware),
             NbpView(config, hardware),
+            SimpleMonitorView(config, hardware),
             NetworkView(config, hardware))
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)

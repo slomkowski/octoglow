@@ -26,6 +26,7 @@ object SleepKey : ConfigSpec("sleep") {
 }
 
 object SimpleMonitorKey : ConfigSpec("simplemonitor") {
+    val ringAtFail by optional(false, description = "Ring when during status update some of the monitors are failed.")
     val url by required<URL>()
     val user by optional("")
     val password by optional("")
