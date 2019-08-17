@@ -117,7 +117,7 @@ class SimpleMonitorView(
 
                 val allMonitorsCount = report?.data?.monitors?.size
 
-                val upperText = "OK:${okMonitorsCount ?: "--"},${skippedMonitorsCount
+                val upperText = "OK:${okMonitorsCount ?: "--"}+${skippedMonitorsCount
                         ?: "--"}/${allMonitorsCount ?: "--"}"
 
                 fd.setStaticText(20 - upperText.length, upperText)

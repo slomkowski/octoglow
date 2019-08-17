@@ -89,12 +89,12 @@ suspend fun ringBellIfNotSleeping(config: Config,
                                   logger: KLogger,
                                   hardware: Hardware,
                                   ringDuration: Duration) = when (isSleeping(config[SleepKey.startAt], config[SleepKey.duration], LocalTime.now())) {
-    true -> try {
+    false -> try {
         hardware.clockDisplay.ringBell(ringDuration)
     } catch (ringException: Exception) {
         logger.error(ringException) { "Cannot ring a bell, perhaps I2C error;" }
     }
-    false -> logger.warn { "Skipping ringing because it is sleep time." }
+    true -> logger.warn { "Skipping ringing because it is sleep time." }
 }
 
 suspend fun handleException(config: Config,
