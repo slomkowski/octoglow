@@ -139,13 +139,17 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
             delay(100)
 
             doWrite(0xf2, 0b100,
-                    0xf5, 0b100_100_0_0,
+                    0xf5, 0b101_100_0_0,
                     0xf4, 0b100_100_11)
 
             delay(100)
 
             val id = doTransaction(listOf(0xd0), 1).get(0)
             check(id == 0x60) { String.format("this is not BME280 chip, it has ID 0x%x", id) }
+
+            while(isReadingCalibration()) {
+                delay(100)
+            }
 
             doTransaction(listOf(0x88), 25) to
                     doTransaction(listOf(0xe1), 8)
@@ -178,6 +182,8 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
 
         logger.debug { "Compensation data: $compensationData" }
     }
+
+    private suspend fun isReadingCalibration() : Boolean = doTransaction(listOf(0xf3), 1)[0] and 0x1 != 0
 
     suspend fun readReport(): IndoorWeatherReport = trySeveralTimes(3, logger) {
         val buf = doTransaction(listOf(0xf7), 8)

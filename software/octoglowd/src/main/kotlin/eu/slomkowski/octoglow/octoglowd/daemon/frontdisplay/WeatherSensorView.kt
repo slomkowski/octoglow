@@ -24,6 +24,11 @@ class WeatherSensorView(
         private const val HISTORIC_VALUES_LENGTH = 14
 
         private val MAXIMAL_DURATION_BETWEEN_MEASUREMENTS: Duration = Duration.ofMinutes(5)
+
+        /**
+         * BME280 has quite big self-heating. This is the empirically determined temperature offset.
+         */
+        private const val INDOOR_SENSOR_TEMPERATURE_OFFSET = -0.76
     }
 
     data class IndoorReport(
@@ -120,12 +125,13 @@ class WeatherSensorView(
 
             val elevation = config[GeoPosKey.elevation]
             val mslPressure = rep.getMeanSeaLevelPressure(elevation)
+            val temperature = rep.temperature + INDOOR_SENSOR_TEMPERATURE_OFFSET
 
             logger.info { "Got BMP280 report : $rep." }
             logger.info { "Mean sea-level pressure at $elevation m is $mslPressure hPa." }
 
             listOf(
-                    databaseLayer.insertHistoricalValueAsync(ts, IndoorTemperature, rep.temperature),
+                    databaseLayer.insertHistoricalValueAsync(ts, IndoorTemperature, temperature),
                     databaseLayer.insertHistoricalValueAsync(ts, RealPressure, rep.realPressure),
                     databaseLayer.insertHistoricalValueAsync(ts, MSLPressure, mslPressure)
             ).joinAll()
@@ -133,7 +139,7 @@ class WeatherSensorView(
             val historicalTemperature = databaseLayer.getLastHistoricalValuesByHourAsync(ts, IndoorTemperature, HISTORIC_VALUES_LENGTH)
             val historicalPressure = databaseLayer.getLastHistoricalValuesByHourAsync(ts, MSLPressure, HISTORIC_VALUES_LENGTH)
 
-            UpdateStatus.FULL_SUCCESS to IndoorReport(rep.temperature, mslPressure, historicalTemperature.await(), historicalPressure.await())
+            UpdateStatus.FULL_SUCCESS to IndoorReport(temperature, mslPressure, historicalTemperature.await(), historicalPressure.await())
         } else {
             UpdateStatus.NO_NEW_DATA to oldReport?.indoor
         }
