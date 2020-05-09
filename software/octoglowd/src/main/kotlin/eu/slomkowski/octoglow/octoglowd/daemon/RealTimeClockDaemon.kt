@@ -17,13 +17,18 @@ class RealTimeClockDaemon(
             val minute: Int,
             val upperDot: Boolean,
             val lowerDot: Boolean) {
-        constructor(dt: LocalDateTime) : this(dt.hour, dt.minute, dt.second >= 20, dt.second < 20 || dt.second > 40)
+        companion object {
+            fun ofTimestamp(dt: LocalDateTime): DisplayContent = when (dt.second % 2) {
+                0 -> DisplayContent(dt.hour, dt.minute, dt.second >= 20, dt.second < 20 || dt.second > 40)
+                else -> DisplayContent(dt.hour, dt.minute, upperDot = false, lowerDot = false)
+            }
+        }
     }
 
     private var previousDisplayContent: DisplayContent? = null
 
     override suspend fun pool() {
-        val newDisplayContent = DisplayContent(LocalDateTime.now())
+        val newDisplayContent = DisplayContent.ofTimestamp(LocalDateTime.now())
 
         if (newDisplayContent != previousDisplayContent) {
             newDisplayContent.apply {
