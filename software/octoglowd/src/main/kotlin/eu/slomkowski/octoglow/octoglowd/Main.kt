@@ -39,7 +39,7 @@ fun main() {
             GeigerView(database, hardware),
             CryptocurrencyView(config, database, hardware),
             NbpView(config, hardware),
-            SimpleMonitorView(config, hardware),
+            SimpleMonitorView(config, database, hardware),
             NetworkView(config, hardware))
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)

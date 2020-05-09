@@ -8,11 +8,9 @@ import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.coroutines.awaitObject
 import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.SimpleMonitorKey
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
-import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
-import eu.slomkowski.octoglow.octoglowd.ringBellIfNotSleeping
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import mu.KLogging
@@ -23,6 +21,7 @@ import java.time.format.DateTimeFormatter
 
 class SimpleMonitorView(
         private val config: Config,
+        private val database: DatabaseLayer,
         hardware: Hardware)
     : FrontDisplayView(hardware,
         "SimpleMonitor",
@@ -76,8 +75,13 @@ class SimpleMonitorView(
 
             if (json.monitors.filterValues { it.status == MonitorStatus.FAIL }.isNotEmpty()) {
                 logger.warn { "Some monitors are failed." }
-                if (config[SimpleMonitorKey.ringAtFail]) {
-                    launch { ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(100)) }
+                launch {
+                    val shouldRing = database.getChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE).await()
+                    if (shouldRing != "false") {
+                        ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(100))
+                    } else {
+                        logger.warn { "Ringing on failure is disabled." }
+                    }
                 }
             }
 
@@ -141,4 +145,23 @@ class SimpleMonitorView(
         Unit
     }
 
+    override fun getMenus(): List<Menu> {
+        val optOn = MenuOption("ON")
+        val optOff = MenuOption("OFF")
+
+        return listOf(object : Menu("Ring on failure") {
+            override val options: List<MenuOption>
+                get() = listOf(optOn, optOff)
+
+            override suspend fun loadCurrentOption(): MenuOption = when (database.getChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE).await()) {
+                false.toString() -> optOff
+                else -> optOn
+            }
+
+            override suspend fun saveCurrentOption(current: MenuOption) {
+                database.setChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE, (current == optOn).toString())
+                logger.info { "Ring at failure set to $current." }
+            }
+        })
+    }
 }

@@ -35,5 +35,6 @@ data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
 }
 
 enum class ChangeableSetting {
-    BRIGHTNESS
+    BRIGHTNESS,
+    SIMPLEMONITOR_RING_ON_FAILURE
 }
