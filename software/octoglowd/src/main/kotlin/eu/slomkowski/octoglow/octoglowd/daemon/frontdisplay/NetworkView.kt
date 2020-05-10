@@ -41,8 +41,8 @@ class NetworkView(
 
     data class WifiSignalInfo(
             val ifName: String,
-            val linkQuality: Double,
-            val signalStrength: Double,
+            val linkQuality: Double, // in percent
+            val signalStrength: Double, // in dBm
             val noiseLevel: Double)
 
     data class PingResult(
@@ -111,7 +111,7 @@ class NetworkView(
             val columns = line.trim().split(Regex("\\s+"))
 
             WifiSignalInfo(columns[0].trim(':'),
-                    columns[2].toDouble(),
+                    columns[2].toDouble() / 70.0 * 100.0,
                     columns[3].toDouble(),
                     columns[4].toDouble())
         }.collect(Collectors.toList())

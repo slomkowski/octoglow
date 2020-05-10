@@ -4,6 +4,7 @@ import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
 import eu.slomkowski.octoglow.octoglowd.readToString
 import mu.KLogging
+import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -12,11 +13,12 @@ import java.io.InputStreamReader
 import java.net.InetAddress
 import java.nio.charset.StandardCharsets
 import java.time.Duration
-import kotlin.test.assertEquals
 import kotlin.test.assertFails
 
 internal class NetworkViewTest {
-    companion object : KLogging()
+    companion object : KLogging() {
+        private const val DELTA = 0.01
+    }
 
     @Test
     fun testPingAddress() {
@@ -131,8 +133,8 @@ internal class NetworkViewTest {
             assertEquals(1, size)
             get(0).apply {
                 assertEquals("wlp3s0", ifName)
-                assertEquals(48.0, linkQuality)
-                assertEquals(-62.0, signalStrength)
+                assertEquals(68.57, linkQuality, DELTA)
+                assertEquals(-62.0, signalStrength, DELTA)
             }
         }
 
@@ -144,8 +146,8 @@ internal class NetworkViewTest {
             assertEquals(1, size)
             get(0).apply {
                 assertEquals("wlan0", ifName)
-                assertEquals(59.0, linkQuality)
-                assertEquals(-51.0, signalStrength)
+                assertEquals(84.29, linkQuality, DELTA)
+                assertEquals(-51.0, signalStrength, DELTA)
             }
         }
 
