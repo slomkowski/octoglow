@@ -35,13 +35,15 @@ class CryptocurrencyView(
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
 
-        private const val COINPAPRIKA_API_BASE = "https://api.coinpaprika.com/v1/"
+        private const val COINPAPRIKA_API_BASE = "https://api.coinpaprika.com/v1"
 
         suspend fun getLatestOhlc(coinId: String): OhlcDto {
             val url = "$COINPAPRIKA_API_BASE/coins/$coinId/ohlcv/today"
             logger.debug { "Downloading OHLC info from $url" }
 
-            val resp = Fuel.get(url).awaitObject<OhlcDto>(jacksonDeserializerOf(jacksonObjectMapper))
+            val resp = Fuel.get(url)
+                    .appendHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101")
+                    .awaitObject<OhlcDto>(jacksonDeserializerOf(jacksonObjectMapper))
 
             return resp
         }
