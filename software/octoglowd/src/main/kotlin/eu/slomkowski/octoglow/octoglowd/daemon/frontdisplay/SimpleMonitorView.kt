@@ -145,23 +145,5 @@ class SimpleMonitorView(
         Unit
     }
 
-    override fun getMenus(): List<Menu> {
-        val optOn = MenuOption("ON")
-        val optOff = MenuOption("OFF")
-
-        return listOf(object : Menu("Ring on failure") {
-            override val options: List<MenuOption>
-                get() = listOf(optOn, optOff)
-
-            override suspend fun loadCurrentOption(): MenuOption = when (database.getChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE).await()) {
-                false.toString() -> optOff
-                else -> optOn
-            }
-
-            override suspend fun saveCurrentOption(current: MenuOption) {
-                database.setChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE, (current == optOn).toString())
-                logger.info { "Ring at failure set to $current." }
-            }
-        })
-    }
+    override fun getMenus(): List<Menu> = listOf(BooleanChangeableSettingMenu(database, ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE, "Ring on bad mon."))
 }

@@ -1,9 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
+import eu.slomkowski.octoglow.octoglowd.ChangeableSetting
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
 
@@ -77,4 +80,26 @@ abstract class Menu(val text: String) {
     abstract suspend fun saveCurrentOption(current: MenuOption)
 
     override fun toString(): String = text
+}
+
+class BooleanChangeableSettingMenu(private val database: DatabaseLayer,
+                                   private val key: ChangeableSetting,
+                                   text: String) : Menu(text) {
+    companion object : KLogging() {
+        private val optOn = MenuOption("ON")
+        private val optOff = MenuOption("OFF")
+    }
+
+    override val options: List<MenuOption>
+        get() = listOf(optOn, optOff)
+
+    override suspend fun loadCurrentOption(): MenuOption = when (database.getChangeableSettingAsync(key).await()) {
+        false.toString() -> optOff
+        else -> optOn
+    }
+
+    override suspend fun saveCurrentOption(current: MenuOption) {
+        database.setChangeableSettingAsync(key, (current == optOn).toString())
+        logger.info { "$key set to $current." }
+    }
 }
