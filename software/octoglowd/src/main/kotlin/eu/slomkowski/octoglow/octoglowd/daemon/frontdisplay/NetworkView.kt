@@ -4,8 +4,10 @@ import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.readToString
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mu.KLogging
 import java.io.BufferedReader
 import java.net.Inet4Address
@@ -177,7 +179,7 @@ class NetworkView(
 
     override suspend fun poolStatusData(): UpdateStatus {
         val (newReport, updateStatus) = try {
-            val iface = checkNotNull(getActiveInterfaceInfo()) { "cannot determine currently active network interface" }
+            val iface = checkNotNull(withContext(Dispatchers.IO) { getActiveInterfaceInfo() }) { "cannot determine currently active network interface" }
 
             try {
                 val address = config[NetworkViewKey.pingAddress]
@@ -188,7 +190,7 @@ class NetworkView(
                     } + ")."
                 }
 
-                val pingInfo = pingAddress(config[NetworkViewKey.pingBinary], iface.name, address, Duration.ofSeconds(4), 3)
+                val pingInfo = withContext(Dispatchers.IO) { pingAddress(config[NetworkViewKey.pingBinary], iface.name, address, Duration.ofSeconds(4), 3) }
 
                 val pingTime = pingInfo.rttAvg
 
@@ -213,7 +215,7 @@ class NetworkView(
         val ai = currentReport?.interfaceInfo
         val (newReport, updateStatus) = if (ai?.isWifi == true) {
             try {
-                val wifiInterfaces = Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) } //todo use non-blocking api
+                val wifiInterfaces = withContext(Dispatchers.IO) { Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) } }
                 val activeInfo = checkNotNull(wifiInterfaces.firstOrNull { it.ifName == ai.name })
                 { "cannot find interface $ai in $PROC_NET_WIRELESS_PATH" }
 

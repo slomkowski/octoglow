@@ -15,18 +15,15 @@ class CpuUsageIndicatorDaemon(
         private val hardware: Hardware)
     : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
 
-    companion object : KLogging()
+    companion object : KLogging() {
+        const val CORRECTION_FACTOR: Double = 0.95
+    }
 
     private val operatingSystemMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
 
-    private var previousDacValue = -1
-
     override suspend fun pool() {
-        val newValue = (operatingSystemMXBean.systemCpuLoad * 255.0).roundToInt()
-
-        if (newValue != previousDacValue) {
-            hardware.dac.setValue(DacChannel.C2, newValue)
-            previousDacValue = newValue
-        }
+        setValue(operatingSystemMXBean.systemCpuLoad)
     }
+
+    suspend fun setValue(v: Double) = hardware.dac.setValue(DacChannel.C2, (v * 255.0 * CORRECTION_FACTOR).roundToInt())
 }

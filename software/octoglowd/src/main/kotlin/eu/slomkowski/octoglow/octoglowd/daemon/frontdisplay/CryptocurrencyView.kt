@@ -77,7 +77,7 @@ class CryptocurrencyView(
             val low: Double,
             val high: Double) {
         init {
-            require(timeOpen.isBefore(timeClose))
+            require(!timeOpen.isAfter(timeClose))
             require(low <= high)
             doubleArrayOf(low, high, open, close).forEach { require(it > 0) }
         }

@@ -1,5 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import eu.slomkowski.octoglow.octoglowd.daemon.CpuUsageIndicatorDaemon
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
@@ -13,12 +14,12 @@ class DacTest {
 
     @Test
     fun testOut2Max(i2CBus: I2CBus) {
-        testOut2(i2CBus, 255)
+        testOut2(i2CBus, (255 * CpuUsageIndicatorDaemon.CORRECTION_FACTOR).toInt())
     }
 
     @Test
     fun testOut2Half(i2CBus: I2CBus) {
-        testOut2(i2CBus, 127)
+        testOut2(i2CBus, (127 * CpuUsageIndicatorDaemon.CORRECTION_FACTOR).toInt())
     }
 
     @Test
