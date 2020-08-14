@@ -4,8 +4,7 @@ import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.Duration
-import java.time.LocalTime
+import java.time.*
 import kotlin.test.assertFails
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -101,5 +100,12 @@ class UtilsTest {
             assertTrue { isSleeping(s, d, LocalTime.of(7, 0)) }
             assertFalse { isSleeping(s, d, LocalTime.of(21, 0)) }
         }
+    }
+
+    @Test
+    fun testToLocalDateTimeInSystemTimeZone() {
+        assertEquals(LocalDateTime.of(2019, 11, 20, 13, 23, 3),
+                OffsetDateTime.of(2019, 11, 20, 16, 23, 3, 0, ZoneOffset.ofHours(4)).toLocalDateTimeInSystemTimeZone())
+        assertEquals(LocalDateTime.of(2019, 7, 20, 14, 23, 3), OffsetDateTime.of(2019, 7, 20, 16, 23, 3, 0, ZoneOffset.ofHours(4)).toLocalDateTimeInSystemTimeZone())
     }
 }

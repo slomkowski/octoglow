@@ -117,6 +117,12 @@ fun List<Int>.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {
 
 fun Date.toLocalDateTime(): LocalDateTime = toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
 
+
+fun OffsetDateTime.toLocalDateTimeInSystemTimeZone(): LocalDateTime {
+    val offset = ZoneId.systemDefault().rules.getOffset(toInstant())
+    return withOffsetSameInstant(offset).toLocalDateTime()
+}
+
 fun I2CBuffer.toByteArray(): ByteArray = (0 until length).map { get(it).toByte() }.toByteArray()
 
 fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())

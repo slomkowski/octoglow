@@ -1,5 +1,5 @@
 {
-  "generated": "2019-04-17 11:58:27",
+  "generated":"2020-08-14 07:09:02+02:00",
   "monitors": {
     "monitor1": {
       "status": "OK",
@@ -49,9 +49,7 @@
       "last_run_duration":0.00525665283203125,
       "dependencies":[],
       "result":"",
-      "first_failure_time":{
-        "__simplemonitor_datetime":"2019-06-17 10:48:01.871130"
-      }
+      "first_failure_time":"2020-08-13 22:54:56+00:00"
     }
   }
 }

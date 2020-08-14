@@ -17,6 +17,7 @@ import mu.KLogging
 import java.net.URL
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 class SimpleMonitorView(
@@ -41,8 +42,8 @@ class SimpleMonitorView(
             val result: String)
 
     data class SimpleMonitorJson(
-            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-            val generated: LocalDateTime,
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ssxxx")
+            val generated: OffsetDateTime,
             val monitors: Map<String, Monitor>)
 
     data class CurrentReport(
@@ -111,7 +112,7 @@ class SimpleMonitorView(
             val failedMonitors = monitors(MonitorStatus.FAIL)
 
             launch {
-                val time = report?.data?.generated?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--:--"
+                val time = report?.data?.generated?.toLocalDateTimeInSystemTimeZone()?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--:--"
                 fd.setStaticText(0, time)
             }
 
