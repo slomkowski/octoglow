@@ -4,13 +4,17 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.github.kittinunf.fuel.core.ResponseDeserializable
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
 import mu.KLogger
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVParser
+import org.apache.commons.csv.CSVRecord
 import org.shredzone.commons.suncalc.SunTimes
-import java.io.InputStream
+import java.io.*
 import java.nio.charset.StandardCharsets
 import java.time.*
 import java.util.*
@@ -132,3 +136,13 @@ fun I2CBuffer.contentToString(): String = (0 until this.length).map { this[it] }
 fun I2CBuffer.toList(): List<Int> = (0 until this.length).map { this[it] }.toList()
 
 fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).readText()
+
+inline fun <reified T : Any> csvDeserializerOf(csvFormat: CSVFormat = CSVFormat.DEFAULT, crossinline recordMappingFunction: (CSVRecord) -> T) = object : ResponseDeserializable<List<T>> {
+    override fun deserialize(reader: Reader): List<T> = CSVParser(reader, csvFormat).records.map(recordMappingFunction)
+
+    override fun deserialize(content: String): List<T> = StringReader(content).use { deserialize(it) }
+
+    override fun deserialize(bytes: ByteArray): List<T> = ByteArrayInputStream(bytes).use { deserialize(it) }
+
+    override fun deserialize(inputStream: InputStream): List<T> = InputStreamReader(inputStream, StandardCharsets.UTF_8).use { deserialize(it) }
+}
