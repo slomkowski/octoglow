@@ -34,8 +34,8 @@ class StockView(
             val high: BigDecimal,
             val low: BigDecimal,
             val close: BigDecimal,
-            val volume: Int,
-            val openInt: Int) {
+            val volume: Long,
+            val openInt: Long) {
         init {
             require(ticker.isNotBlank())
             require(interval > Duration.ZERO)
@@ -70,8 +70,8 @@ class StockView(
                         record[5].toBigDecimal(),
                         record[6].toBigDecimal(),
                         record[7].toBigDecimal(),
-                        record[8].toInt(),
-                        record[9].toInt())
+                        record[8].toLong(),
+                        record[9].toLong())
             })
         }
     }

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
 import java.time.LocalDate
+import kotlin.test.assertNotNull
 
 internal class StockViewTest {
 
@@ -27,5 +28,12 @@ internal class StockViewTest {
         val stockData = runBlocking { StockView.downloadStockData(lastWeekDay) }
         assertTrue(stockData.isNotEmpty())
         logger.info("Downloaded {} stocks.", stockData.size)
+
+        val stockDataByTicker = stockData.groupBy { it.ticker }
+        logger.info("Found {} tickers.", stockDataByTicker.size)
+
+        assertNotNull(stockDataByTicker["CDR"])
+        assertNotNull(stockDataByTicker["TPE"])
+        assertNotNull(stockDataByTicker["PKO"])
     }
 }
