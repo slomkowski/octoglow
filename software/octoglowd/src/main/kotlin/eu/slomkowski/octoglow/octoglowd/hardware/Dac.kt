@@ -2,14 +2,14 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
-import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.sync.Mutex
 
 enum class DacChannel(val number: Int) {
     C1(0b00),
     C2(0b01)
 }
 
-class Dac(ctx: CoroutineContext, i2cBus: I2CBus) : I2CDevice(ctx, i2cBus, 0x4f) {
+class Dac(i2cMutex: Mutex, i2cBus: I2CBus) : I2CDevice(i2cMutex, i2cBus, 0x4f) {
 
     init {
         setToZero()
@@ -20,7 +20,7 @@ class Dac(ctx: CoroutineContext, i2cBus: I2CBus) : I2CDevice(ctx, i2cBus, 0x4f) 
     }
 
     private fun setToZero() {
-        runBlocking(threadContext) {
+        runBlocking {
             setValue(DacChannel.C1, 0)
             setValue(DacChannel.C2, 0)
         }

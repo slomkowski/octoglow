@@ -4,11 +4,11 @@ import eu.slomkowski.octoglow.octoglowd.set
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
-import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 
 enum class Slot(val capacity: Int) {
@@ -31,22 +31,22 @@ data class ButtonReport(
     }
 }
 
-class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x14), HasBrightness {
+class FrontDisplay(i2cMutex: Mutex, i2c: I2CBus) : I2CDevice(i2cMutex, i2c, 0x14), HasBrightness {
 
     companion object : KLogging() {
         // we assume last value as pivot
-        private const val maxValuesInChart = 5 * 20
+        private const val MAX_VALUES_IN_CHART = 5 * 20
     }
 
     init {
-        runBlocking(threadContext) {
+        runBlocking {
             clear()
             setBrightness(3)
         }
     }
 
     override fun close() {
-        runBlocking(threadContext) {
+        runBlocking {
             clear()
             setBrightness(3)
             setStaticText(5, "SHUT  DOWN")
@@ -128,7 +128,7 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
     }
 
     suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
-        require(historicalValues.size + 1 < maxValuesInChart) { "number of values cannot exceed $maxValuesInChart" }
+        require(historicalValues.size + 1 < MAX_VALUES_IN_CHART) { "number of values cannot exceed $MAX_VALUES_IN_CHART" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
         val maxPosition = 5 * 40 - historicalValues.size + 2
         require(position < maxPosition) { "position cannot exceed $maxPosition" }
@@ -154,7 +154,7 @@ class FrontDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
     }
 
     suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
-        require(historicalValues.size < maxValuesInChart) { "number of values cannot exceed $maxValuesInChart" }
+        require(historicalValues.size < MAX_VALUES_IN_CHART) { "number of values cannot exceed $MAX_VALUES_IN_CHART" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
         val maxPosition = 5 * 20 - historicalValues.size
         require(position < maxPosition) { "position cannot exceed $maxPosition" }

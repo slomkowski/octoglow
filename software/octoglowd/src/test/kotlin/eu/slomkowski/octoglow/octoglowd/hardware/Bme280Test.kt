@@ -5,6 +5,7 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Test
@@ -40,7 +41,7 @@ class Bme280Test {
     @Test
     fun testInitAndRead(i2cBus: I2CBus) {
         runBlocking {
-            Bme280(coroutineContext, i2cBus).use { bme280 ->
+            Bme280(Mutex(), i2cBus).use { bme280 ->
                 assertNotNull(bme280)
 
                 delay(1_000)

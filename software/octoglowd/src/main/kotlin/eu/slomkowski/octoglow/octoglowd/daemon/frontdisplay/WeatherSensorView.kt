@@ -37,8 +37,8 @@ class WeatherSensorView(
             val historicalTemperature: List<Double?>,
             val historicalPressure: List<Double?>) {
         init {
-            require(lastTemperature in (5.0..45.0))
-            require(lastPressure in (900.0..1100.0))
+            require(lastTemperature in (5.0..45.0)) { "invalid temperature value: $lastTemperature" }
+            require(lastPressure in (900.0..1100.0)) { "invalid pressure value: $lastPressure" }
             require(historicalPressure.size == HISTORIC_VALUES_LENGTH)
             require(historicalTemperature.size == HISTORIC_VALUES_LENGTH)
         }
@@ -49,7 +49,7 @@ class WeatherSensorView(
             val historicalTemperature: List<Double?>,
             val isWeakBattery: Boolean) {
         init {
-            require(lastTemperature in (-40.0..45.0))
+            require(lastTemperature in (-40.0..45.0)) { "invalid temperature value: $lastTemperature" }
             require(historicalTemperature.size == HISTORIC_VALUES_LENGTH)
         }
     }

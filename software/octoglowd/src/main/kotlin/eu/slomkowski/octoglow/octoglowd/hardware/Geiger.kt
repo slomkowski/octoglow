@@ -6,9 +6,9 @@ import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import java.time.Duration
-import kotlin.coroutines.CoroutineContext
 
 enum class EyeDisplayMode {
     ANIMATION,
@@ -95,16 +95,16 @@ data class GeigerDeviceState(
     }
 }
 
-class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), HasBrightness {
+class Geiger(i2cMutex: Mutex, i2c: I2CBus) : I2CDevice(i2cMutex, i2c, 0x12), HasBrightness {
 
     companion object : KLogging() {
-        private val cycleMaxDuration = Duration.ofSeconds(0xffff)
+        private val CYCLE_MAX_DURATION: Duration = Duration.ofSeconds(0xffff)
 
         private const val I2C_READ_TRIES = 5
     }
 
     override fun close() {
-        runBlocking(threadContext) {
+        runBlocking {
             setBrightness(3)
         }
     }
@@ -129,7 +129,7 @@ class Geiger(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x12), Ha
     suspend fun setCycleLength(duration: Duration) {
 
         assert(duration > Duration.ZERO) { "duration has to be non-zero" }
-        assert(duration < cycleMaxDuration) { "duration can be max $cycleMaxDuration" }
+        assert(duration < CYCLE_MAX_DURATION) { "duration can be max $CYCLE_MAX_DURATION" }
         val seconds = duration.seconds.toInt()
 
         doWrite(3, 0xff and seconds, 0xff and (seconds shr 8))

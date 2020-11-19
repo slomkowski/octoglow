@@ -3,6 +3,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.daemon.CpuUsageIndicatorDaemon
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -28,7 +29,7 @@ class DacTest {
     }
 
     private fun testOut2(i2CBus: I2CBus, v: Int) = runBlocking {
-        Dac(coroutineContext, i2CBus).apply {
+        Dac(Mutex(), i2CBus).apply {
             setValue(DacChannel.C2, v)
         }
     }

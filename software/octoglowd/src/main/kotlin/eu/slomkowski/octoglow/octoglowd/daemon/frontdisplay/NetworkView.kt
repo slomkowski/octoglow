@@ -219,7 +219,7 @@ class NetworkView(
                 val activeInfo = checkNotNull(wifiInterfaces.firstOrNull { it.ifName == ai.name })
                 { "cannot find interface $ai in $PROC_NET_WIRELESS_PATH" }
 
-                logger.debug { "Wi-Fi signal strength on ${activeInfo.ifName} is ${activeInfo.linkQuality}%." }
+                logger.debug { "Wi-Fi signal strength on ${activeInfo.ifName} is ${activeInfo.linkQuality.toInt()}%." }
 
                 activeInfo to UpdateStatus.FULL_SUCCESS
             } catch (e: Exception) {

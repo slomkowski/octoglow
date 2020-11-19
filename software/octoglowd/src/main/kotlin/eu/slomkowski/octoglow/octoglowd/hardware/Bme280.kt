@@ -6,8 +6,8 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
-import kotlin.coroutines.CoroutineContext
 import kotlin.math.exp
 
 /**
@@ -94,7 +94,7 @@ data class CompensationData(
         val h5: Int,
         val h6: Int)
 
-class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
+class Bme280(i2cMutex: Mutex, i2c: I2CBus) : I2CDevice(i2cMutex, i2c, 0x76) {
 
     companion object : KLogging() {
         private val uninitializedSensorReport = listOf(128, 0, 0, 128, 0, 0, 128, 0)
@@ -147,7 +147,7 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
             val id = doTransaction(listOf(0xd0), 1).get(0)
             check(id == 0x60) { String.format("this is not BME280 chip, it has ID 0x%x", id) }
 
-            while(isReadingCalibration()) {
+            while (isReadingCalibration()) {
                 delay(100)
             }
 
@@ -183,7 +183,7 @@ class Bme280(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x76) {
         logger.debug { "Compensation data: $compensationData" }
     }
 
-    private suspend fun isReadingCalibration() : Boolean = doTransaction(listOf(0xf3), 1)[0] and 0x1 != 0
+    private suspend fun isReadingCalibration(): Boolean = doTransaction(listOf(0xf3), 1)[0] and 0x1 != 0
 
     suspend fun readReport(): IndoorWeatherReport = trySeveralTimes(3, logger) {
         val buf = doTransaction(listOf(0xf7), 8)

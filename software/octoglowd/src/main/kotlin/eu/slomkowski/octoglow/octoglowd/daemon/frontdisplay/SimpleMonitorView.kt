@@ -112,7 +112,8 @@ class SimpleMonitorView(
             val failedMonitors = monitors(MonitorStatus.FAIL)
 
             launch {
-                val time = report?.data?.generated?.toLocalDateTimeInSystemTimeZone()?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--:--"
+                val time = report?.data?.generated?.toLocalDateTimeInSystemTimeZone()?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                        ?: "--:--"
                 fd.setStaticText(0, time)
             }
 

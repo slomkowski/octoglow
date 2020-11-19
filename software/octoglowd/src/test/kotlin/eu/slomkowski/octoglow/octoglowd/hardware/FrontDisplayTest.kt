@@ -4,6 +4,7 @@ import com.thedeanda.lorem.LoremIpsum
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -19,7 +20,7 @@ class FrontDisplayTest {
     @Test
     fun testSetUpperBar(i2CBus: I2CBus) {
         runBlocking {
-            val frontDisplay = FrontDisplay(coroutineContext, i2CBus)
+            val frontDisplay = FrontDisplay(Mutex(), i2CBus)
 
             (0..19).forEach {
                 frontDisplay.setUpperBar(listOf(it))
@@ -45,7 +46,7 @@ class FrontDisplayTest {
     @Test
     fun testSetStaticText(i2CBus: I2CBus) {
         runBlocking {
-            FrontDisplay(coroutineContext, i2CBus).apply {
+            FrontDisplay(Mutex(), i2CBus).apply {
                 clear()
                 setStaticText(0, "Foo bar text.")
                 delay(1000)
@@ -61,7 +62,7 @@ class FrontDisplayTest {
     @Test
     fun testSetScrollingText(i2CBus: I2CBus) {
         runBlocking {
-            FrontDisplay(coroutineContext, i2CBus).apply {
+            FrontDisplay(Mutex(), i2CBus).apply {
                 clear()
                 setScrollingText(Slot.SLOT0, 34, 5,
                         "The quick brown fox jumps over the lazy dog. 20\u00B0C Dość gróźb fuzją, klnę, pych i małżeństw!")
@@ -72,7 +73,7 @@ class FrontDisplayTest {
     @Test
     fun testSetBrightness(bus: I2CBus) {
         runBlocking {
-            FrontDisplay(coroutineContext, bus).use { frontDisplay ->
+            FrontDisplay(Mutex(), bus).use { frontDisplay ->
                 frontDisplay.setStaticText(0, LoremIpsum.getInstance().getTitle(10).substring(0..39))
 
                 for (i in 0..5) {
@@ -87,7 +88,7 @@ class FrontDisplayTest {
     @Disabled("only to test correct dial behavior")
     fun testGetButtonReport2(i2CBus: I2CBus) {
         runBlocking {
-            FrontDisplay(coroutineContext, i2CBus).apply {
+            FrontDisplay(Mutex(), i2CBus).apply {
 
                 repeat(100) {
                     getButtonReport().apply {
@@ -104,7 +105,7 @@ class FrontDisplayTest {
     @Test
     fun testGetButtonReport(i2CBus: I2CBus) {
         runBlocking {
-            FrontDisplay(coroutineContext, i2CBus).apply {
+            FrontDisplay(Mutex(), i2CBus).apply {
                 val report1 = getButtonReport()
                 logger.info("Buttons 1: {}", report1)
                 val report2 = getButtonReport()
@@ -119,7 +120,7 @@ class FrontDisplayTest {
     @Test
     fun testCharts(i2CBus: I2CBus) {
         runBlocking {
-            FrontDisplay(coroutineContext, i2CBus).apply {
+            FrontDisplay(Mutex(), i2CBus).apply {
                 clear()
                 setOneLineDiffChart(5 * 23, 4, listOf(0, 1, 2, 3, 4, 5, 6, 7, 6, 5), 1)
                 setOneLineDiffChart(5 * 26, 68.2, listOf(16.0, 21.0, 84.3, 152.0, 79.6, 61.3), 31.5)

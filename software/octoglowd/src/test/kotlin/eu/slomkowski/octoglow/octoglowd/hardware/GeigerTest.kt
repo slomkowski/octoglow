@@ -5,6 +5,7 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -55,7 +56,7 @@ class GeigerTest {
     @Test
     fun testSetBrightness(bus: I2CBus) {
         runBlocking {
-            Geiger(coroutineContext, bus).use { geiger ->
+            Geiger(Mutex(), bus).use { geiger ->
                 for (i in 0..5) {
                     logger.info { "Setting brightness to $i." }
                     geiger.setBrightness(i)
@@ -70,7 +71,7 @@ class GeigerTest {
     @Test
     fun testGetCounterState(bus: I2CBus) {
         runBlocking {
-            val geiger = Geiger(coroutineContext, bus)
+            val geiger = Geiger(Mutex(), bus)
 
             //geiger.reset()
 
@@ -85,7 +86,7 @@ class GeigerTest {
     @Test
     fun testGetDeviceState(bus: I2CBus) {
         runBlocking {
-            val geiger = Geiger(coroutineContext, bus)
+            val geiger = Geiger(Mutex(), bus)
 
             geiger.reset()
 
@@ -110,7 +111,7 @@ class GeigerTest {
     }
 
     private fun setEye(bus: I2CBus, v: Boolean) = runBlocking {
-        val geiger = Geiger(coroutineContext, bus)
+        val geiger = Geiger(Mutex(), bus)
         geiger.setEyeConfiguration(v)
     }
 
@@ -118,7 +119,7 @@ class GeigerTest {
     @Disabled("this test should be run only by hand, because of heating cycle")
     fun testEye(bus: I2CBus) {
         runBlocking {
-            val geiger = Geiger(coroutineContext, bus)
+            val geiger = Geiger(Mutex(), bus)
 
             geiger.setEyeConfiguration(false)
             geiger.getDeviceState().apply {

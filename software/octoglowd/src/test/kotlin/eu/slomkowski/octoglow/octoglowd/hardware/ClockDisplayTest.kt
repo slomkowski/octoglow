@@ -4,6 +4,7 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -19,7 +20,7 @@ class ClockDisplayTest {
     @Test
     fun testGetOutdoorWeatherReport(i2CBus: I2CBus) {
         runBlocking {
-            ClockDisplay(coroutineContext, i2CBus).apply {
+            ClockDisplay(Mutex(), i2CBus).apply {
                 val report1 = getOutdoorWeatherReport()
                         ?: fail("Report is invalid. Perhaps no measurement received yet?")
 
@@ -53,7 +54,7 @@ class ClockDisplayTest {
     @Test
     fun testSetBrightness(i2CBus: I2CBus) {
         runBlocking {
-            ClockDisplay(coroutineContext, i2CBus).apply {
+            ClockDisplay(Mutex(), i2CBus).apply {
                 setDisplay(12, 34, true, false)
                 for (brightness in 0..5) {
                     setBrightness(brightness)
@@ -66,7 +67,7 @@ class ClockDisplayTest {
     @Test
     fun testSetDisplay(i2CBus: I2CBus) {
         runBlocking {
-            ClockDisplay(coroutineContext, i2CBus).apply {
+            ClockDisplay(Mutex(), i2CBus).apply {
                 setDisplay(3, 58, true, false)
                 delay(1000)
                 setDisplay(21, 2, false, true)
@@ -78,7 +79,7 @@ class ClockDisplayTest {
     @Disabled("ringing is scary, so only done when explicitly needed")
     fun testRingBell(i2CBus: I2CBus) {
         runBlocking {
-            ClockDisplay(coroutineContext, i2CBus).apply {
+            ClockDisplay(Mutex(), i2CBus).apply {
                 ringBell(Duration.ofMillis(100))
                 delay(1000)
                 ringBell(Duration.ofMillis(500))

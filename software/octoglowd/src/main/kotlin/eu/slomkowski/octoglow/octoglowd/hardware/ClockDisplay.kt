@@ -5,9 +5,9 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import java.time.Duration
-import kotlin.coroutines.CoroutineContext
 
 data class OutdoorWeatherReport(
         val temperature: Double,
@@ -31,7 +31,9 @@ data class OutdoorWeatherReport(
             if ((buff[4] and VALID_MEASUREMENT_FLAG) == 0) {
                 return null
             }
-
+            // T: 6517.3, H: 1.0. Buffer: [4 149 254 1 2]
+            // T: 6510.9, H: 1.0. Buffer:  [4 85 254 1 2]
+            // T: 6543.6, H: 68.0. Buffer: [4 156 255 68 6]     prawidłowe: 23.2 stopnie, 45% wilgotnosć
             val temperaturePart = (256 * buff[2] + buff[1]).toDouble() / 10.0
             val humidityPart = buff[3].toDouble()
 
@@ -48,7 +50,7 @@ data class OutdoorWeatherReport(
     }
 }
 
-class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x10), HasBrightness {
+class ClockDisplay(i2cMutex: Mutex, i2c: I2CBus) : I2CDevice(i2cMutex, i2c, 0x10), HasBrightness {
 
     companion object : KLogging() {
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
@@ -60,13 +62,13 @@ class ClockDisplay(ctx: CoroutineContext, i2c: I2CBus) : I2CDevice(ctx, i2c, 0x1
     }
 
     init {
-        runBlocking(threadContext) {
+        runBlocking {
             doWrite(2, 0, 0)
         }
     }
 
     override fun close() {
-        runBlocking(threadContext) {
+        runBlocking {
             setBrightness(3)
             doWrite(2, 0, 0)
             doWrite(1, 45, 45, 45, 45)
