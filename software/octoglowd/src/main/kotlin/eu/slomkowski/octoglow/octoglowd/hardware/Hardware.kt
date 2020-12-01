@@ -2,41 +2,42 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.ConfKey
+import eu.slomkowski.octoglow.octoglowd.contentToString
+import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
+import io.dvlopt.linux.i2c.I2CFunctionality
+import io.dvlopt.linux.i2c.I2CTransaction
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import mu.KLogging
+import java.io.IOException
 import java.time.Duration
 
-interface Hardware : HasBrightness, AutoCloseable {
-    val clockDisplay: ClockDisplay
-    val frontDisplay: FrontDisplay
-    val geiger: Geiger
-    val dac: Dac
-    val bme280: Bme280
+class Hardware(
+        private val bus: I2CBus,
+        ringAtStartup: Boolean) : AutoCloseable {
 
-    override suspend fun setBrightness(brightness: Int)
-
-    override fun close()
-}
-
-class PhysicalHardware(config: Config) : Hardware {
+    companion object : KLogging()
 
     private val busMutex = Mutex()
 
-    private val bus = I2CBus(config[ConfKey.i2cBus])
+    val clockDisplay = ClockDisplay(this)
 
-    override val clockDisplay = ClockDisplay(busMutex, bus)
+    val frontDisplay = FrontDisplay(this)
 
-    override val frontDisplay = FrontDisplay(busMutex, bus)
+    val geiger = Geiger(this)
 
-    override val geiger = Geiger(busMutex, bus)
+    val dac = Dac(this)
 
-    override val dac = Dac(busMutex, bus)
-
-    override val bme280 = Bme280(busMutex, bus)
+    val bme280 = Bme280(this)
 
     init {
-        if (config[ConfKey.ringAtStartup]) {
+        require(bus.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
+        require(bus.functionalities.can(I2CFunctionality.READ_BYTE)) { "I2C requires read byte support" }
+
+        if (ringAtStartup) {
             runBlocking { clockDisplay.ringBell(Duration.ofMillis(70)) }
         }
 
@@ -48,11 +49,61 @@ class PhysicalHardware(config: Config) : Hardware {
         }
     }
 
-    override suspend fun setBrightness(brightness: Int) {
+    constructor(config: Config) : this(I2CBus(config[ConfKey.i2cBus]), config[ConfKey.ringAtStartup])
+
+    suspend fun setBrightness(brightness: Int) {
         listOf<HasBrightness>(clockDisplay, frontDisplay, geiger).forEach { it.setBrightness(brightness) }
     }
 
     override fun close() {
         listOf<AutoCloseable>(clockDisplay, frontDisplay, geiger, dac, bme280).forEach { it.close() }
+    }
+
+    suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = busMutex.withLock {
+        bus.doTransaction(I2CTransaction(1).apply {
+            getMessage(0).apply {
+                address = i2cAddress
+                buffer = writeBuffer
+            }
+        })
+    }
+
+    suspend fun doTransaction(i2cAddress: Int,
+                              writeBuffer: I2CBuffer,
+                              bytesToRead: Int): I2CBuffer {
+        require(bytesToRead in 1..100)
+        val numberOfTries = 3
+
+        val readBuffer = I2CBuffer(bytesToRead)
+
+        for (tryNo in 1..numberOfTries) {
+            try {
+                busMutex.withLock {
+                    bus.selectSlave(i2cAddress)
+                    bus.write(writeBuffer)
+                    delay(1)
+                    bus.read(readBuffer)
+                }
+
+                break
+            } catch (e: IOException) {
+                logger.debug {
+                    "doTransaction error. " +
+                            "Address 0x${i2cAddress.toString(16)}. " +
+                            "Write buffer: ${writeBuffer.contentToString()}, " +
+                            "read buffer: ${readBuffer.contentToString()};"
+                }
+
+                if (e.message?.contains("errno 6", ignoreCase = true) == true && tryNo < numberOfTries) {
+                    logger.warn("errno 6 happened, retrying ({}/{}).", tryNo, numberOfTries)
+                    continue
+                } else {
+                    logger.error(e) { "Error in bus transaction ($tryNo/$numberOfTries)" }
+                    throw e
+                }
+            }
+        }
+
+        return readBuffer
     }
 }

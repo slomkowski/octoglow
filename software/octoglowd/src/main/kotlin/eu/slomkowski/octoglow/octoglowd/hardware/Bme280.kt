@@ -3,10 +3,8 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.toList
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
-import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import kotlin.math.exp
 
@@ -94,7 +92,7 @@ data class CompensationData(
         val h5: Int,
         val h6: Int)
 
-class Bme280(i2cMutex: Mutex, i2c: I2CBus) : I2CDevice(i2cMutex, i2c, 0x76) {
+class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76) {
 
     companion object : KLogging() {
         private val uninitializedSensorReport = listOf(128, 0, 0, 128, 0, 0, 128, 0)

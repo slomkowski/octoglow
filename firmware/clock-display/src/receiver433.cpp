@@ -92,7 +92,8 @@ void ::octoglow::vfd_clock::receiver433::pool() {
             }
 
             // sanity check
-            if (currentWeatherSensorState.humidity <= 100 && currentWeatherSensorState.temperature > -450 && currentWeatherSensorState.temperature < 500) {
+            if (currentWeatherSensorState.humidity <= 100
+            && currentWeatherSensorState.temperature > -450 && currentWeatherSensorState.temperature < 500) {
                 currentWeatherSensorState.flags |= protocol::VALID_MEASUREMENT_FLAG;
                 display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::VALID);
 

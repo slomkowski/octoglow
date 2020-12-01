@@ -4,9 +4,7 @@ import eu.slomkowski.octoglow.octoglowd.contentToString
 import eu.slomkowski.octoglow.octoglowd.toList
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
-import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import java.time.Duration
 
@@ -95,7 +93,7 @@ data class GeigerDeviceState(
     }
 }
 
-class Geiger(i2cMutex: Mutex, i2c: I2CBus) : I2CDevice(i2cMutex, i2c, 0x12), HasBrightness {
+class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
 
     companion object : KLogging() {
         private val CYCLE_MAX_DURATION: Duration = Duration.ofSeconds(0xffff)

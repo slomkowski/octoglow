@@ -2,10 +2,8 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
 import io.dvlopt.linux.i2c.I2CBuffer
-import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -14,7 +12,7 @@ import java.time.Duration
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 
-@ExtendWith(I2CBusParameterResolver::class)
+@ExtendWith(HardwareParameterResolver::class)
 class GeigerTest {
 
     companion object : KLogging()
@@ -54,9 +52,9 @@ class GeigerTest {
     }
 
     @Test
-    fun testSetBrightness(bus: I2CBus) {
+    fun testSetBrightness(hardware: Hardware) {
         runBlocking {
-            Geiger(Mutex(), bus).use { geiger ->
+            Geiger(hardware).use { geiger ->
                 for (i in 0..5) {
                     logger.info { "Setting brightness to $i." }
                     geiger.setBrightness(i)
@@ -69,9 +67,9 @@ class GeigerTest {
     }
 
     @Test
-    fun testGetCounterState(bus: I2CBus) {
+    fun testGetCounterState(hardware: Hardware) {
         runBlocking {
-            val geiger = Geiger(Mutex(), bus)
+            val geiger = Geiger(hardware)
 
             //geiger.reset()
 
@@ -84,9 +82,9 @@ class GeigerTest {
     }
 
     @Test
-    fun testGetDeviceState(bus: I2CBus) {
+    fun testGetDeviceState(hardware: Hardware) {
         runBlocking {
-            val geiger = Geiger(Mutex(), bus)
+            val geiger = Geiger(hardware)
 
             geiger.reset()
 
@@ -100,26 +98,26 @@ class GeigerTest {
 
     @Test
     @Disabled("method used to enable eye manually")
-    fun enableEye(bus: I2CBus) {
-        setEye(bus, true)
+    fun enableEye(hardware: Hardware) {
+        setEye(hardware, true)
     }
 
     @Test
     @Disabled("method used to disable eye manually")
-    fun disableEye(bus: I2CBus) {
-        setEye(bus, false)
+    fun disableEye(hardware: Hardware) {
+        setEye(hardware, false)
     }
 
-    private fun setEye(bus: I2CBus, v: Boolean) = runBlocking {
-        val geiger = Geiger(Mutex(), bus)
+    private fun setEye(hardware: Hardware, v: Boolean) = runBlocking {
+        val geiger = Geiger(hardware)
         geiger.setEyeConfiguration(v)
     }
 
     @Test
     @Disabled("this test should be run only by hand, because of heating cycle")
-    fun testEye(bus: I2CBus) {
+    fun testEye(hardware: Hardware) {
         runBlocking {
-            val geiger = Geiger(Mutex(), bus)
+            val geiger = Geiger(hardware)
 
             geiger.setEyeConfiguration(false)
             geiger.getDeviceState().apply {

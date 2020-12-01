@@ -6,7 +6,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.CpuUsageIndicatorDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
-import eu.slomkowski.octoglow.octoglowd.hardware.PhysicalHardware
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.*
 
 fun main() {
@@ -21,7 +21,7 @@ fun main() {
         addSpec(SimpleMonitorKey)
     }.from.yaml.file("config.yml")
 
-    val hardware = PhysicalHardware(config)
+    val hardware = Hardware(config)
 
     Runtime.getRuntime().addShutdownHook(Thread {
         hardware.close() //todo maybe find cleaner way?

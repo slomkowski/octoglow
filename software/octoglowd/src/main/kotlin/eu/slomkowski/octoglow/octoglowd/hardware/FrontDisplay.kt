@@ -2,9 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.set
 import io.dvlopt.linux.i2c.I2CBuffer
-import io.dvlopt.linux.i2c.I2CBus
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
 import mu.KLogging
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -31,7 +29,7 @@ data class ButtonReport(
     }
 }
 
-class FrontDisplay(i2cMutex: Mutex, i2c: I2CBus) : I2CDevice(i2cMutex, i2c, 0x14), HasBrightness {
+class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightness {
 
     companion object : KLogging() {
         // we assume last value as pivot

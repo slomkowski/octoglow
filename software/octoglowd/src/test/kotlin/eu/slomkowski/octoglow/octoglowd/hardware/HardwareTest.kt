@@ -10,7 +10,7 @@ import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Test
 
-class PhysicalHardwareTest {
+class HardwareTest {
 
     companion object : KLogging()
 
@@ -20,7 +20,7 @@ class PhysicalHardwareTest {
         config[ConfKey.i2cBus] = testConfig[TestConfKey.i2cBus]
 
         runBlocking {
-            PhysicalHardware(config).use { hardware ->
+            Hardware(config).use { hardware ->
                 hardware.frontDisplay.setStaticText(0, LoremIpsum.getInstance().getWords(20).take(39))
                 hardware.clockDisplay.setDisplay(12, 34, true, false)
 
