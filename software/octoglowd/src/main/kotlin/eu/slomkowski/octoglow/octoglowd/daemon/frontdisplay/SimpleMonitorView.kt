@@ -14,6 +14,7 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import mu.KLogging
+import org.apache.commons.lang3.StringUtils
 import java.net.URL
 import java.time.Duration
 import java.time.LocalDateTime
@@ -136,7 +137,8 @@ class SimpleMonitorView(
                     else -> {
                         val failedText = "${failedMonitors.size} FAILED"
                         fd.setStaticText(20, failedText)
-                        fd.setScrollingText(Slot.SLOT0, 21 + failedText.length, 19 - failedText.length, failedMonitors.keys.joinToString(","))
+                        val scrollingText = StringUtils.abbreviate(failedMonitors.keys.joinToString(","), 150)
+                        fd.setScrollingText(Slot.SLOT0, 21 + failedText.length, 19 - failedText.length, scrollingText)
                     }
                 }
             }

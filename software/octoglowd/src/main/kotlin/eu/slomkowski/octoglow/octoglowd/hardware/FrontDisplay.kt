@@ -108,7 +108,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
     suspend fun setScrollingText(slot: Slot, position: Int, length: Int, text: String) {
         val textBytes = text.toByteArray(StandardCharsets.UTF_8)
         val lastPosition = position + length - 1
-        require(slot.capacity > textBytes.size) { "UTF-8 text length ({} bytes) cannot exceed the capacity of the selected slot $slot, which is ${slot.capacity}" }
+        require(slot.capacity > textBytes.size) { "UTF-8 text length (${textBytes.size} bytes) cannot exceed the capacity of the selected slot $slot, which is ${slot.capacity}" }
         require(position < 40) { "position has to be between 0 and 39, $position provided" }
         require(text.isNotEmpty()) { "text length has to be at least 1" }
         require(lastPosition < 40) { "end of the string cannot exceed position 39, but has length ${textBytes.size} and position $position, which sums to $lastPosition, text: $text" }

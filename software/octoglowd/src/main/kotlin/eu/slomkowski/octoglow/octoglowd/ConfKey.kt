@@ -38,6 +38,11 @@ object CryptocurrenciesKey : ConfigSpec("cryptocurrencies") {
     val diffChartFraction by optional(0.005)
 }
 
+object StocksKey : ConfigSpec("stocks") {
+    val tickers by required<Set<String>>()
+    val diffChartFraction by optional(0.005)
+}
+
 object NbpKey : ConfigSpec("nbp") {
     val currency1 by required<String>()
     val currency2 by required<String>()

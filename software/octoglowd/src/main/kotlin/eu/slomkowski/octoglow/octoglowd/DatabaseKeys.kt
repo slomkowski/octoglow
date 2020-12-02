@@ -34,6 +34,21 @@ data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
         get() = "CRYPTOCURRENCY_$symbol".toUpperCase()
 }
 
+data class Stock(val symbol: String) : HistoricalValueType() {
+
+    companion object {
+        private val NON_ALPHANUMERIC_REGEX = Regex("[^A-Za-z0-9 ]")
+    }
+
+    init {
+        require(symbol.isNotBlank())
+        require(symbol.length < 12)
+    }
+
+    override val databaseSymbol: String
+        get() = "STOCK_" + symbol.replace(NON_ALPHANUMERIC_REGEX, "_").toUpperCase()
+}
+
 enum class ChangeableSetting {
     BRIGHTNESS,
     SIMPLEMONITOR_RING_ON_FAILURE

@@ -10,6 +10,11 @@ class HistoricalValueTypeTest {
         assertEquals("MSL_PRESSURE", MSLPressure.databaseSymbol)
         assertEquals("OUTDOOR_TEMPERATURE", OutdoorTemperature.databaseSymbol)
         assertEquals("OUTDOOR_WEAK_BATTERY", OutdoorWeakBattery.databaseSymbol)
+
         assertEquals("CRYPTOCURRENCY_BTC", Cryptocurrency("BTC").databaseSymbol)
+
+        assertEquals("STOCK_ABC", Stock("ABC").databaseSymbol)
+        assertEquals("STOCK__ABC", Stock("^ABC").databaseSymbol)
+        assertEquals("STOCK__REKE", Stock("^Reke").databaseSymbol)
     }
 }

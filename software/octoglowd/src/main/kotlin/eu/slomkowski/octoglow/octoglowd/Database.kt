@@ -157,14 +157,18 @@ class DatabaseLayer(
     }
 
     fun insertHistoricalValueAsync(ts: LocalDateTime, key: HistoricalValueType, value: Double): Job {
-        logger.debug { "Inserting data to DB: $key = $value." }
-
+        val tsj = toJodaDateTime(ts)
         return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
             transaction {
-                HistoricalValues.insert {
-                    it[timestamp] = toJodaDateTime(ts)
-                    it[this.key] = key.databaseSymbol
-                    it[this.value] = value
+                if (HistoricalValues.select { HistoricalValues.timestamp eq tsj }.empty()) {
+                    Companion.logger.debug("Inserting data to DB: {} = {}", key, value)
+                    HistoricalValues.insert {
+                        it[timestamp] = tsj
+                        it[this.key] = key.databaseSymbol
+                        it[this.value] = value
+                    }
+                } else {
+                    Companion.logger.debug("Value with timestamp {} is already in DB.", ts)
                 }
             }
         }

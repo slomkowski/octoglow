@@ -3,9 +3,15 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.coroutines.awaitObject
 import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.Stock
+import eu.slomkowski.octoglow.octoglowd.StocksKey
 import eu.slomkowski.octoglow.octoglowd.csvDeserializerOf
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import mu.KLogging
 import org.apache.commons.csv.CSVFormat
 import java.math.BigDecimal
@@ -18,13 +24,13 @@ import java.util.*
 
 class StockView(
         private val config: Config,
+        private val database: DatabaseLayer,
         hardware: Hardware)
     : FrontDisplayView(hardware,
         "Warsaw Stock Exchange index",
-        Duration.ofMinutes(15),
+        Duration.ofMinutes(1),//todo change to 20 min, stays 1 minute for dev
         Duration.ofSeconds(15),
-        Duration.ofSeconds(13)) {
-
+        Duration.ofSeconds(1)) {
 
     data class StockInfoDto(
             val ticker: String,
@@ -42,9 +48,30 @@ class StockView(
             require(high >= low)
             require(volume >= 0)
         }
+
+        val typicalPrice: BigDecimal
+            get() = (high + low + close) / BigDecimal(3)
     }
 
+    data class SingleStockReport(
+            val code: String,
+            val isLatestFromToday: Boolean,
+            val latest: Double,
+            val historical: List<Double?>) {
+        init {
+            require(historical.size == HISTORIC_VALUES_LENGTH)
+        }
+    }
+
+    data class CurrentReport(
+            val timestamp: LocalDateTime,
+            val currencies: Map<String, SingleStockReport>)
+
+    private var currentReport: CurrentReport? = null
+
     companion object : KLogging() {
+        private const val HISTORIC_VALUES_LENGTH = 14
+
         private val cookie: String = UUID.randomUUID().toString()
 
         private val shortTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HHmmss")
@@ -77,7 +104,8 @@ class StockView(
     }
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
-        TODO()
+        val fd = hardware.frontDisplay
+        launch { fd.setStaticText(0, "stock view") }
 
         Unit
     }
@@ -88,6 +116,45 @@ class StockView(
     override suspend fun poolInstantData(): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
     override suspend fun poolStatusData(): UpdateStatus = coroutineScope {
-        TODO()
+        val ts = LocalDateTime.now()
+        val today = ts.toLocalDate()
+
+        val tickers = config[StocksKey.tickers]
+        require(tickers.isNotEmpty()) { "no tickets defined" }
+
+        val stockData = downloadStockData(today)
+
+        val newReport = CurrentReport(ts, tickers.map { ticker ->
+            async {
+                val dbKey = Stock(ticker)
+
+                val newestToday = stockData.filter { it.ticker == ticker }.maxBy { it.timestamp }
+
+                if (newestToday != null) {
+                    database.insertHistoricalValueAsync(newestToday.timestamp, dbKey, newestToday.typicalPrice.toDouble())
+                }
+
+                val historical = database.getLastHistoricalValuesByHourAsync(ts, dbKey, HISTORIC_VALUES_LENGTH).await() //todo by day
+
+                val latestPrice = newestToday?.typicalPrice?.toDouble() ?: historical.last()
+
+                latestPrice?.let {
+                    ticker to SingleStockReport(
+                            ticker,
+                            newestToday != null,
+                            latestPrice,
+                            historical)
+                }
+                //todo dodać try catch tak jak w crypto
+            }
+        }.awaitAll().filterNotNull().toMap())
+
+        currentReport = newReport
+
+        when (newReport.currencies.size) {
+            tickers.size -> UpdateStatus.FULL_SUCCESS
+            0 -> UpdateStatus.FAILURE
+            else -> UpdateStatus.PARTIAL_SUCCESS
+        }
     }
 }

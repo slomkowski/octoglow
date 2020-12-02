@@ -106,7 +106,7 @@ suspend fun handleException(config: Config,
                             hardware: Hardware,
                             coroutineContext: CoroutineContext,
                             e: Throwable) {
-    logger.error("Exception caught in $coroutineContext.")
+    logger.error(e) { "Exception caught in $coroutineContext." }
     if (config[ConfKey.ringAtError]) {
         ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(150))
     } else {

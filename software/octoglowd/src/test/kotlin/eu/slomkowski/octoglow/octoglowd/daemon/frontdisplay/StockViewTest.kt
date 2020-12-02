@@ -14,10 +14,11 @@ internal class StockViewTest {
 
     @Test
     fun testDownloadStockData() {
+        // we choose last day with active stock, but not today (if today, the tests fail before 9:00
         val lastWeekDay = checkNotNull(object : Iterator<LocalDate> {
-            var d = LocalDate.now().minusDays(7)
+            var d = LocalDate.now().minusDays(8)
 
-            override fun hasNext() = d <= LocalDate.now()
+            override fun hasNext() = d < LocalDate.now().minusDays(1)
 
             override fun next(): LocalDate {
                 d = d.plusDays(1)

@@ -18,6 +18,7 @@ fun main() {
         addSpec(SleepKey)
         addSpec(NetworkViewKey)
         addSpec(NbpKey)
+        addSpec(StocksKey)
         addSpec(SimpleMonitorKey)
     }.from.yaml.file("config.yml")
 
@@ -39,6 +40,7 @@ fun main() {
             GeigerView(database, hardware),
             CryptocurrencyView(config, database, hardware),
             NbpView(config, hardware),
+            StockView(config, database, hardware),
             SimpleMonitorView(config, database, hardware),
             NetworkView(config, hardware))
 
