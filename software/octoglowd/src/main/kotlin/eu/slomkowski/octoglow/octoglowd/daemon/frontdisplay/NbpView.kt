@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import mu.KLogging
 import java.time.Duration
 import java.time.LocalDate
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 class NbpView(
         private val config: Config,
@@ -59,7 +59,7 @@ class NbpView(
     }
 
     data class CurrentReport(
-            val timestamp: LocalDateTime,
+            val timestamp: ZonedDateTime,
             val currencies: Map<RequiredItem<String>, SingleCurrencyReport>)
 
     data class GoldPrice(
@@ -164,7 +164,7 @@ class NbpView(
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
         val report = currentReport
 
         if (redrawStatus) {
@@ -175,7 +175,7 @@ class NbpView(
             launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency3), 14, diffChartStep) }
         }
 
-        drawProgressBar(report?.timestamp)
+        drawProgressBar(report?.timestamp, now)
 
         Unit
     }
@@ -183,11 +183,9 @@ class NbpView(
     /**
      * Progress bar is dependent only on current time so always success.
      */
-    override suspend fun poolInstantData(): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(): UpdateStatus = coroutineScope {
-        val now = LocalDateTime.now()
-
+    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
 
         val newReport = CurrentReport(now, currencyKeys.map { currencyKey ->
             async {

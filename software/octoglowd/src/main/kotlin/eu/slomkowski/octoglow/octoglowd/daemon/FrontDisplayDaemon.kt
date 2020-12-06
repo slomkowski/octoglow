@@ -18,7 +18,8 @@ import org.softpark.stateful4k.action.IExecutor
 import org.softpark.stateful4k.extensions.createExecutor
 import org.softpark.stateful4k.extensions.event
 import java.time.Duration
-import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZonedDateTime
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
@@ -31,8 +32,6 @@ class FrontDisplayDaemon(
     : Daemon(config, hardware, logger, Duration.ofMillis(100)) {
 
     companion object : KLogging() {
-
-        private val LONG_TIME_AGO = LocalDateTime.of(2019, 1, 1, 0, 0)
 
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0 until size)
@@ -50,9 +49,9 @@ class FrontDisplayDaemon(
 
         fun getMostSuitableViewInfo(views: Collection<ViewInfo>): ViewInfo {
             return views.sortedByDescending {
-                val v1 = Duration.between(it.lastViewed ?: LONG_TIME_AGO, it.lastSuccessfulStatusUpdate
-                        ?: LONG_TIME_AGO).toMillis()
-                val v2 = Duration.between(it.lastViewed ?: LONG_TIME_AGO, LocalDateTime.now()).toMillis()
+                val v1 = Duration.between(it.lastViewed ?: Instant.EPOCH, it.lastSuccessfulStatusUpdate
+                        ?: Instant.EPOCH).toMillis()
+                val v2 = Duration.between(it.lastViewed ?: Instant.EPOCH, Instant.now()).toMillis()
 
                 30 * v1 + 50 * v2
             }.first()
@@ -66,56 +65,56 @@ class FrontDisplayDaemon(
             private val frontDisplay: FrontDisplay,
             val view: FrontDisplayView) {
 
-        var lastViewed: LocalDateTime? = null
+        var lastViewed: Instant? = null
             private set
 
-        var lastSuccessfulStatusUpdate: LocalDateTime? = null
+        var lastSuccessfulStatusUpdate: Instant? = null
             private set
 
-        var lastStatusPool: LocalDateTime? = null
+        var lastStatusPool: Instant? = null
             private set
 
-        var lastInstantPool: LocalDateTime? = null
+        var lastInstantPool: Instant? = null
             private set
 
         val menus = view.getMenus()
 
         override fun toString(): String = view.toString()
 
-        fun bumpLastStatusAndInstant() = LocalDateTime.now().let {
+        fun bumpLastStatusAndInstant() = Instant.now().let {
             lastStatusPool = it
             lastInstantPool = it
         }
 
         fun bumpLastInstant() {
-            lastInstantPool = LocalDateTime.now()
+            lastInstantPool = Instant.now()
         }
 
         fun bumpLastSuccessfulStatusUpdate() {
-            lastSuccessfulStatusUpdate = LocalDateTime.now()
+            lastSuccessfulStatusUpdate = Instant.now()
         }
 
         fun redrawAll() {
-            lastViewed = LocalDateTime.now()
+            lastViewed = Instant.now()
             logger.debug { "Redrawing $view." }
             CoroutineScope(coroutineContext).launch(exceptionHandler) {
                 frontDisplay.clear()
-                view.redrawDisplay(true, true)
+                view.redrawDisplay(true, true, ZonedDateTime.now())
             }
         }
 
         fun redrawStatus() {
-            lastViewed = LocalDateTime.now()
+            lastViewed = Instant.now()
             CoroutineScope(coroutineContext).launch(exceptionHandler) {
                 logger.debug { "Updating state of active $view." }
-                view.redrawDisplay(false, true)
+                view.redrawDisplay(false, true, ZonedDateTime.now())
             }
         }
 
         fun redrawInstant() {
             CoroutineScope(coroutineContext).launch(exceptionHandler) {
                 logger.debug { "Updating instant of $view." }
-                view.redrawDisplay(false, false)
+                view.redrawDisplay(false, false, ZonedDateTime.now())
             }
         }
     }
@@ -127,7 +126,7 @@ class FrontDisplayDaemon(
     private val stateExecutorMutex = Mutex()
     private val stateExecutor: IExecutor<FrontDisplayDaemon, State, Event>
 
-    private var lastDialActivity: LocalDateTime? = null
+    private var lastDialActivity: Instant? = null
 
     init {
         require(frontDisplayViews.isNotEmpty())
@@ -220,7 +219,7 @@ class FrontDisplayDaemon(
     sealed class Event {
         object ButtonPressed : Event()
 
-        data class Timeout(val now: LocalDateTime) : Event()
+        data class Timeout(val now: Instant) : Event()
 
         data class EncoderDelta(val delta: Int) : Event()
 
@@ -377,13 +376,13 @@ class FrontDisplayDaemon(
         return configurator.createExecutor(this@FrontDisplayDaemon, State.ViewCycle.Auto(views.first()))
     }
 
-    private suspend fun poolStatusAndInstant(now: LocalDateTime) {
+    private suspend fun poolStatusAndInstant(now: Instant) {
         for (info in views) {
             if (info.lastStatusPool?.plus(info.view.poolStatusEvery)?.isBefore(now) != false) {
                 info.bumpLastStatusAndInstant()
 
                 CoroutineScope(coroutineContext).launch(exceptionHandler) {
-                    val status = info.view.poolStatusData()
+                    val status = info.view.poolStatusData(ZonedDateTime.now())
                     if (status != UpdateStatus.NO_NEW_DATA) {
                         info.bumpLastSuccessfulStatusUpdate()
                         stateExecutorMutex.withLock {
@@ -396,7 +395,7 @@ class FrontDisplayDaemon(
 
                 if (stateExecutorMutex.withLock { (stateExecutor.state as? State.ViewCycle)?.info } == info) {
                     CoroutineScope(coroutineContext).launch(exceptionHandler) {
-                        val status = info.view.poolInstantData()
+                        val status = info.view.poolInstantData(ZonedDateTime.now())
                         if (status != UpdateStatus.NO_NEW_DATA) {
                             stateExecutorMutex.withLock {
                                 stateExecutor.fire(Event.InstantUpdate(info, status))
@@ -410,7 +409,7 @@ class FrontDisplayDaemon(
 
     override suspend fun pool() {
         val buttonState = hardware.frontDisplay.getButtonReport()
-        val now = LocalDateTime.now()
+        val now = Instant.now()
 
         when {
             buttonState.button == ButtonState.JUST_RELEASED -> {
@@ -423,8 +422,7 @@ class FrontDisplayDaemon(
             }
             else -> {
                 // timeout
-                if (Duration.between(lastDialActivity
-                                ?: LONG_TIME_AGO, now) > config[ConfKey.viewAutomaticCycleTimeout]) {
+                if (Duration.between(lastDialActivity ?: Instant.EPOCH, now) > config[ConfKey.viewAutomaticCycleTimeout]) {
                     stateExecutorMutex.withLock {
                         stateExecutor.fire(Event.Timeout(now))
                     }

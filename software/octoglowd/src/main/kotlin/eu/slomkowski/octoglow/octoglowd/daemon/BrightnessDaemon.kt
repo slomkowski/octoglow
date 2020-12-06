@@ -6,8 +6,8 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import java.time.Duration
-import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZonedDateTime
 
 class BrightnessDaemon(
         private val config: Config,
@@ -64,16 +64,17 @@ class BrightnessDaemon(
     }
 
     override suspend fun pool() {
-        val br = (forced ?: calculateBrightnessFraction(LocalDateTime.now())).coerceIn(1, 5)
+        val br = (forced ?: calculateBrightnessFraction(ZonedDateTime.now())).coerceIn(1, 5)
         logger.debug { "Setting brightness to $br." }
         hardware.setBrightness(br)
     }
 
-    fun calculateBrightnessFraction(ts: LocalDateTime): Int {
+    fun calculateBrightnessFraction(ts: ZonedDateTime): Int {
 
         val sleepStart = config[SleepKey.startAt]
         val sleepDuration = config[SleepKey.duration]
 
+        //todo should check if geo is within timezone
         val (sunrise, sunset) = calculateSunriseAndSunset(config[GeoPosKey.latitude], config[GeoPosKey.longitude], ts.toLocalDate())
         logger.debug { "On ${ts.toLocalDate()} sun is up from $sunrise to $sunset." }
 

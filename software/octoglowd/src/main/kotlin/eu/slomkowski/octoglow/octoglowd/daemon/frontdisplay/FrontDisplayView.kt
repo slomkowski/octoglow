@@ -8,7 +8,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import mu.KLogging
 import java.time.Duration
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 enum class UpdateStatus {
     NO_NEW_DATA,
@@ -38,18 +38,20 @@ abstract class FrontDisplayView(
 
     open fun getMenus(): List<Menu> = emptyList()
 
-    abstract suspend fun poolStatusData(): UpdateStatus
+    abstract suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus
 
-    abstract suspend fun poolInstantData(): UpdateStatus
+    abstract suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus
 
-    abstract suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean)
+    abstract suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime)
 
     override fun toString(): String = "'$name'"
 
-    protected suspend fun drawProgressBar(reportTimestamp: LocalDateTime?, period: Duration = poolStatusEvery) = coroutineScope {
+    protected suspend fun drawProgressBar(reportTimestamp: ZonedDateTime?,
+                                          now: ZonedDateTime,
+                                          period: Duration = poolStatusEvery) = coroutineScope {
         val fd = hardware.frontDisplay
         if (reportTimestamp != null) {
-            val currentCycleDuration = Duration.between(reportTimestamp, LocalDateTime.now())
+            val currentCycleDuration = Duration.between(reportTimestamp, now)
             check(!currentCycleDuration.isNegative)
             launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, period))) }
         } else {

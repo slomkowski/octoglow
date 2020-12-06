@@ -19,7 +19,7 @@ class UtilsTest {
     fun testTrySeveralTimes() {
         assertFails {
             runBlocking {
-                trySeveralTimes(5, logger) {
+                trySeveralTimes<Unit>(5, logger) {
                     throw IllegalStateException("always fail")
                 }
             }

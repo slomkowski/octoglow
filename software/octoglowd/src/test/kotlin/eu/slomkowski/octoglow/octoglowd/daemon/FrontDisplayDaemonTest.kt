@@ -14,6 +14,7 @@ import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Duration
+import java.time.ZonedDateTime
 
 class FrontDisplayDaemonTest {
 
@@ -25,17 +26,17 @@ class FrontDisplayDaemonTest {
             Duration.ofSeconds(1),
             Duration.ofSeconds(7)) {
 
-        override suspend fun poolStatusData(): UpdateStatus {
+        override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus {
             logger.info { "Call poolStatusData." }
             return UpdateStatus.FULL_SUCCESS
         }
 
-        override suspend fun poolInstantData(): UpdateStatus {
+        override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus {
             logger.info { "Call poolInstantData." }
             return UpdateStatus.FULL_SUCCESS
         }
 
-        override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) {
+        override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) {
             logger.info { "Screen redrawn." }
         }
 
@@ -62,8 +63,8 @@ class FrontDisplayDaemonTest {
             coEvery { v1.getMenus() } returns listOf()
             coEvery { v2.getMenus() } returns listOf()
 
-            coEvery { v1.redrawDisplay(true, true) } just Runs
-            coEvery { v2.redrawDisplay(true, true) } just Runs
+            coEvery { v1.redrawDisplay(true, true, any()) } just Runs
+            coEvery { v2.redrawDisplay(true, true, any()) } just Runs
 
             val d = FrontDisplayDaemon(config, coroutineContext, hardware, listOf(v1, v2), emptyList())
 
@@ -71,8 +72,8 @@ class FrontDisplayDaemonTest {
 
             d.pool()
 
-            coVerify { v1.redrawDisplay(true, true) }
-            coVerify { v2.redrawDisplay(true, true) }
+            coVerify { v1.redrawDisplay(true, true, any()) }
+            coVerify { v2.redrawDisplay(true, true, any()) }
         }
     }
 

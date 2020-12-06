@@ -17,8 +17,8 @@ import mu.KLogging
 import org.apache.commons.lang3.StringUtils
 import java.net.URL
 import java.time.Duration
-import java.time.LocalDateTime
 import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 class SimpleMonitorView(
@@ -48,7 +48,7 @@ class SimpleMonitorView(
             val monitors: Map<String, Monitor>)
 
     data class CurrentReport(
-            val timestamp: LocalDateTime,
+            val timestamp: ZonedDateTime,
             val data: SimpleMonitorJson?)
 
     companion object : KLogging() {
@@ -68,9 +68,7 @@ class SimpleMonitorView(
 
     private var currentReport: CurrentReport? = null
 
-    override suspend fun poolStatusData(): UpdateStatus = coroutineScope {
-        val now = LocalDateTime.now()
-
+    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
         val (status, newReport) = try {
             val json = getLatestSimpleMonitorJson(config[SimpleMonitorKey.url],
                     config[SimpleMonitorKey.user], config[SimpleMonitorKey.password])
@@ -98,9 +96,9 @@ class SimpleMonitorView(
         status
     }
 
-    override suspend fun poolInstantData(): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
         val report = currentReport
         val fd = hardware.frontDisplay
 
@@ -144,7 +142,7 @@ class SimpleMonitorView(
             }
         }
 
-        drawProgressBar(report?.timestamp)
+        drawProgressBar(report?.timestamp, now)
 
         Unit
     }

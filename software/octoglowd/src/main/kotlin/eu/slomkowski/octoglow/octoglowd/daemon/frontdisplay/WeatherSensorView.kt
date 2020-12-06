@@ -8,7 +8,8 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import mu.KLogging
 import java.time.Duration
-import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZonedDateTime
 
 class WeatherSensorView(
         private val config: Config,
@@ -55,13 +56,13 @@ class WeatherSensorView(
     }
 
     data class CurrentReport(
-            val timestamp: LocalDateTime,
+            val timestamp: ZonedDateTime,
             val indoor: IndoorReport?,
             val outdoor: OutdoorReport?)
 
     private var currentReport: CurrentReport? = null
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
         val rep = currentReport
         val fd = hardware.frontDisplay
 
@@ -84,16 +85,15 @@ class WeatherSensorView(
             rep?.indoor?.let { launch { fd.setOneLineDiffChart(5 * 37, it.lastTemperature, it.historicalTemperature, 1.0) } }
         }
 
-        drawProgressBar(rep?.timestamp, MAXIMAL_DURATION_BETWEEN_MEASUREMENTS)
+        drawProgressBar(rep?.timestamp, now, MAXIMAL_DURATION_BETWEEN_MEASUREMENTS)
 
         Unit
     }
 
-    override suspend fun poolInstantData(): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData() = coroutineScope {
+    override suspend fun poolStatusData(now: ZonedDateTime) = coroutineScope {
         val oldReport = currentReport
-        val ts = LocalDateTime.now()
 
         val newOutdoorSensorData = hardware.clockDisplay.getOutdoorWeatherReport()
 
@@ -103,15 +103,15 @@ class WeatherSensorView(
         } else if (!newOutdoorSensorData.alreadyReadFlag || oldReport == null) {
             logger.info { "Got outdoor report : $newOutdoorSensorData." }
             listOf(
-                    databaseLayer.insertHistoricalValueAsync(ts, OutdoorTemperature, newOutdoorSensorData.temperature),
-                    databaseLayer.insertHistoricalValueAsync(ts, OutdoorWeakBattery, if (newOutdoorSensorData.batteryIsWeak) {
+                    databaseLayer.insertHistoricalValueAsync(now, OutdoorTemperature, newOutdoorSensorData.temperature),
+                    databaseLayer.insertHistoricalValueAsync(now, OutdoorWeakBattery, if (newOutdoorSensorData.batteryIsWeak) {
                         1.0
                     } else {
                         0.0
                     })
             ).joinAll()
 
-            val historicalTemperature = databaseLayer.getLastHistoricalValuesByHourAsync(ts, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
+            val historicalTemperature = databaseLayer.getLastHistoricalValuesByHourAsync(now, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
 
             UpdateStatus.FULL_SUCCESS to OutdoorReport(newOutdoorSensorData.temperature, historicalTemperature.await(), newOutdoorSensorData.batteryIsWeak)
         } else { // no new data
@@ -120,7 +120,7 @@ class WeatherSensorView(
 
         val (indoorStatus, indoorReport) = if (outdoorStatus == UpdateStatus.FULL_SUCCESS
                 || Duration.between(oldReport?.timestamp
-                        ?: LocalDateTime.MIN, ts) >= MAXIMAL_DURATION_BETWEEN_MEASUREMENTS) {
+                        ?: Instant.EPOCH, now) >= MAXIMAL_DURATION_BETWEEN_MEASUREMENTS) {
             val rep = hardware.bme280.readReport()
 
             val elevation = config[GeoPosKey.elevation]
@@ -131,13 +131,13 @@ class WeatherSensorView(
             logger.info { "Mean sea-level pressure at $elevation m is $mslPressure hPa." }
 
             listOf(
-                    databaseLayer.insertHistoricalValueAsync(ts, IndoorTemperature, temperature),
-                    databaseLayer.insertHistoricalValueAsync(ts, RealPressure, rep.realPressure),
-                    databaseLayer.insertHistoricalValueAsync(ts, MSLPressure, mslPressure)
+                    databaseLayer.insertHistoricalValueAsync(now, IndoorTemperature, temperature),
+                    databaseLayer.insertHistoricalValueAsync(now, RealPressure, rep.realPressure),
+                    databaseLayer.insertHistoricalValueAsync(now, MSLPressure, mslPressure)
             ).joinAll()
 
-            val historicalTemperature = databaseLayer.getLastHistoricalValuesByHourAsync(ts, IndoorTemperature, HISTORIC_VALUES_LENGTH)
-            val historicalPressure = databaseLayer.getLastHistoricalValuesByHourAsync(ts, MSLPressure, HISTORIC_VALUES_LENGTH)
+            val historicalTemperature = databaseLayer.getLastHistoricalValuesByHourAsync(now, IndoorTemperature, HISTORIC_VALUES_LENGTH)
+            val historicalPressure = databaseLayer.getLastHistoricalValuesByHourAsync(now, MSLPressure, HISTORIC_VALUES_LENGTH)
 
             UpdateStatus.FULL_SUCCESS to IndoorReport(temperature, mslPressure, historicalTemperature.await(), historicalPressure.await())
         } else {
@@ -145,7 +145,7 @@ class WeatherSensorView(
         }
 
         val (overallStatus, newReport) = setOf(indoorStatus, outdoorStatus).let { statuses ->
-            val newRep = CurrentReport(ts, indoorReport, outdoorReport)
+            val newRep = CurrentReport(now, indoorReport, outdoorReport)
             when {
                 statuses == setOf(UpdateStatus.FAILURE, UpdateStatus.FAILURE) -> UpdateStatus.FAILURE to null
                 statuses == setOf(UpdateStatus.NO_NEW_DATA, UpdateStatus.FAILURE) -> UpdateStatus.PARTIAL_SUCCESS to oldReport

@@ -12,7 +12,7 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import mu.KLogging
 import java.time.Duration
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 class GeigerView(
         private val database: DatabaseLayer,
@@ -66,7 +66,7 @@ class GeigerView(
 
     private var deviceReport: GeigerDeviceState? = null
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
 
         val fd = hardware.frontDisplay
         val dr = deviceReport
@@ -143,7 +143,7 @@ class GeigerView(
         })
     }
 
-    override suspend fun poolInstantData(): UpdateStatus {
+    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus {
         return try {
             deviceReport = hardware.geiger.getDeviceState()
             UpdateStatus.FULL_SUCCESS
@@ -154,21 +154,20 @@ class GeigerView(
         }
     }
 
-    override suspend fun poolStatusData(): UpdateStatus {
+    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus {
         try {
             val cs = hardware.geiger.getCounterState()
 
             if (cs.hasCycleEverCompleted && (cs.hasNewCycleStarted || counterReport == null)) {
-                val ts = LocalDateTime.now()
                 val cpm = calculateCPM(cs.numOfCountsInPreviousCycle, cs.cycleLength)
                 val uSvh = calculateUSVh(cs.numOfCountsInPreviousCycle, cs.cycleLength)
 
                 logger.info(String.format("Read radioactivity: %d counts = %.2f uSv/h.", cs.numOfCountsInPreviousCycle, uSvh))
 
-                listOf(database.insertHistoricalValueAsync(ts, RadioactivityCpm, cpm),
-                        database.insertHistoricalValueAsync(ts, RadioactivityUSVH, uSvh)).joinAll()
+                listOf(database.insertHistoricalValueAsync(now, RadioactivityCpm, cpm),
+                        database.insertHistoricalValueAsync(now, RadioactivityUSVH, uSvh)).joinAll()
 
-                val historicalRadioactivity = database.getLastHistoricalValuesByHourAsync(ts, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
+                val historicalRadioactivity = database.getLastHistoricalValuesByHourAsync(now, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
 
                 counterReport = CounterReport(cpm, uSvh, cs.currentCycleProgress, cs.cycleLength, historicalRadioactivity.await())
                 return UpdateStatus.FULL_SUCCESS

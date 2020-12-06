@@ -1,12 +1,16 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.ZonedDateTime
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 internal class StockViewTest {
 
@@ -36,5 +40,21 @@ internal class StockViewTest {
         assertNotNull(stockDataByTicker["CDR"])
         assertNotNull(stockDataByTicker["TPE"])
         assertNotNull(stockDataByTicker["PKO"])
+    }
+
+    @Test
+    fun testDownloadStockDataToday() {
+        val stockData = runBlocking { StockView.downloadStockData(LocalDate.now().minusDays(1)) }
+        logger.info("Downloaded {} stocks.", stockData.size)
+    }
+
+    @Test
+    fun testCreateSingleStockReport() {
+        val db = mockk<DatabaseLayer>()
+        val stockView = StockView(mockk(), db, mockk())
+
+        runBlocking {
+            assertNull(stockView.createSingleStockReport(emptyList(), ZonedDateTime.now(), "TEST"))
+        }
     }
 }

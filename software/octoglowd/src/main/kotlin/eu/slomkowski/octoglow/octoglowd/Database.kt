@@ -10,8 +10,7 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.ResultSet
 import java.time.Duration
-import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -42,7 +41,7 @@ class DatabaseLayer(
 
         fun createAveragedByTimeInterval(tableName: String,
                                          fields: List<String>,
-                                         startTime: LocalDateTime,
+                                         startTime: ZonedDateTime,
                                          interval: Duration,
                                          pastIntervals: Int,
                                          skipMostRecentRow: Boolean,
@@ -61,11 +60,11 @@ class DatabaseLayer(
             }
 
             val timeRanges = (0 until pastIntervals).map {
-                val upperBound = startTime.minusSeconds(interval.seconds * it)
+                val upperBound = startTime.toInstant().minusSeconds(interval.seconds * it)
                 upperBound.minus(interval) to upperBound
             }
 
-            fun LocalDateTime.fmt() = ZonedDateTime.of(this, ZoneId.systemDefault()).toInstant().toEpochMilli()
+            fun Instant.fmt() = toEpochMilli()
 
             val rangeLimitExpr = timeRanges
                     .flatMap { it.toList() }
@@ -108,8 +107,8 @@ class DatabaseLayer(
             return (0 until size).map { available[it] }.asReversed()
         }
 
-        fun toJodaDateTime(d: LocalDateTime): org.joda.time.DateTime {
-            return org.joda.time.DateTime(d.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
+        fun toJodaDateTime(d: ZonedDateTime): org.joda.time.DateTime {
+            return org.joda.time.DateTime(d.toInstant().toEpochMilli())
         }
 
         val sqliteNativeDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss.SSSSSS")
@@ -156,11 +155,11 @@ class DatabaseLayer(
         }
     }
 
-    fun insertHistoricalValueAsync(ts: LocalDateTime, key: HistoricalValueType, value: Double): Job {
+    fun insertHistoricalValueAsync(ts: ZonedDateTime, key: HistoricalValueType, value: Double): Job {
         val tsj = toJodaDateTime(ts)
         return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
             transaction {
-                if (HistoricalValues.select { HistoricalValues.timestamp eq tsj }.empty()) {
+                if (HistoricalValues.select { (HistoricalValues.timestamp eq tsj) and (HistoricalValues.key eq key.databaseSymbol) }.empty()) {
                     Companion.logger.debug("Inserting data to DB: {} = {}", key, value)
                     HistoricalValues.insert {
                         it[timestamp] = tsj
@@ -187,7 +186,7 @@ class DatabaseLayer(
         return result
     }
 
-    fun getLastHistoricalValuesByHourAsync(currentTime: LocalDateTime,
+    fun getLastHistoricalValuesByHourAsync(currentTime: ZonedDateTime,
                                            key: HistoricalValueType,
                                            numberOfPastHours: Int): Deferred<List<Double?>> {
         val query = createAveragedByTimeInterval(HistoricalValues.tableName,

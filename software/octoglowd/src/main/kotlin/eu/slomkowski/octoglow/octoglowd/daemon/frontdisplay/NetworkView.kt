@@ -17,6 +17,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Duration
+import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 import kotlin.math.roundToLong
@@ -177,7 +178,7 @@ class NetworkView(
         private fun NetworkInterface.isEthernet(): Boolean = listOf("eth", "enp").any { this.name.startsWith(it) }
     }
 
-    override suspend fun poolStatusData(): UpdateStatus {
+    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus {
         val (newReport, updateStatus) = try {
             val iface = checkNotNull(withContext(Dispatchers.IO) { getActiveInterfaceInfo() }) { "cannot determine currently active network interface" }
 
@@ -211,7 +212,7 @@ class NetworkView(
         return updateStatus
     }
 
-    override suspend fun poolInstantData(): UpdateStatus {
+    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus {
         val ai = currentReport?.interfaceInfo
         val (newReport, updateStatus) = if (ai?.isWifi == true) {
             try {
@@ -234,7 +235,7 @@ class NetworkView(
         return updateStatus
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
         val fd = hardware.frontDisplay
         val cr = currentReport
         val wifiInfo = currentWifiSignalInfo

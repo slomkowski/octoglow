@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZonedDateTime
 import kotlin.test.assertEquals
 
 class BrightnessDaemonTest {
@@ -37,8 +38,8 @@ class BrightnessDaemonTest {
             }
         }, databaseMock, hardwareMock)
 
-        assertEquals(3, bd.calculateBrightnessFraction(LocalDateTime.of(2019, 1, 23, 17, 21)))
-        assertEquals(4, bd.calculateBrightnessFraction(LocalDateTime.of(2019, 1, 23, 8, 21)))
+        assertEquals(3, bd.calculateBrightnessFraction(ZonedDateTime.of(LocalDateTime.of(2019, 1, 23, 17, 21), WARSAW_ZONE_ID)))
+        assertEquals(4, bd.calculateBrightnessFraction(ZonedDateTime.of(LocalDateTime.of(2019, 1, 23, 8, 21), WARSAW_ZONE_ID)))
 
         runBlocking {
             bd.pool()

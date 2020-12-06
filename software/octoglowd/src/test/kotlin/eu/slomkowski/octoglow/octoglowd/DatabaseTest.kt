@@ -8,7 +8,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -33,7 +35,7 @@ class DatabaseTest {
     @Test
     fun testInsertHistoricalValue() {
         createTestDbContext { db ->
-            val now = LocalDateTime.now()
+            val now = ZonedDateTime.now()
 
             runBlocking {
                 listOf(
@@ -78,7 +80,7 @@ class DatabaseTest {
 
     @Test
     fun testCreateSqlQueryForAveragedHours() {
-        val d = LocalDateTime.of(2018, 6, 24, 16, 20, 11)
+        val d = ZonedDateTime.of(2018, 6, 24, 16, 20, 11, 0, WARSAW_ZONE_ID)
 
         assertEquals("""SELECT
         |CASE
@@ -134,7 +136,7 @@ class DatabaseTest {
         |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
                 "tt",
                 listOf("value"),
-                LocalDateTime.of(2019, 1, 24, 12, 30),
+                ZonedDateTime.of(LocalDateTime.of(2019, 1, 24, 12, 30), WARSAW_ZONE_ID),
                 Duration.ofMinutes(30),
                 4,
                 false,
@@ -152,10 +154,33 @@ class DatabaseTest {
         |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
                 "tt",
                 listOf("value"),
-                LocalDateTime.of(2019, 1, 24, 12, 30),
+                ZonedDateTime.of(LocalDateTime.of(2019, 1, 24, 12, 30), WARSAW_ZONE_ID),
                 Duration.ofMinutes(30),
                 2,
                 true,
                 "symbol" to null))
+    }
+
+    @Test
+    fun testCreateSqlQueryForAveragedDays() {
+        assertEquals("""SELECT
+        |CASE
+        |WHEN created BETWEEN 1548327600000 AND 1548329400000 THEN 0
+        |WHEN created BETWEEN 1548325800000 AND 1548327600000 THEN 1
+        |WHEN created BETWEEN 1548324000000 AND 1548325800000 THEN 2
+        |WHEN created BETWEEN 1548322200000 AND 1548324000000 THEN 3
+        |ELSE -1 END AS bucket_no,
+        |avg(value) as value
+        |FROM tt
+        |WHERE created BETWEEN 1548322200000 AND 1548329400000 AND symbol = 'WER'
+        |GROUP BY 1
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+                "tt",
+                listOf("value"),
+                ZonedDateTime.of(LocalDate.of(2020, 12, 3).atStartOfDay(), WARSAW_ZONE_ID), //todo test other zones
+                Duration.ofDays(1),
+                4,
+                false,
+                "symbol" to "TEST"))
     }
 }

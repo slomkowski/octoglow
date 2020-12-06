@@ -10,6 +10,7 @@ import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.ZonedDateTime
 import kotlin.test.assertEquals
 
 class CryptocurrencyViewTest {
@@ -56,7 +57,7 @@ class CryptocurrencyViewTest {
         runBlocking {
             val view = CryptocurrencyView(config, db, hardware)
 
-            view.redrawDisplay(true, true)
+            view.redrawDisplay(true, true, ZonedDateTime.now())
 
             coVerify {
                 hardware.frontDisplay.setStaticText(0, "---")

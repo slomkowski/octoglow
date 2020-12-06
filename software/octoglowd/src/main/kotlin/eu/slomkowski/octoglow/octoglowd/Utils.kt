@@ -24,6 +24,8 @@ import kotlin.math.roundToInt
 
 const val DEGREE: Char = '\u00B0'
 
+val WARSAW_ZONE_ID: ZoneId = ZoneId.of("Europe/Warsaw")
+
 val jacksonObjectMapper: ObjectMapper = com.fasterxml.jackson.databind.ObjectMapper()
         .registerModules(JavaTimeModule(), KotlinModule())
         .configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true)

@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
@@ -88,26 +89,25 @@ class CalendarView(
                 .let { it.capitalize() }
     }
 
-    override suspend fun poolStatusData(): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
-    override suspend fun poolInstantData(): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean) = coroutineScope {
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
         val fd = hardware.frontDisplay
+        val today = now.toLocalDate()
 
         if (redrawStatus) {
-            val now = LocalDate.now()
-
             launch {
-                val (sunrise, sunset) = calculateSunriseAndSunset(config[GeoPosKey.latitude], config[GeoPosKey.longitude], now)
+                val (sunrise, sunset) = calculateSunriseAndSunset(config[GeoPosKey.latitude], config[GeoPosKey.longitude], today)
                 check(sunrise < LocalTime.of(10, 0))
 
-                fd.setStaticText(0, formatDate(now))
+                fd.setStaticText(0, formatDate(today))
                 fd.setStaticText(16, sunrise.format(sunriseSunsetTimeFormatter))
                 fd.setStaticText(35, sunset.format(sunriseSunsetTimeFormatter))
             }
 
-            launch { fd.setScrollingText(Slot.SLOT0, 20, 14, getInfoForDay(now).take(Slot.SLOT0.capacity)) }
+            launch { fd.setScrollingText(Slot.SLOT0, 20, 14, getInfoForDay(today).take(Slot.SLOT0.capacity)) }
         }
     }
 }
