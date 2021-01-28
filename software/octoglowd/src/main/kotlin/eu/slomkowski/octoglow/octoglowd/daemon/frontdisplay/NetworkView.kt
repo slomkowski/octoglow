@@ -23,37 +23,43 @@ import java.util.stream.Collectors
 import kotlin.math.roundToLong
 
 class NetworkView(
-        private val config: Config,
-        hardware: Hardware)
-    : FrontDisplayView(hardware,
-        "Network",
-        Duration.ofSeconds(44),
-        Duration.ofSeconds(2),
-        Duration.ofSeconds(5)) {
+    private val config: Config,
+    hardware: Hardware
+) : FrontDisplayView(
+    hardware,
+    "Network",
+    Duration.ofSeconds(44),
+    Duration.ofSeconds(2),
+    Duration.ofSeconds(5)
+) {
 
     data class RouteEntry(
-            val dst: InetAddress,
-            val gateway: InetAddress,
-            val dev: String,
-            val metric: Int)
+        val dst: InetAddress,
+        val gateway: InetAddress,
+        val dev: String,
+        val metric: Int
+    )
 
     data class InterfaceInfo(
-            val name: String,
-            val ip: Inet4Address,
-            val isWifi: Boolean)
+        val name: String,
+        val ip: Inet4Address,
+        val isWifi: Boolean
+    )
 
     data class WifiSignalInfo(
-            val ifName: String,
-            val linkQuality: Double, // in percent
-            val signalStrength: Double, // in dBm
-            val noiseLevel: Double)
+        val ifName: String,
+        val linkQuality: Double, // in percent
+        val signalStrength: Double, // in dBm
+        val noiseLevel: Double
+    )
 
     data class PingResult(
-            val packetsTransmitted: Int,
-            val packetsReceived: Int,
-            val rttMin: Duration,
-            val rttAvg: Duration,
-            val rttMax: Duration) {
+        val packetsTransmitted: Int,
+        val packetsReceived: Int,
+        val rttMin: Duration,
+        val rttAvg: Duration,
+        val rttMax: Duration
+    ) {
         init {
             require(packetsReceived >= 0)
             require(packetsTransmitted > 0)
@@ -64,8 +70,9 @@ class NetworkView(
     }
 
     data class CurrentReport(
-            val interfaceInfo: InterfaceInfo,
-            val currentPing: Duration?)
+        val interfaceInfo: InterfaceInfo,
+        val currentPing: Duration?
+    )
 
     private var currentReport: CurrentReport? = null
 
@@ -81,18 +88,19 @@ class NetworkView(
          */
         fun getActiveInterfaceInfo(): InterfaceInfo? = Files.newBufferedReader(PROC_NET_ROUTE_PATH).use { reader ->
             getDefaultRouteEntry(parseProcNetRouteFile(reader))
-                    ?.let { NetworkInterface.getByName(it.dev) }
-                    ?.let { iface ->
-                        InterfaceInfo(iface.name,
-                                iface.inetAddresses.toList().first { it is Inet4Address } as Inet4Address,
-                                !iface.isEthernet())
-                    }
+                ?.let { NetworkInterface.getByName(it.dev) }
+                ?.let { iface ->
+                    InterfaceInfo(iface.name,
+                        iface.inetAddresses.toList().first { it is Inet4Address } as Inet4Address,
+                        !iface.isEthernet())
+                }
         }
 
         /**
          * We assume that only one interface is active and is routing all traffic.
          */
-        private fun getDefaultRouteEntry(entries: Collection<RouteEntry>): RouteEntry? = entries.filter { it.dst == InetAddress.getByAddress(byteArrayOf(0, 0, 0, 0)) }.minBy { it.metric }
+        private fun getDefaultRouteEntry(entries: Collection<RouteEntry>): RouteEntry? =
+            entries.filter { it.dst == InetAddress.getByAddress(byteArrayOf(0, 0, 0, 0)) }.minBy { it.metric }
 
         fun createIpFromHexString(str: String): InetAddress {
             require(str.length == 8) { "the string has to be 8 hex digits" }
@@ -103,34 +111,40 @@ class NetworkView(
             val columns = line.trim().split(Regex("\\s+"))
 
             RouteEntry(
-                    createIpFromHexString(columns[1].trim()),
-                    createIpFromHexString(columns[2].trim()),
-                    columns[0].trim(),
-                    columns[6].trim().toInt())
+                createIpFromHexString(columns[1].trim()),
+                createIpFromHexString(columns[2].trim()),
+                columns[0].trim(),
+                columns[6].trim().toInt()
+            )
         }.collect(Collectors.toList())
 
 
-        fun parseProcNetWirelessFile(reader: BufferedReader): List<WifiSignalInfo> = reader.lines().skip(2).map { line ->
-            val columns = line.trim().split(Regex("\\s+"))
+        fun parseProcNetWirelessFile(reader: BufferedReader): List<WifiSignalInfo> =
+            reader.lines().skip(2).map { line ->
+                val columns = line.trim().split(Regex("\\s+"))
 
-            WifiSignalInfo(columns[0].trim(':'),
+                WifiSignalInfo(
+                    columns[0].trim(':'),
                     columns[2].toDouble() / 70.0 * 100.0,
                     columns[3].toDouble(),
-                    columns[4].toDouble())
-        }.collect(Collectors.toList())
+                    columns[4].toDouble()
+                )
+            }.collect(Collectors.toList())
 
         fun pingAddress(pingBinary: Path, iface: String, address: String, timeout: Duration, noPings: Int): PingResult {
             require(iface.isNotBlank())
             require(address.isNotBlank())
             require(noPings > 0)
             require(!timeout.isNegative)
-            val pb = ProcessBuilder(pingBinary.toAbsolutePath().toString(),
-                    "-4",
-                    "-c", noPings.toString(),
-                    "-i", "0.2",
-                    "-I", iface,
-                    "-w", timeout.seconds.toString(),
-                    address)
+            val pb = ProcessBuilder(
+                pingBinary.toAbsolutePath().toString(),
+                "-4",
+                "-c", noPings.toString(),
+                "-i", "0.2",
+                "-I", iface,
+                "-w", timeout.seconds.toString(),
+                address
+            )
 
             val process = pb.start()
             val output = StringBuilder()
@@ -160,9 +174,9 @@ class NetworkView(
 
             val (rttMin, rttAvg, rttMax) = checkNotNull(rttRegex.find(text))
             { "info about RTT not found in ping output" }
-                    .groupValues
-                    .subList(1, 4)
-                    .map { Duration.ofNanos((it.toDouble() * 1_000_000.0).roundToLong()) }
+                .groupValues
+                .subList(1, 4)
+                .map { Duration.ofNanos((it.toDouble() * 1_000_000.0).roundToLong()) }
 
             return PingResult(packetsTransmitted, packetsReceived, rttMin, rttAvg, rttMax)
         }
@@ -180,7 +194,8 @@ class NetworkView(
 
     override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus {
         val (newReport, updateStatus) = try {
-            val iface = checkNotNull(withContext(Dispatchers.IO) { getActiveInterfaceInfo() }) { "cannot determine currently active network interface" }
+            val iface =
+                checkNotNull(withContext(Dispatchers.IO) { getActiveInterfaceInfo() }) { "cannot determine currently active network interface" }
 
             try {
                 val address = config[NetworkViewKey.pingAddress]
@@ -191,7 +206,15 @@ class NetworkView(
                     } + ")."
                 }
 
-                val pingInfo = withContext(Dispatchers.IO) { pingAddress(config[NetworkViewKey.pingBinary], iface.name, address, Duration.ofSeconds(4), 3) }
+                val pingInfo = withContext(Dispatchers.IO) {
+                    pingAddress(
+                        config[NetworkViewKey.pingBinary],
+                        iface.name,
+                        address,
+                        Duration.ofSeconds(4),
+                        3
+                    )
+                }
 
                 val pingTime = pingInfo.rttAvg
 
@@ -216,7 +239,9 @@ class NetworkView(
         val ai = currentReport?.interfaceInfo
         val (newReport, updateStatus) = if (ai?.isWifi == true) {
             try {
-                val wifiInterfaces = withContext(Dispatchers.IO) { Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) } }
+                val wifiInterfaces = withContext(Dispatchers.IO) {
+                    Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
+                }
                 val activeInfo = checkNotNull(wifiInterfaces.firstOrNull { it.ifName == ai.name })
                 { "cannot find interface $ai in $PROC_NET_WIRELESS_PATH" }
 
@@ -235,41 +260,44 @@ class NetworkView(
         return updateStatus
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
-        val fd = hardware.frontDisplay
-        val cr = currentReport
-        val wifiInfo = currentWifiSignalInfo
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+        coroutineScope {
+            val fd = hardware.frontDisplay
+            val cr = currentReport
+            val wifiInfo = currentWifiSignalInfo
 
-        if (redrawStatic) {
-            launch { fd.setStaticText(0, "IP:") }
-            launch { fd.setStaticText(29, "ping") }
-        }
+            if (redrawStatic) {
+                launch { fd.setStaticText(0, "IP:") }
+                launch { fd.setStaticText(29, "ping") }
+            }
 
-        if (redrawStatus) {
+            if (redrawStatus) {
 
-            val text = cr?.interfaceInfo?.ip?.hostAddress ?: "---.---.---.---"
-            launch { fd.setStaticText(4, text) }
+                val text = cr?.interfaceInfo?.ip?.hostAddress ?: "---.---.---.---"
+                launch { fd.setStaticText(4, text) }
 
-            if (cr != null) {
-                launch {
-                    fd.setStaticText(20,
+                if (cr != null) {
+                    launch {
+                        fd.setStaticText(
+                            20,
                             when (cr.interfaceInfo.isWifi) {
                                 false -> "wired"
                                 true -> "wifi"
-                            })
-                }
+                            }
+                        )
+                    }
 
+                    launch {
+                        fd.setStaticText(34, formatPingRtt(cr.currentPing))
+                    }
+                }
+            }
+
+            if (cr?.interfaceInfo?.isWifi == true && wifiInfo != null) {
                 launch {
-                    fd.setStaticText(34, formatPingRtt(cr.currentPing))
+                    fd.setStaticText(25, String.format("%2.0f%%", wifiInfo.linkQuality))
                 }
             }
         }
-
-        if (cr?.interfaceInfo?.isWifi == true && wifiInfo != null) {
-            launch {
-                fd.setStaticText(25, String.format("%2.0f%%", wifiInfo.linkQuality))
-            }
-        }
-    }
 
 }

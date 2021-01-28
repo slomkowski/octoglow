@@ -13,7 +13,8 @@ class BrightnessMenu(private val brightnessDaemon: BrightnessDaemon) : Menu("Bri
     override val options: List<MenuOption>
         get() = optsHard.plus(optAuto)
 
-    override suspend fun loadCurrentOption(): MenuOption = brightnessDaemon.forced?.let { f -> optsHard.firstOrNull { it.text == f.toString() } }
+    override suspend fun loadCurrentOption(): MenuOption =
+        brightnessDaemon.forced?.let { f -> optsHard.firstOrNull { it.text == f.toString() } }
             ?: optAuto
 
     override suspend fun saveCurrentOption(current: MenuOption) {

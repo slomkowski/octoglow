@@ -19,13 +19,15 @@ import java.time.LocalDate
 import java.time.ZonedDateTime
 
 class NbpView(
-        private val config: Config,
-        hardware: Hardware)
-    : FrontDisplayView(hardware,
-        "NBP exchange rates",
-        Duration.ofMinutes(10),
-        Duration.ofSeconds(15),
-        Duration.ofSeconds(13)) {
+    private val config: Config,
+    hardware: Hardware
+) : FrontDisplayView(
+    hardware,
+    "NBP exchange rates",
+    Duration.ofMinutes(10),
+    Duration.ofSeconds(15),
+    Duration.ofSeconds(13)
+) {
 
     interface DatedPrice {
         val date: LocalDate
@@ -33,9 +35,10 @@ class NbpView(
     }
 
     data class RateDto(
-            val no: String,
-            val effectiveDate: LocalDate,
-            val mid: Double) : DatedPrice {
+        val no: String,
+        val effectiveDate: LocalDate,
+        val mid: Double
+    ) : DatedPrice {
         override val date: LocalDate
             get() = effectiveDate
         override val price: Double
@@ -43,30 +46,34 @@ class NbpView(
     }
 
     data class CurrencyDto(
-            val table: String,
-            val currency: String,
-            val code: String,
-            val rates: List<RateDto>)
+        val table: String,
+        val currency: String,
+        val code: String,
+        val rates: List<RateDto>
+    )
 
     data class SingleCurrencyReport(
-            val code: String,
-            val isLatestFromToday: Boolean,
-            val latest: Double,
-            val historical: List<Double?>) {
+        val code: String,
+        val isLatestFromToday: Boolean,
+        val latest: Double,
+        val historical: List<Double?>
+    ) {
         init {
             require(historical.size == HISTORIC_VALUES_LENGTH)
         }
     }
 
     data class CurrentReport(
-            val timestamp: ZonedDateTime,
-            val currencies: Map<RequiredItem<String>, SingleCurrencyReport>)
+        val timestamp: ZonedDateTime,
+        val currencies: Map<RequiredItem<String>, SingleCurrencyReport>
+    )
 
     data class GoldPrice(
-            @JsonProperty("data")
-            override val date: LocalDate,
-            @JsonProperty("cena")
-            override val price: Double) : DatedPrice
+        @JsonProperty("data")
+        override val date: LocalDate,
+        @JsonProperty("cena")
+        override val price: Double
+    ) : DatedPrice
 
     companion object : KLogging() {
         private const val OUNCE = 31.1034768 // grams
@@ -111,10 +118,11 @@ class NbpView(
             }.asReversed()
 
             return SingleCurrencyReport(
-                    code,
-                    mostRecentRate.date == today,
-                    mostRecentRate.price,
-                    historical)
+                code,
+                mostRecentRate.date == today,
+                mostRecentRate.price,
+                historical
+            )
         }
 
         suspend fun getCurrencyReport(code: String, today: LocalDate): SingleCurrencyReport {
@@ -150,11 +158,13 @@ class NbpView(
     private suspend fun drawCurrencyInfo(cr: SingleCurrencyReport?, offset: Int, diffChartStep: Double) {
         require(diffChartStep > 0)
         hardware.frontDisplay.apply {
-            setStaticText(offset, when (cr?.isLatestFromToday) {
-                true -> cr.code.toUpperCase()
-                false -> cr.code.toLowerCase()
-                null -> "---"
-            })
+            setStaticText(
+                offset, when (cr?.isLatestFromToday) {
+                    true -> cr.code.toUpperCase()
+                    false -> cr.code.toLowerCase()
+                    null -> "---"
+                }
+            )
             setStaticText(offset + 20, formatZloty(cr?.latest))
 
             if (cr != null) {
@@ -164,21 +174,22 @@ class NbpView(
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
-        val report = currentReport
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+        coroutineScope {
+            val report = currentReport
 
-        if (redrawStatus) {
-            val diffChartStep = config[NbpKey.diffChartFraction]
-            logger.debug { "Refreshing NBP screen, diff chart step: $diffChartStep." }
-            launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency1), 0, diffChartStep) }
-            launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency2), 7, diffChartStep) }
-            launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency3), 14, diffChartStep) }
+            if (redrawStatus) {
+                val diffChartStep = config[NbpKey.diffChartFraction]
+                logger.debug { "Refreshing NBP screen, diff chart step: $diffChartStep." }
+                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency1), 0, diffChartStep) }
+                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency2), 7, diffChartStep) }
+                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency3), 14, diffChartStep) }
+            }
+
+            drawProgressBar(report?.timestamp, now)
+
+            Unit
         }
-
-        drawProgressBar(report?.timestamp, now)
-
-        Unit
-    }
 
     /**
      * Progress bar is dependent only on current time so always success.

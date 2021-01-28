@@ -23,11 +23,12 @@ enum class UpdateStatus {
  * instant - exact state of the processing on the device, updatable once every several seconds.
  */
 abstract class FrontDisplayView(
-        val hardware: Hardware,
-        val name: String,
-        val poolStatusEvery: Duration,
-        val poolInstantEvery: Duration,
-        val preferredDisplayTime: Duration) {
+    val hardware: Hardware,
+    val name: String,
+    val poolStatusEvery: Duration,
+    val poolInstantEvery: Duration,
+    val preferredDisplayTime: Duration
+) {
 
     init {
         check(name.isNotBlank())
@@ -46,9 +47,11 @@ abstract class FrontDisplayView(
 
     override fun toString(): String = "'$name'"
 
-    protected suspend fun drawProgressBar(reportTimestamp: ZonedDateTime?,
-                                          now: ZonedDateTime,
-                                          period: Duration = poolStatusEvery) = coroutineScope {
+    protected suspend fun drawProgressBar(
+        reportTimestamp: ZonedDateTime?,
+        now: ZonedDateTime,
+        period: Duration = poolStatusEvery
+    ) = coroutineScope {
         val fd = hardware.frontDisplay
         if (reportTimestamp != null) {
             val currentCycleDuration = Duration.between(reportTimestamp, now)
@@ -84,9 +87,11 @@ abstract class Menu(val text: String) {
     override fun toString(): String = text
 }
 
-class BooleanChangeableSettingMenu(private val database: DatabaseLayer,
-                                   private val key: ChangeableSetting,
-                                   text: String) : Menu(text) {
+class BooleanChangeableSettingMenu(
+    private val database: DatabaseLayer,
+    private val key: ChangeableSetting,
+    text: String
+) : Menu(text) {
     companion object : KLogging() {
         private val optOn = MenuOption("ON")
         private val optOff = MenuOption("OFF")

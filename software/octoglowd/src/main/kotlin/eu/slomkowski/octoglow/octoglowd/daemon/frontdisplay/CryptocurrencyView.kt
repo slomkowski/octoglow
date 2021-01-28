@@ -23,14 +23,16 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 class CryptocurrencyView(
-        private val config: Config,
-        private val database: DatabaseLayer,
-        hardware: Hardware)
-    : FrontDisplayView(hardware,
-        "Cryptocurrencies",
-        Duration.ofMinutes(5),
-        Duration.ofSeconds(15),
-        Duration.ofSeconds(13)) {
+    private val config: Config,
+    private val database: DatabaseLayer,
+    hardware: Hardware
+) : FrontDisplayView(
+    hardware,
+    "Cryptocurrencies",
+    Duration.ofMinutes(5),
+    Duration.ofSeconds(15),
+    Duration.ofSeconds(13)
+) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
@@ -42,8 +44,8 @@ class CryptocurrencyView(
             logger.debug { "Downloading OHLC info from $url" }
 
             val resp = Fuel.get(url)
-                    .appendHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101")
-                    .awaitObject<OhlcDto>(jacksonDeserializerOf(jacksonObjectMapper))
+                .appendHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101")
+                .awaitObject<OhlcDto>(jacksonDeserializerOf(jacksonObjectMapper))
 
             return resp
         }
@@ -59,23 +61,25 @@ class CryptocurrencyView(
         }
 
         fun fillAvailableCryptocurrencies(): Set<CoinInfoDto> = CryptocurrencyView::class.java
-                .getResourceAsStream("/coinpaprika-cryptocurrencies.json").use {
-                    jacksonObjectMapper.readValue(it, object : TypeReference<Set<CoinInfoDto>>() {})
-                }
+            .getResourceAsStream("/coinpaprika-cryptocurrencies.json").use {
+                jacksonObjectMapper.readValue(it, object : TypeReference<Set<CoinInfoDto>>() {})
+            }
     }
 
     data class CoinInfoDto(
-            val id: String,
-            val name: String,
-            val symbol: String)
+        val id: String,
+        val name: String,
+        val symbol: String
+    )
 
     data class OhlcDto(
-            @JsonProperty("time_open") val timeOpen: OffsetDateTime,
-            @JsonProperty("time_close") val timeClose: OffsetDateTime,
-            val open: Double,
-            val close: Double,
-            val low: Double,
-            val high: Double) {
+        @JsonProperty("time_open") val timeOpen: OffsetDateTime,
+        @JsonProperty("time_close") val timeClose: OffsetDateTime,
+        val open: Double,
+        val close: Double,
+        val low: Double,
+        val high: Double
+    ) {
         init {
             require(!timeOpen.isAfter(timeClose))
             require(low <= high)
@@ -84,17 +88,19 @@ class CryptocurrencyView(
     }
 
     data class CoinReport(
-            val symbol: String,
-            val latest: Double,
-            val historical: List<Double?>) {
+        val symbol: String,
+        val latest: Double,
+        val historical: List<Double?>
+    ) {
         init {
             require(historical.size == HISTORIC_VALUES_LENGTH)
         }
     }
 
     data class CurrentReport(
-            val timestamp: ZonedDateTime,
-            val coins: Map<RequiredItem<String>, CoinReport>)
+        val timestamp: ZonedDateTime,
+        val coins: Map<RequiredItem<String>, CoinReport>
+    )
 
     private val availableCoins: Set<CoinInfoDto> = fillAvailableCryptocurrencies()
     private var currentReport: CurrentReport? = null
@@ -118,21 +124,22 @@ class CryptocurrencyView(
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
-        val report = currentReport
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+        coroutineScope {
+            val report = currentReport
 
-        if (redrawStatus) {
-            val diffChartStep = config[CryptocurrenciesKey.diffChartFraction]
-            logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
-            launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin1), 0, diffChartStep) }
-            launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin2), 7, diffChartStep) }
-            launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin3), 14, diffChartStep) }
+            if (redrawStatus) {
+                val diffChartStep = config[CryptocurrenciesKey.diffChartFraction]
+                logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
+                launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin1), 0, diffChartStep) }
+                launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin2), 7, diffChartStep) }
+                launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin3), 14, diffChartStep) }
+            }
+
+            drawProgressBar(report?.timestamp, now)
+
+            Unit
         }
-
-        drawProgressBar(report?.timestamp, now)
-
-        Unit
-    }
 
     /**
      * Progress bar is dependent only on current time so always success.
@@ -152,7 +159,8 @@ class CryptocurrencyView(
                     val dbKey = Cryptocurrency(symbol)
                     logger.info { "Value of $symbol at $now is \$$value." }
                     database.insertHistoricalValueAsync(ohlcTimestamp, dbKey, value)
-                    val history = database.getLastHistoricalValuesByHourAsync(now, dbKey, HISTORIC_VALUES_LENGTH).await()
+                    val history =
+                        database.getLastHistoricalValuesByHourAsync(now, dbKey, HISTORIC_VALUES_LENGTH).await()
                     coinKey to CoinReport(symbol, value, history)
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to update status on $symbol." }

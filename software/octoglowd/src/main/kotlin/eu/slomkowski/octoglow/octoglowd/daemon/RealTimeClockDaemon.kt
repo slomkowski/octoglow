@@ -7,16 +7,18 @@ import java.time.Duration
 import java.time.LocalDateTime
 
 class RealTimeClockDaemon(
-        config: Config,
-        private val hardware: Hardware) : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
+    config: Config,
+    private val hardware: Hardware
+) : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
 
     companion object : KLogging()
 
     data class DisplayContent(
-            val hour: Int,
-            val minute: Int,
-            val upperDot: Boolean,
-            val lowerDot: Boolean) {
+        val hour: Int,
+        val minute: Int,
+        val upperDot: Boolean,
+        val lowerDot: Boolean
+    ) {
         companion object {
             fun ofTimestamp(dt: LocalDateTime): DisplayContent = when (dt.second % 2) {
                 0 -> DisplayContent(dt.hour, dt.minute, dt.second >= 20, dt.second < 20 || dt.second > 40)

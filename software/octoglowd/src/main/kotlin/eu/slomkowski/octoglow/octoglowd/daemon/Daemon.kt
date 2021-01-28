@@ -16,10 +16,11 @@ import kotlin.coroutines.coroutineContext
  * Daemons implement features which are long-running and periodical.
  */
 abstract class Daemon(
-        private val config: Config,
-        private val hardware: Hardware,
-        private val logger: KLogger,
-        private val poolInterval: Duration) {
+    private val config: Config,
+    private val hardware: Hardware,
+    private val logger: KLogger,
+    private val poolInterval: Duration
+) {
 
     /**
      * This coroutine is pooled with the interval defined for a daemon.
@@ -27,7 +28,11 @@ abstract class Daemon(
     abstract suspend fun pool()
 
     suspend fun startPooling() {
-        for (t in ticker(poolInterval.toMillis(), initialDelayMillis = poolInterval.toMillis() % 2000, mode = TickerMode.FIXED_DELAY)) {
+        for (t in ticker(
+            poolInterval.toMillis(),
+            initialDelayMillis = poolInterval.toMillis() % 2000,
+            mode = TickerMode.FIXED_DELAY
+        )) {
             try {
                 pool()
             } catch (e: Exception) {

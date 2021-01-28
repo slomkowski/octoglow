@@ -24,12 +24,12 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
 class FrontDisplayDaemon(
-        private val config: Config,
-        private val coroutineContext: CoroutineContext,
-        private val hardware: Hardware,
-        frontDisplayViews: List<FrontDisplayView>,
-        additionalMenus: List<Menu>)
-    : Daemon(config, hardware, logger, Duration.ofMillis(100)) {
+    private val config: Config,
+    private val coroutineContext: CoroutineContext,
+    private val hardware: Hardware,
+    frontDisplayViews: List<FrontDisplayView>,
+    additionalMenus: List<Menu>
+) : Daemon(config, hardware, logger, Duration.ofMillis(100)) {
 
     companion object : KLogging() {
 
@@ -49,8 +49,10 @@ class FrontDisplayDaemon(
 
         fun getMostSuitableViewInfo(views: Collection<ViewInfo>): ViewInfo {
             return views.sortedByDescending {
-                val v1 = Duration.between(it.lastViewed ?: Instant.EPOCH, it.lastSuccessfulStatusUpdate
-                        ?: Instant.EPOCH).toMillis()
+                val v1 = Duration.between(
+                    it.lastViewed ?: Instant.EPOCH, it.lastSuccessfulStatusUpdate
+                        ?: Instant.EPOCH
+                ).toMillis()
                 val v2 = Duration.between(it.lastViewed ?: Instant.EPOCH, Instant.now()).toMillis()
 
                 30 * v1 + 50 * v2
@@ -60,10 +62,11 @@ class FrontDisplayDaemon(
     }
 
     data class ViewInfo(
-            private val coroutineContext: CoroutineContext,
-            private val exceptionHandler: CoroutineExceptionHandler,
-            private val frontDisplay: FrontDisplay,
-            val view: FrontDisplayView) {
+        private val coroutineContext: CoroutineContext,
+        private val exceptionHandler: CoroutineExceptionHandler,
+        private val frontDisplay: FrontDisplay,
+        val view: FrontDisplayView
+    ) {
 
         var lastViewed: Instant? = null
             private set
@@ -119,7 +122,8 @@ class FrontDisplayDaemon(
         }
     }
 
-    private val views = frontDisplayViews.map { ViewInfo(coroutineContext, exceptionHandler, hardware.frontDisplay, it) }
+    private val views =
+        frontDisplayViews.map { ViewInfo(coroutineContext, exceptionHandler, hardware.frontDisplay, it) }
 
     private val allMenus = additionalMenus.plus(views.flatMap { it.menus }).plus(exitMenu)
 
@@ -196,13 +200,17 @@ class FrontDisplayDaemon(
             abstract val current: MenuOption
             abstract val calledFrom: ViewInfo
 
-            data class Overview(override val menu: eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu,
-                                override val current: MenuOption,
-                                override val calledFrom: ViewInfo) : Menu()
+            data class Overview(
+                override val menu: eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu,
+                override val current: MenuOption,
+                override val calledFrom: ViewInfo
+            ) : Menu()
 
-            data class SettingOption(override val menu: eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu,
-                                     override val current: MenuOption,
-                                     override val calledFrom: ViewInfo) : Menu()
+            data class SettingOption(
+                override val menu: eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu,
+                override val current: MenuOption,
+                override val calledFrom: ViewInfo
+            ) : Menu()
         }
 
         abstract class ViewCycle(val info: ViewInfo) : State() {
@@ -223,16 +231,21 @@ class FrontDisplayDaemon(
 
         data class EncoderDelta(val delta: Int) : Event()
 
-        data class StatusUpdate(val info: ViewInfo,
-                                val status: UpdateStatus) : Event()
+        data class StatusUpdate(
+            val info: ViewInfo,
+            val status: UpdateStatus
+        ) : Event()
 
-        data class InstantUpdate(val info: ViewInfo,
-                                 val status: UpdateStatus) : Event()
+        data class InstantUpdate(
+            val info: ViewInfo,
+            val status: UpdateStatus
+        ) : Event()
     }
 
     private fun createStateMachineExecutor(coroutineContext: CoroutineContext): IExecutor<FrontDisplayDaemon, State, Event> {
 
-        fun launchInBackground(lambda: suspend () -> Unit) = CoroutineScope(coroutineContext).launch(exceptionHandler) { lambda() }
+        fun launchInBackground(lambda: suspend () -> Unit) =
+            CoroutineScope(coroutineContext).launch(exceptionHandler) { lambda() }
 
         val configurator = StateMachine.createConfigurator<FrontDisplayDaemon, State, Event>().apply {
 
@@ -249,62 +262,66 @@ class FrontDisplayDaemon(
                 }
 
                 event(klass, Event.StatusUpdate::class)
-                        .loop {
-                            event.info.bumpLastStatusAndInstant()
-                            if (event.info == state.info) {
-                                state.info.redrawStatus()
-                            }
+                    .loop {
+                        event.info.bumpLastStatusAndInstant()
+                        if (event.info == state.info) {
+                            state.info.redrawStatus()
                         }
+                    }
 
                 event(klass, Event.InstantUpdate::class)
-                        .loop {
-                            if (event.info == state.info) {
-                                state.info.redrawInstant()
-                            } else {
-                                logger.warn { "Spurious instant update from inactive ${event.info}." }
-                            }
+                    .loop {
+                        if (event.info == state.info) {
+                            state.info.redrawInstant()
+                        } else {
+                            logger.warn { "Spurious instant update from inactive ${event.info}." }
                         }
+                    }
 
                 event(klass, Event.EncoderDelta::class)
-                        .goto {
-                            check(event.delta != 0)
-                            val newView = getNeighbourView(state.info, event.delta)
-                            logger.info { "Switching view from ${state.info} to $newView by dial." }
-                            State.ViewCycle.Manual(newView)
-                        }
+                    .goto {
+                        check(event.delta != 0)
+                        val newView = getNeighbourView(state.info, event.delta)
+                        logger.info { "Switching view from ${state.info} to $newView by dial." }
+                        State.ViewCycle.Manual(newView)
+                    }
             }
 
             createCommonActions(State.ViewCycle.Manual::class)
 
             event(State.ViewCycle.Manual::class, Event.Timeout::class)
-                    .goto {
-                        logger.info { "Switching to auto mode because of the timeout." }
-                        State.ViewCycle.Auto(state.info)
-                    }
+                .goto {
+                    logger.info { "Switching to auto mode because of the timeout." }
+                    State.ViewCycle.Auto(state.info)
+                }
 
             createCommonActions(State.ViewCycle.Auto::class)
 
             event(State.ViewCycle.Auto::class, Event.StatusUpdate::class)
-                    .filter { event.info != state.info }
-                    .loop()
+                .filter { event.info != state.info }
+                .loop()
 
             event(State.ViewCycle.Auto::class, Event.Timeout::class)
-                    .filter {
-                        Duration.between(state.info.lastViewed
-                                ?: event.now, event.now) >= state.info.view.preferredDisplayTime
-                    }
-                    .goto {
-                        val newView = getMostSuitableViewInfo(views)
-                        logger.info { "Going to view $newView because of timeout." }
-                        State.ViewCycle.Auto(newView)
-                    }
+                .filter {
+                    Duration.between(
+                        state.info.lastViewed
+                            ?: event.now, event.now
+                    ) >= state.info.view.preferredDisplayTime
+                }
+                .goto {
+                    val newView = getMostSuitableViewInfo(views)
+                    logger.info { "Going to view $newView because of timeout." }
+                    State.ViewCycle.Auto(newView)
+                }
 
             event(State.ViewCycle.Auto::class, Event.Timeout::class)
-                    .filter {
-                        Duration.between(state.info.lastViewed
-                                ?: event.now, event.now) < state.info.view.preferredDisplayTime
-                    }
-                    .loop()
+                .filter {
+                    Duration.between(
+                        state.info.lastViewed
+                            ?: event.now, event.now
+                    ) < state.info.view.preferredDisplayTime
+                }
+                .loop()
 
             event(State.Menu::class, Event.StatusUpdate::class).loop()
             event(State.Menu::class, Event.InstantUpdate::class).loop()
@@ -328,10 +345,10 @@ class FrontDisplayDaemon(
             }
 
             event(State.Menu::class, Event.Timeout::class)
-                    .goto {
-                        logger.info { "Leaving menu and going to ${state.calledFrom} because of timeout." }
-                        State.ViewCycle.Auto(state.calledFrom)
-                    }
+                .goto {
+                    logger.info { "Leaving menu and going to ${state.calledFrom} because of timeout." }
+                    State.ViewCycle.Auto(state.calledFrom)
+                }
 
             event(State.Menu.Overview::class, Event.ButtonPressed::class).goto {
                 when (state.menu) {
@@ -422,7 +439,11 @@ class FrontDisplayDaemon(
             }
             else -> {
                 // timeout
-                if (Duration.between(lastDialActivity ?: Instant.EPOCH, now) > config[ConfKey.viewAutomaticCycleTimeout]) {
+                if (Duration.between(
+                        lastDialActivity ?: Instant.EPOCH,
+                        now
+                    ) > config[ConfKey.viewAutomaticCycleTimeout]
+                ) {
                     stateExecutorMutex.withLock {
                         stateExecutor.fire(Event.Timeout(now))
                     }

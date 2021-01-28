@@ -11,19 +11,24 @@ import kotlin.math.roundToInt
 
 
 class CpuUsageIndicatorDaemon(
-        config: Config,
-        private val hardware: Hardware)
-    : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
+    config: Config,
+    private val hardware: Hardware
+) : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
 
     companion object : KLogging() {
-        const val CORRECTION_FACTOR: Double = 0.95
+        private val CPU_CHANNEL = DacChannel.C2
+        private val MEM_CHANNEL = DacChannel.C1
     }
 
     private val operatingSystemMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
 
     override suspend fun pool() {
-        setValue(operatingSystemMXBean.systemCpuLoad)
+        setValue(MEM_CHANNEL, operatingSystemMXBean.let {
+            (it.totalPhysicalMemorySize - it.freePhysicalMemorySize).toDouble() / it.totalPhysicalMemorySize
+        })
+
+        setValue(CPU_CHANNEL, operatingSystemMXBean.systemCpuLoad)
     }
 
-    suspend fun setValue(v: Double) = hardware.dac.setValue(DacChannel.C2, (v * 255.0 * CORRECTION_FACTOR).roundToInt())
+    suspend fun setValue(channel: DacChannel, v: Double) = hardware.dac.setValue(channel, (v * 255.0).roundToInt())
 }

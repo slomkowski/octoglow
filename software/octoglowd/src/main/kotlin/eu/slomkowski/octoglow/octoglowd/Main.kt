@@ -18,7 +18,7 @@ fun main() {
         addSpec(SleepKey)
         addSpec(NetworkViewKey)
         addSpec(NbpKey)
-        addSpec(StocksKey)
+//        addSpec(StocksKey)
         addSpec(SimpleMonitorKey)
     }.from.yaml.file("config.yml")
 
@@ -35,25 +35,28 @@ fun main() {
     })
 
     val frontDisplayViews = listOf(
-            CalendarView(config, hardware),
-            WeatherSensorView(config, database, hardware),
-            GeigerView(database, hardware),
-            CryptocurrencyView(config, database, hardware),
-            NbpView(config, hardware),
-            StockView(config, database, hardware),
-            SimpleMonitorView(config, database, hardware),
-            NetworkView(config, hardware))
+        CalendarView(config, hardware),
+        WeatherSensorView(config, database, hardware),
+        GeigerView(database, hardware),
+        CryptocurrencyView(config, database, hardware),
+        NbpView(config, hardware),
+//            StockView(config, database, hardware),
+        SimpleMonitorView(config, database, hardware),
+        NetworkView(config, hardware)
+    )
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)
 
     val menus = listOf(
-            BrightnessMenu(brightnessDaemon))
+        BrightnessMenu(brightnessDaemon)
+    )
 
     val controllers = listOf(
-            CpuUsageIndicatorDaemon(config, hardware),
-            RealTimeClockDaemon(config, hardware),
-            brightnessDaemon,
-            FrontDisplayDaemon(config, GlobalScope.coroutineContext, hardware, frontDisplayViews, menus))
+        CpuUsageIndicatorDaemon(config, hardware),
+        RealTimeClockDaemon(config, hardware),
+        brightnessDaemon,
+        FrontDisplayDaemon(config, GlobalScope.coroutineContext, hardware, frontDisplayViews, menus)
+    )
 
     runBlocking {
         controllers.map { GlobalScope.launch { it.startPooling() } }.joinAll()

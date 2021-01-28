@@ -4,7 +4,6 @@ import eu.slomkowski.octoglow.octoglowd.toList
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import kotlin.math.exp
 
@@ -12,9 +11,10 @@ import kotlin.math.exp
  * Temperature in deg C, humidity in %, pressure in hPa.
  */
 data class IndoorWeatherReport(
-        val temperature: Double,
-        val humidity: Double,
-        val realPressure: Double) {
+    val temperature: Double,
+    val humidity: Double,
+    val realPressure: Double
+) {
 
     init {
         require(temperature in (-10f..60f) && humidity in (0.0..100.0) && realPressure in (900.0..1100.0))
@@ -44,7 +44,8 @@ data class IndoorWeatherReport(
          */
         fun parse(cd: CompensationData, adcP: Int, adcT: Int, adcH: Int): IndoorWeatherReport {
             var var1 = (adcT.toDouble() / 16384.0 - cd.t1.toDouble() / 1024.0) * cd.t2.toDouble()
-            var var2 = (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * cd.t3.toDouble()
+            var var2 =
+                (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * cd.t3.toDouble()
             val tFine = (var1 + var2).toLong().toDouble()
             val cTemp = (var1 + var2) / 5120.0
 
@@ -62,7 +63,8 @@ data class IndoorWeatherReport(
 
             // Humidity offset calculations
             var varH = tFine - 76800.0
-            varH = (adcH - (cd.h4 * 64.0 + cd.h5 / 16384.0 * varH)) * (cd.h2 / 65536.0 * (1.0 + cd.h6 / 67108864.0 * varH * (1.0 + cd.h3 / 67108864.0 * varH)))
+            varH =
+                (adcH - (cd.h4 * 64.0 + cd.h5 / 16384.0 * varH)) * (cd.h2 / 65536.0 * (1.0 + cd.h6 / 67108864.0 * varH * (1.0 + cd.h3 / 67108864.0 * varH)))
             val humidity = varH * (1.0 - cd.h1 * varH / 524288.0)
 
             return IndoorWeatherReport(cTemp, humidity, pressure)
@@ -71,26 +73,27 @@ data class IndoorWeatherReport(
 }
 
 data class CompensationData(
-        val t1: Int,
-        val t2: Int,
-        val t3: Int,
+    val t1: Int,
+    val t2: Int,
+    val t3: Int,
 
-        val p1: Int,
-        val p2: Int,
-        val p3: Int,
-        val p4: Int,
-        val p5: Int,
-        val p6: Int,
-        val p7: Int,
-        val p8: Int,
-        val p9: Int,
+    val p1: Int,
+    val p2: Int,
+    val p3: Int,
+    val p4: Int,
+    val p5: Int,
+    val p6: Int,
+    val p7: Int,
+    val p8: Int,
+    val p9: Int,
 
-        val h1: Int,
-        val h2: Int,
-        val h3: Int,
-        val h4: Int,
-        val h5: Int,
-        val h6: Int)
+    val h1: Int,
+    val h2: Int,
+    val h3: Int,
+    val h4: Int,
+    val h5: Int,
+    val h6: Int
+)
 
 class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76) {
 
@@ -124,61 +127,60 @@ class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76) {
         }
     }
 
-    override fun close() {
-        // doesn't need any closing action
-    }
+    private var compensationData: CompensationData? = null
 
-    private val compensationData: CompensationData
+    override suspend fun initDevice() {
+        doWrite(0xe0, 0xb6)
 
-    init {
-        val (b1, b2) = runBlocking {
-            doWrite(0xe0, 0xb6)
+        delay(100)
 
+        doWrite(
+            0xf2, 0b100,
+            0xf5, 0b101_100_0_0,
+            0xf4, 0b100_100_11
+        )
+
+        delay(100)
+
+        val id = doTransaction(listOf(0xd0), 1).get(0)
+        check(id == 0x60) { String.format("this is not BME280 chip, it has ID 0x%x", id) }
+
+        while (isReadingCalibration()) {
             delay(100)
-
-            doWrite(0xf2, 0b100,
-                    0xf5, 0b101_100_0_0,
-                    0xf4, 0b100_100_11)
-
-            delay(100)
-
-            val id = doTransaction(listOf(0xd0), 1).get(0)
-            check(id == 0x60) { String.format("this is not BME280 chip, it has ID 0x%x", id) }
-
-            while (isReadingCalibration()) {
-                delay(100)
-            }
-
-            doTransaction(listOf(0x88), 25) to
-                    doTransaction(listOf(0xe1), 8)
         }
+
+        val b1 = doTransaction(listOf(0x88), 25)
+        val b2 = doTransaction(listOf(0xe1), 8)
 
         checkNot00andNotFF(b1)
         checkNot00andNotFF(b2)
 
-        compensationData = CompensationData(
-                t1 = toUnsignedShort(b1, 0),
-                t2 = toSignedShort(b1, 2),
-                t3 = toSignedShort(b1, 4),
+        val c = CompensationData(
+            t1 = toUnsignedShort(b1, 0),
+            t2 = toSignedShort(b1, 2),
+            t3 = toSignedShort(b1, 4),
 
-                p1 = toUnsignedShort(b1, 6),
-                p2 = toSignedShort(b1, 8),
-                p3 = toSignedShort(b1, 10),
-                p4 = toSignedShort(b1, 12),
-                p5 = toSignedShort(b1, 14),
-                p6 = toSignedShort(b1, 16),
-                p7 = toSignedShort(b1, 18),
-                p8 = toSignedShort(b1, 20),
-                p9 = toSignedShort(b1, 22),
+            p1 = toUnsignedShort(b1, 6),
+            p2 = toSignedShort(b1, 8),
+            p3 = toSignedShort(b1, 10),
+            p4 = toSignedShort(b1, 12),
+            p5 = toSignedShort(b1, 14),
+            p6 = toSignedShort(b1, 16),
+            p7 = toSignedShort(b1, 18),
+            p8 = toSignedShort(b1, 20),
+            p9 = toSignedShort(b1, 22),
 
-                h1 = b1[24],
-                h2 = toSignedShort(b2, 0),
-                h3 = b2[2],
-                h4 = (b2[3] shl 4) + (b2[4] and 0x0f),
-                h5 = ((b2[4] shr 4) and 0x0f) + (b2[5] shl 4),
-                h6 = b2[7])
+            h1 = b1[24],
+            h2 = toSignedShort(b2, 0),
+            h3 = b2[2],
+            h4 = (b2[3] shl 4) + (b2[4] and 0x0f),
+            h5 = ((b2[4] shr 4) and 0x0f) + (b2[5] shl 4),
+            h6 = b2[7]
+        )
 
-        logger.debug { "Compensation data: $compensationData" }
+        logger.debug { "Compensation data: $c." }
+
+        compensationData = c
     }
 
     private suspend fun isReadingCalibration(): Boolean = doTransaction(listOf(0xf3), 1)[0] and 0x1 != 0
@@ -194,6 +196,6 @@ class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76) {
 
         logger.trace { "adcP: $adcP, adcT: $adcT, adcH: $adcH." }
 
-        IndoorWeatherReport.parse(compensationData, adcP, adcT, adcH)
+        IndoorWeatherReport.parse(checkNotNull(compensationData) { "sensor is not initialized" }, adcP, adcT, adcH)
     }
 }

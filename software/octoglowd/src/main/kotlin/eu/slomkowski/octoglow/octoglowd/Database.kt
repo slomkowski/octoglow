@@ -34,18 +34,21 @@ object ChangeableSettings : TimestampedTable("changeable_settings") {
 }
 
 class DatabaseLayer(
-        databaseFile: Path,
-        private val coroutineExceptionHandler: CoroutineExceptionHandler) {
+    databaseFile: Path,
+    private val coroutineExceptionHandler: CoroutineExceptionHandler
+) {
     companion object : KLogging() {
         private const val caseColumnName = "bucket_no"
 
-        fun createAveragedByTimeInterval(tableName: String,
-                                         fields: List<String>,
-                                         startTime: ZonedDateTime,
-                                         interval: Duration,
-                                         pastIntervals: Int,
-                                         skipMostRecentRow: Boolean,
-                                         discriminator: Pair<String, String?>? = null): String {
+        fun createAveragedByTimeInterval(
+            tableName: String,
+            fields: List<String>,
+            startTime: ZonedDateTime,
+            interval: Duration,
+            pastIntervals: Int,
+            skipMostRecentRow: Boolean,
+            discriminator: Pair<String, String?>? = null
+        ): String {
             require(tableName.isNotBlank())
             require(fields.isNotEmpty())
             require(pastIntervals >= 1)
@@ -67,14 +70,16 @@ class DatabaseLayer(
             fun Instant.fmt() = toEpochMilli()
 
             val rangeLimitExpr = timeRanges
-                    .flatMap { it.toList() }
-                    .let { "$timestampCol BETWEEN ${it.min()?.fmt()} AND ${it.max()?.fmt()}" }
+                .flatMap { it.toList() }
+                .let { "$timestampCol BETWEEN ${it.min()?.fmt()} AND ${it.max()?.fmt()}" }
 
             val caseExpr = timeRanges.mapIndexed { idx, (lower, upper) ->
                 "WHEN $timestampCol BETWEEN ${lower.fmt()} AND ${upper.fmt()} THEN $idx"
-            }.joinToString(prefix = "CASE\n",
-                    separator = "\n",
-                    postfix = "\nELSE -1 END")
+            }.joinToString(
+                prefix = "CASE\n",
+                separator = "\n",
+                postfix = "\nELSE -1 END"
+            )
 
             val skipMostRecentRowExpr = when (skipMostRecentRow) {
                 true -> " AND $timestampCol < (SELECT MAX($timestampCol) FROM $tableName)"
@@ -99,10 +104,10 @@ class DatabaseLayer(
             require(size >= 1) { "the output list has to have size at least 1" }
 
             val available = rows.groupBy { it.first }
-                    .mapValues {
-                        check(it.value.size == 1)
-                        it.value.first().second
-                    }
+                .mapValues {
+                    check(it.value.size == 1)
+                    it.value.first().second
+                }
 
             return (0 until size).map { available[it] }.asReversed()
         }
@@ -159,7 +164,8 @@ class DatabaseLayer(
         val tsj = toJodaDateTime(ts)
         return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
             transaction {
-                if (HistoricalValues.select { (HistoricalValues.timestamp eq tsj) and (HistoricalValues.key eq key.databaseSymbol) }.empty()) {
+                if (HistoricalValues.select { (HistoricalValues.timestamp eq tsj) and (HistoricalValues.key eq key.databaseSymbol) }
+                        .empty()) {
                     Companion.logger.debug("Inserting data to DB: {} = {}", key, value)
                     HistoricalValues.insert {
                         it[timestamp] = tsj
@@ -186,11 +192,15 @@ class DatabaseLayer(
         return result
     }
 
-    fun getLastHistoricalValuesByHourAsync(currentTime: ZonedDateTime,
-                                           key: HistoricalValueType,
-                                           numberOfPastHours: Int): Deferred<List<Double?>> {
-        val query = createAveragedByTimeInterval(HistoricalValues.tableName,
-                listOf("value"), currentTime, Duration.ofHours(1), numberOfPastHours, true, "key" to key.databaseSymbol)
+    fun getLastHistoricalValuesByHourAsync(
+        currentTime: ZonedDateTime,
+        key: HistoricalValueType,
+        numberOfPastHours: Int
+    ): Deferred<List<Double?>> {
+        val query = createAveragedByTimeInterval(
+            HistoricalValues.tableName,
+            listOf("value"), currentTime, Duration.ofHours(1), numberOfPastHours, true, "key" to key.databaseSymbol
+        )
 
         return CoroutineScope(threadContext).async {
             groupByBucketNo(transaction {

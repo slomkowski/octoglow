@@ -22,14 +22,16 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 class SimpleMonitorView(
-        private val config: Config,
-        private val database: DatabaseLayer,
-        hardware: Hardware)
-    : FrontDisplayView(hardware,
-        "SimpleMonitor",
-        Duration.ofSeconds(90),
-        Duration.ofSeconds(15),
-        Duration.ofSeconds(8)) {
+    private val config: Config,
+    private val database: DatabaseLayer,
+    hardware: Hardware
+) : FrontDisplayView(
+    hardware,
+    "SimpleMonitor",
+    Duration.ofSeconds(90),
+    Duration.ofSeconds(15),
+    Duration.ofSeconds(8)
+) {
 
     enum class MonitorStatus(@JsonValue val jsonName: String) {
         OK("OK"),
@@ -38,18 +40,21 @@ class SimpleMonitorView(
     }
 
     data class Monitor(
-            val status: MonitorStatus,
-            @JsonProperty("virtual_fail_count") val virtualFailCount: Int,
-            val result: String)
+        val status: MonitorStatus,
+        @JsonProperty("virtual_fail_count") val virtualFailCount: Int,
+        val result: String
+    )
 
     data class SimpleMonitorJson(
-            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ssxxx")
-            val generated: OffsetDateTime,
-            val monitors: Map<String, Monitor>)
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ssxxx")
+        val generated: OffsetDateTime,
+        val monitors: Map<String, Monitor>
+    )
 
     data class CurrentReport(
-            val timestamp: ZonedDateTime,
-            val data: SimpleMonitorJson?)
+        val timestamp: ZonedDateTime,
+        val data: SimpleMonitorJson?
+    )
 
     companion object : KLogging() {
         suspend fun getLatestSimpleMonitorJson(url: URL, user: String?, password: String?): SimpleMonitorJson {
@@ -70,13 +75,16 @@ class SimpleMonitorView(
 
     override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
         val (status, newReport) = try {
-            val json = getLatestSimpleMonitorJson(config[SimpleMonitorKey.url],
-                    config[SimpleMonitorKey.user], config[SimpleMonitorKey.password])
+            val json = getLatestSimpleMonitorJson(
+                config[SimpleMonitorKey.url],
+                config[SimpleMonitorKey.user], config[SimpleMonitorKey.password]
+            )
 
             if (json.monitors.filterValues { it.status == MonitorStatus.FAIL }.isNotEmpty()) {
                 logger.warn { "Some monitors are failed." }
                 launch {
-                    val shouldRing = database.getChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE).await()
+                    val shouldRing =
+                        database.getChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE).await()
                     if (shouldRing != "false") {
                         ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(100))
                     } else {
@@ -98,54 +106,69 @@ class SimpleMonitorView(
 
     override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
-        val report = currentReport
-        val fd = hardware.frontDisplay
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+        coroutineScope {
+            val report = currentReport
+            val fd = hardware.frontDisplay
 
-        if (redrawStatus) {
-            fd.clear()
+            if (redrawStatus) {
+                fd.clear()
 
-            logger.debug { "Redrawing SimpleMonitor status." }
+                logger.debug { "Redrawing SimpleMonitor status." }
 
-            fun monitors(status: MonitorStatus) = report?.data?.monitors?.filterValues { it.status == status }
-            val failedMonitors = monitors(MonitorStatus.FAIL)
+                fun monitors(status: MonitorStatus) = report?.data?.monitors?.filterValues { it.status == status }
+                val failedMonitors = monitors(MonitorStatus.FAIL)
 
-            launch {
-                val time = report?.data?.generated?.toLocalDateTimeInSystemTimeZone()?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                launch {
+                    val time = report?.data?.generated?.toLocalDateTimeInSystemTimeZone()
+                        ?.format(DateTimeFormatter.ofPattern("HH:mm"))
                         ?: "--:--"
-                fd.setStaticText(0, time)
-            }
+                    fd.setStaticText(0, time)
+                }
 
-            launch {
-                val okMonitorsCount = monitors(MonitorStatus.OK)?.size
-                val skippedMonitorsCount = monitors(MonitorStatus.SKIPPED)?.size
+                launch {
+                    val okMonitorsCount = monitors(MonitorStatus.OK)?.size
+                    val skippedMonitorsCount = monitors(MonitorStatus.SKIPPED)?.size
 
-                val allMonitorsCount = report?.data?.monitors?.size
+                    val allMonitorsCount = report?.data?.monitors?.size
 
-                val upperText = "OK:${okMonitorsCount ?: "--"}+${skippedMonitorsCount
-                        ?: "--"}/${allMonitorsCount ?: "--"}"
+                    val upperText = "OK:${okMonitorsCount ?: "--"}+${
+                        skippedMonitorsCount
+                            ?: "--"
+                    }/${allMonitorsCount ?: "--"}"
 
-                fd.setStaticText(20 - upperText.length, upperText)
-            }
+                    fd.setStaticText(20 - upperText.length, upperText)
+                }
 
-            launch {
-                when (failedMonitors?.size) {
-                    null -> fd.setStaticText(21, "SERVER COMM ERROR!")
-                    0 -> fd.setStaticText(22, "All monitors OK")
-                    else -> {
-                        val failedText = "${failedMonitors.size} FAILED"
-                        fd.setStaticText(20, failedText)
-                        val scrollingText = StringUtils.abbreviate(failedMonitors.keys.joinToString(","), 150)
-                        fd.setScrollingText(Slot.SLOT0, 21 + failedText.length, 19 - failedText.length, scrollingText)
+                launch {
+                    when (failedMonitors?.size) {
+                        null -> fd.setStaticText(21, "SERVER COMM ERROR!")
+                        0 -> fd.setStaticText(22, "All monitors OK")
+                        else -> {
+                            val failedText = "${failedMonitors.size} FAILED"
+                            fd.setStaticText(20, failedText)
+                            val scrollingText = StringUtils.abbreviate(failedMonitors.keys.joinToString(","), 150)
+                            fd.setScrollingText(
+                                Slot.SLOT0,
+                                21 + failedText.length,
+                                19 - failedText.length,
+                                scrollingText
+                            )
+                        }
                     }
                 }
             }
+
+            drawProgressBar(report?.timestamp, now)
+
+            Unit
         }
 
-        drawProgressBar(report?.timestamp, now)
-
-        Unit
-    }
-
-    override fun getMenus(): List<Menu> = listOf(BooleanChangeableSettingMenu(database, ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE, "Ring on bad mon."))
+    override fun getMenus(): List<Menu> = listOf(
+        BooleanChangeableSettingMenu(
+            database,
+            ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE,
+            "Ring on bad mon."
+        )
+    )
 }

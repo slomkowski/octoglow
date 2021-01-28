@@ -27,9 +27,9 @@ const val DEGREE: Char = '\u00B0'
 val WARSAW_ZONE_ID: ZoneId = ZoneId.of("Europe/Warsaw")
 
 val jacksonObjectMapper: ObjectMapper = com.fasterxml.jackson.databind.ObjectMapper()
-        .registerModules(JavaTimeModule(), KotlinModule())
-        .configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true)
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    .registerModules(JavaTimeModule(), KotlinModule())
+    .configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true)
+    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
 fun isSleeping(start: LocalTime, duration: Duration, now: LocalTime): Boolean {
     val sleepTime = Duration.between(LocalTime.MIN, start)
@@ -41,10 +41,10 @@ fun isSleeping(start: LocalTime, duration: Duration, now: LocalTime): Boolean {
 fun calculateSunriseAndSunset(latitude: Double, longitude: Double, ts: LocalDate): Pair<LocalTime, LocalTime> {
 
     val sunTimes = SunTimes.compute()
-            .at(latitude, longitude)
-            .on(ts.year, ts.monthValue, ts.dayOfMonth)
-            .oneDay()
-            .execute()
+        .at(latitude, longitude)
+        .on(ts.year, ts.monthValue, ts.dayOfMonth)
+        .oneDay()
+        .execute()
 
     val (sunrise, sunset) = listOf(sunTimes.rise, sunTimes.set).map {
         checkNotNull(it?.toLocalDateTime()) { "cannot calculate sunrise/sunset for $ts." }.toLocalTime()
@@ -72,7 +72,8 @@ fun formatPressure(t: Double?): String = when (t) {
 /**
  * Used to calculate which segment to light of the upper progress bar on front display.
  */
-fun getSegmentNumber(currentTime: Duration, maxTime: Duration): Int = floor(20.0 * (currentTime.toMillis().toDouble() / maxTime.toMillis())).roundToInt().coerceIn(0, 19)
+fun getSegmentNumber(currentTime: Duration, maxTime: Duration): Int =
+    floor(20.0 * (currentTime.toMillis().toDouble() / maxTime.toMillis())).roundToInt().coerceIn(0, 19)
 
 suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func: suspend (tryNo: Int) -> T): T {
     require(numberOfTries > 0)
@@ -91,10 +92,12 @@ suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func:
     throw IllegalStateException() // cannot be ever called
 }
 
-suspend fun ringBellIfNotSleeping(config: Config,
-                                  logger: KLogger,
-                                  hardware: Hardware,
-                                  ringDuration: Duration) = when (isSleeping(config[SleepKey.startAt], config[SleepKey.duration], LocalTime.now())) {
+suspend fun ringBellIfNotSleeping(
+    config: Config,
+    logger: KLogger,
+    hardware: Hardware,
+    ringDuration: Duration
+) = when (isSleeping(config[SleepKey.startAt], config[SleepKey.duration], LocalTime.now())) {
     false -> try {
         hardware.clockDisplay.ringBell(ringDuration)
     } catch (ringException: Exception) {
@@ -103,11 +106,13 @@ suspend fun ringBellIfNotSleeping(config: Config,
     true -> logger.warn { "Skipping ringing because it is sleep time." }
 }
 
-suspend fun handleException(config: Config,
-                            logger: KLogger,
-                            hardware: Hardware,
-                            coroutineContext: CoroutineContext,
-                            e: Throwable) {
+suspend fun handleException(
+    config: Config,
+    logger: KLogger,
+    hardware: Hardware,
+    coroutineContext: CoroutineContext,
+    e: Throwable
+) {
     logger.error(e) { "Exception caught in $coroutineContext." }
     if (config[ConfKey.ringAtError]) {
         ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(150))
@@ -133,18 +138,23 @@ fun I2CBuffer.toByteArray(): ByteArray = (0 until length).map { get(it).toByte()
 
 fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
 
-fun I2CBuffer.contentToString(): String = (0 until this.length).map { this[it] }.joinToString(" ", prefix = "[", postfix = "]")
+fun I2CBuffer.contentToString(): String =
+    (0 until this.length).map { this[it] }.joinToString(" ", prefix = "[", postfix = "]")
 
 fun I2CBuffer.toList(): List<Int> = (0 until this.length).map { this[it] }.toList()
 
 fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).readText()
 
-inline fun <reified T : Any> csvDeserializerOf(csvFormat: CSVFormat = CSVFormat.DEFAULT, crossinline recordMappingFunction: (CSVRecord) -> T) = object : ResponseDeserializable<List<T>> {
+inline fun <reified T : Any> csvDeserializerOf(
+    csvFormat: CSVFormat = CSVFormat.DEFAULT,
+    crossinline recordMappingFunction: (CSVRecord) -> T
+) = object : ResponseDeserializable<List<T>> {
     override fun deserialize(reader: Reader): List<T> = CSVParser(reader, csvFormat).records.map(recordMappingFunction)
 
     override fun deserialize(content: String): List<T> = StringReader(content).use { deserialize(it) }
 
     override fun deserialize(bytes: ByteArray): List<T> = ByteArrayInputStream(bytes).use { deserialize(it) }
 
-    override fun deserialize(inputStream: InputStream): List<T> = InputStreamReader(inputStream, StandardCharsets.UTF_8).use { deserialize(it) }
+    override fun deserialize(inputStream: InputStream): List<T> =
+        InputStreamReader(inputStream, StandardCharsets.UTF_8).use { deserialize(it) }
 }

@@ -10,28 +10,33 @@ import java.time.LocalTime
 import java.time.ZonedDateTime
 
 class BrightnessDaemon(
-        private val config: Config,
-        private val database: DatabaseLayer,
-        private val hardware: Hardware) : Daemon(config, hardware, logger, Duration.ofSeconds(30)) {
+    private val config: Config,
+    private val database: DatabaseLayer,
+    private val hardware: Hardware
+) : Daemon(config, hardware, logger, Duration.ofSeconds(30)) {
 
     data class BrightnessMode(
-            val isDay: Boolean,
-            val isSleeping: Boolean,
-            val brightness: Int)
+        val isDay: Boolean,
+        val isSleeping: Boolean,
+        val brightness: Int
+    )
 
     companion object : KLogging() {
 
         private val brightnessModes = setOf(
-                BrightnessMode(true, false, 5),
-                BrightnessMode(true, true, 4),
-                BrightnessMode(false, false, 3),
-                BrightnessMode(false, true, 1))
+            BrightnessMode(true, false, 5),
+            BrightnessMode(true, true, 4),
+            BrightnessMode(false, false, 3),
+            BrightnessMode(false, true, 1)
+        )
 
-        fun calculateFromData(sunrise: LocalTime,
-                              sunset: LocalTime,
-                              goToSleep: LocalTime,
-                              sleepDuration: Duration,
-                              now: LocalTime): Int {
+        fun calculateFromData(
+            sunrise: LocalTime,
+            sunset: LocalTime,
+            goToSleep: LocalTime,
+            sleepDuration: Duration,
+            now: LocalTime
+        ): Int {
             require(sunset.isAfter(sunrise))
 
             val sr = Duration.between(LocalTime.MIN, sunrise)
@@ -75,7 +80,11 @@ class BrightnessDaemon(
         val sleepDuration = config[SleepKey.duration]
 
         //todo should check if geo is within timezone
-        val (sunrise, sunset) = calculateSunriseAndSunset(config[GeoPosKey.latitude], config[GeoPosKey.longitude], ts.toLocalDate())
+        val (sunrise, sunset) = calculateSunriseAndSunset(
+            config[GeoPosKey.latitude],
+            config[GeoPosKey.longitude],
+            ts.toLocalDate()
+        )
         logger.debug { "On ${ts.toLocalDate()} sun is up from $sunrise to $sunset." }
 
         val br = calculateFromData(sunrise, sunset, sleepStart, sleepDuration, ts.toLocalTime())

@@ -22,8 +22,9 @@ enum class ButtonState {
 }
 
 data class ButtonReport(
-        val button: ButtonState,
-        val encoderDelta: Int) {
+    val button: ButtonState,
+    val encoderDelta: Int
+) {
     init {
         require(encoderDelta in -127..127) { "valid delta is between -127 and 127" }
     }
@@ -74,13 +75,13 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
         require(activePositions.all { it <= 19 }) { "position numbers between 0 and 19 are allowed" }
 
         val c = activePositions
-                .fold(0) { acc, pos -> acc or (1 shl pos) }
-                .let {
-                    when (invert) {
-                        true -> it.inv()
-                        else -> it
-                    }
+            .fold(0) { acc, pos -> acc or (1 shl pos) }
+            .let {
+                when (invert) {
+                    true -> it.inv()
+                    else -> it
                 }
+            }
         setUpperBar(c)
     }
 
@@ -132,21 +133,23 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
         require(position < maxPosition) { "position cannot exceed $maxPosition" }
 
         val img = historicalValues
-                .map { nullableHistVal ->
-                    val diff = nullableHistVal?.let { ((it.toDouble() - currentValue.toDouble()) / unit.toDouble()).roundToInt().coerceIn(-3, 3) }
-                    when (diff) {
-                        -3 -> 0b1111000
-                        -2 -> 0b0111000
-                        -1 -> 0b0011000
-                        0 -> 0b0001000
-                        1 -> 0b1100
-                        2 -> 0b1110
-                        3 -> 0b1111
-                        null -> 0b1000001
-                        else -> throw IllegalStateException()
-                    }
+            .map { nullableHistVal ->
+                val diff = nullableHistVal?.let {
+                    ((it.toDouble() - currentValue.toDouble()) / unit.toDouble()).roundToInt().coerceIn(-3, 3)
                 }
-                .plus(0b0001000)
+                when (diff) {
+                    -3 -> 0b1111000
+                    -2 -> 0b0111000
+                    -1 -> 0b0011000
+                    0 -> 0b0001000
+                    1 -> 0b1100
+                    2 -> 0b1110
+                    3 -> 0b1111
+                    null -> 0b1000001
+                    else -> throw IllegalStateException()
+                }
+            }
+            .plus(0b0001000)
 
         drawImage(position, false, img)
     }
@@ -158,19 +161,19 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
         require(position < maxPosition) { "position cannot exceed $maxPosition" }
 
         val (upper, lower) = historicalValues
-                .map { nullableHistVal ->
-                    nullableHistVal?.let {
-                        val v = ((it.toDouble() - currentValue.toDouble()) / unit.toDouble()).roundToInt()
-                        val (upperV, lowerV) = v.coerceIn(0, 7) to v.coerceIn(-7, 0)
+            .map { nullableHistVal ->
+                nullableHistVal?.let {
+                    val v = ((it.toDouble() - currentValue.toDouble()) / unit.toDouble()).roundToInt()
+                    val (upperV, lowerV) = v.coerceIn(0, 7) to v.coerceIn(-7, 0)
 
-                        val upperC = (0..(upperV - 1)).fold(0) { columnByte, y -> columnByte or (0b1000000 shr y) }
-                        val lowerC = (0..(-lowerV - 1)).fold(0) { columnByte, y -> columnByte or (1 shl y) }
+                    val upperC = (0..(upperV - 1)).fold(0) { columnByte, y -> columnByte or (0b1000000 shr y) }
+                    val lowerC = (0..(-lowerV - 1)).fold(0) { columnByte, y -> columnByte or (1 shl y) }
 
-                        upperC to lowerC
-                    } ?: 0b1 to 0b1000000
-                }
-                .plus(0b1000000 to 0b1)
-                .unzip()
+                    upperC to lowerC
+                } ?: 0b1 to 0b1000000
+            }
+            .plus(0b1000000 to 0b1)
+            .unzip()
 
         drawImage(position, false, upper)
         drawImage(5 * 20 + position, false, lower)
@@ -178,14 +181,16 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
 
     private suspend fun drawImage(position: Int, sumWithExistingText: Boolean, content: List<Int>) {
         val writeBuffer = I2CBuffer(content.size + 4)
-                .set(0, 6)
-                .set(1, position)
-                .set(2, content.size)
-                .set(3, if (sumWithExistingText) {
+            .set(0, 6)
+            .set(1, position)
+            .set(2, content.size)
+            .set(
+                3, if (sumWithExistingText) {
                     1
                 } else {
                     0
-                })
+                }
+            )
 
         content.forEachIndexed { idx, v -> writeBuffer.set(idx + 4, v) }
 
@@ -195,15 +200,17 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
     suspend fun getButtonReport(): ButtonReport {
         val readBuffer = doTransaction(I2CBuffer(1).set(0, 1), 2)
 
-        return ButtonReport(when (readBuffer[1]) {
-            255 -> ButtonState.JUST_RELEASED
-            1 -> ButtonState.JUST_PRESSED
-            0 -> ButtonState.NO_CHANGE
-            else -> throw IllegalStateException("invalid button state value: ${readBuffer[1]}")
-        }, if (readBuffer[0] <= 127) {
-            readBuffer[0]
-        } else {
-            readBuffer[0] - 256
-        })
+        return ButtonReport(
+            when (readBuffer[1]) {
+                255 -> ButtonState.JUST_RELEASED
+                1 -> ButtonState.JUST_PRESSED
+                0 -> ButtonState.NO_CHANGE
+                else -> throw IllegalStateException("invalid button state value: ${readBuffer[1]}")
+            }, if (readBuffer[0] <= 127) {
+                readBuffer[0]
+            } else {
+                readBuffer[0] - 256
+            }
+        )
     }
 }

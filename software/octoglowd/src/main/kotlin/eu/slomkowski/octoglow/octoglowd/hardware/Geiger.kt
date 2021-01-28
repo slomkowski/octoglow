@@ -21,12 +21,13 @@ enum class EyeInverterState {
 }
 
 data class GeigerCounterState(
-        val hasNewCycleStarted: Boolean,
-        val hasCycleEverCompleted: Boolean,
-        val numOfCountsInCurrentCycle: Int,
-        val numOfCountsInPreviousCycle: Int,
-        val currentCycleProgress: Duration,
-        val cycleLength: Duration) {
+    val hasNewCycleStarted: Boolean,
+    val hasCycleEverCompleted: Boolean,
+    val numOfCountsInCurrentCycle: Int,
+    val numOfCountsInPreviousCycle: Int,
+    val currentCycleProgress: Duration,
+    val cycleLength: Duration
+) {
     companion object {
         private val invalidBufferContent = listOf(255, 255, 255, 255, 255, 255, 255, 255)
 
@@ -36,32 +37,39 @@ data class GeigerCounterState(
             require(readBuffer.length == SIZE_IN_BYTES)
             val buff = readBuffer.toList()
 
-            check(buff.subList(1, buff.size) != invalidBufferContent) { "read buffer has characteristic invalid pattern" }
+            check(
+                buff.subList(
+                    1,
+                    buff.size
+                ) != invalidBufferContent
+            ) { "read buffer has characteristic invalid pattern" }
 
             return GeigerCounterState(
-                    when (buff[0] and 0b1) {
-                        1 -> true
-                        else -> false
-                    },
-                    when (buff[0] and 0b10) {
-                        0b10 -> true
-                        else -> false
-                    },
-                    (buff[2] shl 8) + buff[1],
-                    (buff[4] shl 8) + buff[3],
-                    Duration.ofSeconds(((buff[6] shl 8) + buff[5]).toLong()),
-                    Duration.ofSeconds(((buff[8] shl 8) + buff[7]).toLong()))
+                when (buff[0] and 0b1) {
+                    1 -> true
+                    else -> false
+                },
+                when (buff[0] and 0b10) {
+                    0b10 -> true
+                    else -> false
+                },
+                (buff[2] shl 8) + buff[1],
+                (buff[4] shl 8) + buff[3],
+                Duration.ofSeconds(((buff[6] shl 8) + buff[5]).toLong()),
+                Duration.ofSeconds(((buff[8] shl 8) + buff[7]).toLong())
+            )
         }
     }
 }
 
 data class GeigerDeviceState(
-        val geigerVoltage: Double,
-        val geigerPwmValue: Int,
-        val eyeState: EyeInverterState,
-        val eyeAnimationState: EyeDisplayMode,
-        val eyeVoltage: Double,
-        val eyePwmValue: Int) {
+    val geigerVoltage: Double,
+    val geigerPwmValue: Int,
+    val eyeState: EyeInverterState,
+    val eyeAnimationState: EyeDisplayMode,
+    val eyeVoltage: Double,
+    val eyePwmValue: Int
+) {
     companion object {
         private val invalidBufferContent = listOf(255, 255, 255, 255, 255, 255, 255)
 
@@ -75,15 +83,21 @@ data class GeigerDeviceState(
             require(readBuffer.length == SIZE_IN_BYTES)
             val buff = readBuffer.toList()
 
-            check(buff.subList(1, buff.size) != invalidBufferContent) { "read buffer has characteristic invalid pattern" }
+            check(
+                buff.subList(
+                    1,
+                    buff.size
+                ) != invalidBufferContent
+            ) { "read buffer has characteristic invalid pattern" }
 
             return GeigerDeviceState(
-                    GEIGER_ADC_SCALING_FACTOR * ((buff[1] shl 8) + buff[0]).toDouble(),
-                    buff[2],
-                    EyeInverterState.values()[buff[3]],
-                    EyeDisplayMode.values()[buff[4]],
-                    EYE_ADC_SCALING_FACTOR * ((buff[6] shl 8) + buff[5]).toDouble(),
-                    buff[7])
+                GEIGER_ADC_SCALING_FACTOR * ((buff[1] shl 8) + buff[0]).toDouble(),
+                buff[2],
+                EyeInverterState.values()[buff[3]],
+                EyeDisplayMode.values()[buff[4]],
+                EYE_ADC_SCALING_FACTOR * ((buff[6] shl 8) + buff[5]).toDouble(),
+                buff[7]
+            )
         }
     }
 
@@ -138,10 +152,12 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
     }
 
     suspend fun setEyeConfiguration(enabled: Boolean, mode: EyeDisplayMode = EyeDisplayMode.ANIMATION) {
-        doWrite(5, when (enabled) {
-            true -> 1
-            else -> 0
-        }, mode.ordinal)
+        doWrite(
+            5, when (enabled) {
+                true -> 1
+                else -> 0
+            }, mode.ordinal
+        )
     }
 
     suspend fun setEyeValue(value: Int) {

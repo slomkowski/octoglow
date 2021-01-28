@@ -16,8 +16,9 @@ import java.io.IOException
 import java.time.Duration
 
 class Hardware(
-        private val bus: I2CBus,
-        ringAtStartup: Boolean) : AutoCloseable {
+    private val bus: I2CBus,
+    ringAtStartup: Boolean
+) : AutoCloseable {
 
     companion object : KLogging()
 
@@ -33,19 +34,27 @@ class Hardware(
 
     val bme280 = Bme280(this)
 
+    private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac, bme280)
+
     init {
         require(bus.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
         require(bus.functionalities.can(I2CFunctionality.READ_BYTE)) { "I2C requires read byte support" }
 
-        if (ringAtStartup) {
-            runBlocking { clockDisplay.ringBell(Duration.ofMillis(70)) }
-        }
+        try {
+            runBlocking {
+                allDevices.forEach { it.initDevice() }
 
-        runBlocking {
-            frontDisplay.apply {
-                clear()
-                setStaticText(0, "Initializing...")
+                frontDisplay.apply {
+                    clear()
+                    setStaticText(0, "Initializing...")
+                }
+
+                if (ringAtStartup) {
+                    clockDisplay.ringBell(Duration.ofMillis(70))
+                }
             }
+        } catch (e: Exception) {
+            logger.error("Error during hardware initialization;", e)
         }
     }
 
@@ -56,7 +65,7 @@ class Hardware(
     }
 
     override fun close() {
-        listOf<AutoCloseable>(clockDisplay, frontDisplay, geiger, dac, bme280).forEach { it.close() }
+        allDevices.forEach { it.close() }
     }
 
     suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = busMutex.withLock {
@@ -68,9 +77,11 @@ class Hardware(
         })
     }
 
-    suspend fun doTransaction(i2cAddress: Int,
-                              writeBuffer: I2CBuffer,
-                              bytesToRead: Int): I2CBuffer {
+    suspend fun doTransaction(
+        i2cAddress: Int,
+        writeBuffer: I2CBuffer,
+        bytesToRead: Int
+    ): I2CBuffer {
         require(bytesToRead in 1..100)
         val numberOfTries = 3
 

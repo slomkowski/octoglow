@@ -26,25 +26,28 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 class StockView(
-        private val config: Config,
-        private val database: DatabaseLayer,
-        hardware: Hardware)
-    : FrontDisplayView(hardware,
-        "Warsaw Stock Exchange index",
-        Duration.ofMinutes(1),//todo change to 20 min, stays 1 minute for dev
-        Duration.ofSeconds(15),
-        Duration.ofSeconds(1)) {
+    private val config: Config,
+    private val database: DatabaseLayer,
+    hardware: Hardware
+) : FrontDisplayView(
+    hardware,
+    "Warsaw Stock Exchange index",
+    Duration.ofMinutes(1),//todo change to 20 min, stays 1 minute for dev
+    Duration.ofSeconds(15),
+    Duration.ofSeconds(1)
+) {
 
     data class StockInfoDto(
-            val ticker: String,
-            val interval: Duration,
-            val timestamp: ZonedDateTime,
-            val open: BigDecimal,
-            val high: BigDecimal,
-            val low: BigDecimal,
-            val close: BigDecimal,
-            val volume: Long,
-            val openInt: Long) {
+        val ticker: String,
+        val interval: Duration,
+        val timestamp: ZonedDateTime,
+        val open: BigDecimal,
+        val high: BigDecimal,
+        val low: BigDecimal,
+        val close: BigDecimal,
+        val volume: Long,
+        val openInt: Long
+    ) {
         init {
             require(ticker.isNotBlank())
             require(interval > Duration.ZERO)
@@ -57,18 +60,20 @@ class StockView(
     }
 
     data class SingleStockReport(
-            val code: String,
-            val isLatestFromToday: Boolean,
-            val latest: Double,
-            val historical: List<Double?>) {
+        val code: String,
+        val isLatestFromToday: Boolean,
+        val latest: Double,
+        val historical: List<Double?>
+    ) {
         init {
             require(historical.size == HISTORIC_VALUES_LENGTH)
         }
     }
 
     data class CurrentReport(
-            val timestamp: ZonedDateTime,
-            val currencies: Map<String, SingleStockReport>)
+        val timestamp: ZonedDateTime,
+        val currencies: Map<String, SingleStockReport>
+    )
 
     private var currentReport: CurrentReport? = null
 
@@ -83,9 +88,10 @@ class StockView(
 
         suspend fun downloadStockData(date: LocalDate): List<StockInfoDto> {
             val parameters = listOf(
-                    "t" to "h",
-                    "d" to date.format(DateTimeFormatter.BASIC_ISO_DATE),
-                    "u" to cookie)
+                "t" to "h",
+                "d" to date.format(DateTimeFormatter.BASIC_ISO_DATE),
+                "u" to cookie
+            )
 
             logger.debug("Downloading stock data for $date from stooq.pl.")
 
@@ -97,29 +103,34 @@ class StockView(
                 throw IllegalStateException("too many requests for today")
             }
 
-            return CSVParser(StringReader(responseString), CSVFormat.DEFAULT.withFirstRecordAsHeader()).records.map { record ->
+            return CSVParser(
+                StringReader(responseString),
+                CSVFormat.DEFAULT.withFirstRecordAsHeader()
+            ).records.map { record ->
                 val rowDate = LocalDate.parse(record[2], DateTimeFormatter.BASIC_ISO_DATE)
                 val time = LocalTime.parse(record[3], shortTimeFormatter)
                 StockInfoDto(
-                        record.get(0),
-                        Duration.ofMinutes(record[1].toLong()),
-                        ZonedDateTime.of(rowDate, time, WARSAW_ZONE_ID),
-                        record[4].toBigDecimal(),
-                        record[5].toBigDecimal(),
-                        record[6].toBigDecimal(),
-                        record[7].toBigDecimal(),
-                        record[8].toLong(),
-                        record[9].toLong())
+                    record.get(0),
+                    Duration.ofMinutes(record[1].toLong()),
+                    ZonedDateTime.of(rowDate, time, WARSAW_ZONE_ID),
+                    record[4].toBigDecimal(),
+                    record[5].toBigDecimal(),
+                    record[6].toBigDecimal(),
+                    record[7].toBigDecimal(),
+                    record[8].toLong(),
+                    record[9].toLong()
+                )
             }
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
-        val fd = hardware.frontDisplay
-        launch { fd.setStaticText(0, "stock view") }
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+        coroutineScope {
+            val fd = hardware.frontDisplay
+            launch { fd.setStaticText(0, "stock view") }
 
-        Unit
-    }
+            Unit
+        }
 
     /**
      * Progress bar is dependent only on current time so always success.
@@ -154,9 +165,11 @@ class StockView(
         }
     }
 
-    suspend fun createSingleStockReport(stockData: Collection<StockInfoDto>,
-                                        ts: ZonedDateTime,
-                                        ticker: String): SingleStockReport? {
+    suspend fun createSingleStockReport(
+        stockData: Collection<StockInfoDto>,
+        ts: ZonedDateTime,
+        ticker: String
+    ): SingleStockReport? {
         val dbKey = Stock(ticker)
 
         val newestToday = stockData.filter { it.ticker == ticker }.maxBy { it.timestamp }
@@ -165,16 +178,18 @@ class StockView(
             database.insertHistoricalValueAsync(newestToday.timestamp, dbKey, newestToday.typicalPrice.toDouble())
         }
 
-        val historical = database.getLastHistoricalValuesByHourAsync(ts, dbKey, HISTORIC_VALUES_LENGTH).await() //todo by day
+        val historical =
+            database.getLastHistoricalValuesByHourAsync(ts, dbKey, HISTORIC_VALUES_LENGTH).await() //todo by day
 
         val latestPrice = newestToday?.typicalPrice?.toDouble() ?: historical.last()
 
         return latestPrice?.let {
             SingleStockReport(
-                    ticker,
-                    newestToday != null,
-                    latestPrice,
-                    historical)
+                ticker,
+                newestToday != null,
+                latestPrice,
+                historical
+            )
         }
     }
 }

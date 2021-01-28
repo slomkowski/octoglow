@@ -8,10 +8,11 @@ import mu.KLogging
 import java.time.Duration
 
 data class OutdoorWeatherReport(
-        val temperature: Double,
-        val humidity: Double,
-        val batteryIsWeak: Boolean,
-        val alreadyReadFlag: Boolean) {
+    val temperature: Double,
+    val humidity: Double,
+    val batteryIsWeak: Boolean,
+    val alreadyReadFlag: Boolean
+) {
 
     init {
         require(temperature in -40.0..60.0)
@@ -37,12 +38,16 @@ data class OutdoorWeatherReport(
 
             try {
                 return OutdoorWeatherReport(
-                        temperaturePart,
-                        humidityPart,
-                        (buff[4] and WEAK_BATTERY_FLAG) != 0,
-                        (buff[4] and ALREADY_READ_FLAG) != 0)
+                    temperaturePart,
+                    humidityPart,
+                    (buff[4] and WEAK_BATTERY_FLAG) != 0,
+                    (buff[4] and ALREADY_READ_FLAG) != 0
+                )
             } catch (e: IllegalArgumentException) {
-                throw IllegalStateException("insane values despite valid flag set: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}", e)
+                throw IllegalStateException(
+                    "insane values despite valid flag set: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}",
+                    e
+                )
             }
         }
     }
@@ -59,10 +64,8 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
         doWrite(3, brightness)
     }
 
-    init {
-        runBlocking {
-            doWrite(2, 0, 0)
-        }
+    override suspend fun initDevice() {
+        doWrite(2, 0, 0)
     }
 
     override fun close() {
@@ -93,10 +96,12 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
             0
         }
 
-        doWrite(1, when (hours < 10) {
-            true -> ' '.toInt()
-            else -> 0x30 + hours / 10
-        }, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots)
+        doWrite(
+            1, when (hours < 10) {
+                true -> ' '.toInt()
+                else -> 0x30 + hours / 10
+            }, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots
+        )
     }
 
     suspend fun ringBell(duration: Duration) {

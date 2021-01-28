@@ -15,13 +15,15 @@ import java.time.Duration
 import java.time.ZonedDateTime
 
 class GeigerView(
-        private val database: DatabaseLayer,
-        hardware: Hardware)
-    : FrontDisplayView(hardware,
-        "Geiger counter",
-        Duration.ofSeconds(7),
-        Duration.ofSeconds(3),
-        Duration.ofSeconds(11)) {
+    private val database: DatabaseLayer,
+    hardware: Hardware
+) : FrontDisplayView(
+    hardware,
+    "Geiger counter",
+    Duration.ofSeconds(7),
+    Duration.ofSeconds(3),
+    Duration.ofSeconds(11)
+) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 4 * 5 - 1
@@ -30,7 +32,8 @@ class GeigerView(
 
         fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.toMinutes().toDouble()
 
-        fun calculateUSVh(v: Int, duration: Duration): Double = calculateCPM(v, duration) / 60.0 * 10.0 / GEIGER_TUBE_SENSITIVITY
+        fun calculateUSVh(v: Int, duration: Duration): Double =
+            calculateCPM(v, duration) / 60.0 * 10.0 / GEIGER_TUBE_SENSITIVITY
 
         fun formatVoltage(v: Double?): String = when (v) {
             null -> "---V"
@@ -49,11 +52,12 @@ class GeigerView(
     }
 
     data class CounterReport(
-            val lastCPM: Double?, // counts-per-minute
-            val lastUSVh: Double?, // uSv/h
-            var progress: Duration,
-            val timeSpan: Duration,
-            val historical: List<Double?>?) {
+        val lastCPM: Double?, // counts-per-minute
+        val lastUSVh: Double?, // uSv/h
+        var progress: Duration,
+        val timeSpan: Duration,
+        val historical: List<Double?>?
+    ) {
         init {
             lastCPM?.let { it > 0 }
             lastUSVh?.let { it > 0 }
@@ -66,55 +70,60 @@ class GeigerView(
 
     private var deviceReport: GeigerDeviceState? = null
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) = coroutineScope {
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+        coroutineScope {
 
-        val fd = hardware.frontDisplay
-        val dr = deviceReport
-        val cr = counterReport
+            val fd = hardware.frontDisplay
+            val dr = deviceReport
+            val cr = counterReport
 
-        if (redrawStatic) {
+            if (redrawStatic) {
+                launch {
+                    fd.setStaticText(14, "g:")
+                }
+            }
+
+            if (redrawStatus) {
+                launch { fd.setStaticText(0, formatCPM(cr?.lastCPM)) }
+                launch { fd.setStaticText(20, formatUSVh(cr?.lastUSVh)) }
+
+                if (cr?.historical != null && cr.lastUSVh != null) {
+                    launch { fd.setOneLineDiffChart(5 * 8, cr.lastUSVh, cr.historical, 0.01) }
+                } else {
+                    fd.setStaticText(8, "    ")
+                }
+            }
+
+            launch { fd.setStaticText(16, formatVoltage(deviceReport?.geigerVoltage)) }
             launch {
-                fd.setStaticText(14, "g:")
+                fd.setStaticText(
+                    16 + 20, when (dr?.eyeState) {
+                        EyeInverterState.DISABLED -> "    "
+                        else -> formatVoltage(deviceReport?.eyeVoltage)
+                    }
+                )
             }
-        }
 
-        if (redrawStatus) {
-            launch { fd.setStaticText(0, formatCPM(cr?.lastCPM)) }
-            launch { fd.setStaticText(20, formatUSVh(cr?.lastUSVh)) }
+            launch {
+                fd.setStaticText(
+                    11 + 20, when (dr?.eyeState) {
+                        EyeInverterState.DISABLED -> "eD"
+                        EyeInverterState.HEATING_LIMITED -> "e1 e:"
+                        EyeInverterState.HEATING_FULL -> "e2 e:"
+                        EyeInverterState.RUNNING -> "eR e:"
+                        null -> "--"
+                    }
+                )
+            }
 
-            if (cr?.historical != null && cr.lastUSVh != null) {
-                launch { fd.setOneLineDiffChart(5 * 8, cr.lastUSVh, cr.historical, 0.01) }
+            if (cr != null) {
+                launch { fd.setUpperBar(listOf(getSegmentNumber(cr.progress, cr.timeSpan))) }
             } else {
-                fd.setStaticText(8, "    ")
+                launch { fd.setUpperBar(emptyList()) }
             }
-        }
 
-        launch { fd.setStaticText(16, formatVoltage(deviceReport?.geigerVoltage)) }
-        launch {
-            fd.setStaticText(16 + 20, when (dr?.eyeState) {
-                EyeInverterState.DISABLED -> "    "
-                else -> formatVoltage(deviceReport?.eyeVoltage)
-            })
+            Unit
         }
-
-        launch {
-            fd.setStaticText(11 + 20, when (dr?.eyeState) {
-                EyeInverterState.DISABLED -> "eD"
-                EyeInverterState.HEATING_LIMITED -> "e1 e:"
-                EyeInverterState.HEATING_FULL -> "e2 e:"
-                EyeInverterState.RUNNING -> "eR e:"
-                null -> "--"
-            })
-        }
-
-        if (cr != null) {
-            launch { fd.setUpperBar(listOf(getSegmentNumber(cr.progress, cr.timeSpan))) }
-        } else {
-            launch { fd.setUpperBar(emptyList()) }
-        }
-
-        Unit
-    }
 
     override fun getMenus(): List<Menu> {
         val optOn = MenuOption("ON")
@@ -135,10 +144,12 @@ class GeigerView(
 
             override suspend fun saveCurrentOption(current: MenuOption) {
                 logger.info { "Magic eye set to $current." }
-                hardware.geiger.setEyeConfiguration(when (current) {
-                    optOn -> true
-                    else -> false
-                })
+                hardware.geiger.setEyeConfiguration(
+                    when (current) {
+                        optOn -> true
+                        else -> false
+                    }
+                )
             }
         })
     }
@@ -162,14 +173,24 @@ class GeigerView(
                 val cpm = calculateCPM(cs.numOfCountsInPreviousCycle, cs.cycleLength)
                 val uSvh = calculateUSVh(cs.numOfCountsInPreviousCycle, cs.cycleLength)
 
-                logger.info(String.format("Read radioactivity: %d counts = %.2f uSv/h.", cs.numOfCountsInPreviousCycle, uSvh))
+                logger.info(
+                    String.format(
+                        "Read radioactivity: %d counts = %.2f uSv/h.",
+                        cs.numOfCountsInPreviousCycle,
+                        uSvh
+                    )
+                )
 
-                listOf(database.insertHistoricalValueAsync(now, RadioactivityCpm, cpm),
-                        database.insertHistoricalValueAsync(now, RadioactivityUSVH, uSvh)).joinAll()
+                listOf(
+                    database.insertHistoricalValueAsync(now, RadioactivityCpm, cpm),
+                    database.insertHistoricalValueAsync(now, RadioactivityUSVH, uSvh)
+                ).joinAll()
 
-                val historicalRadioactivity = database.getLastHistoricalValuesByHourAsync(now, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
+                val historicalRadioactivity =
+                    database.getLastHistoricalValuesByHourAsync(now, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
 
-                counterReport = CounterReport(cpm, uSvh, cs.currentCycleProgress, cs.cycleLength, historicalRadioactivity.await())
+                counterReport =
+                    CounterReport(cpm, uSvh, cs.currentCycleProgress, cs.cycleLength, historicalRadioactivity.await())
                 return UpdateStatus.FULL_SUCCESS
             } else {
                 val rep = counterReport
