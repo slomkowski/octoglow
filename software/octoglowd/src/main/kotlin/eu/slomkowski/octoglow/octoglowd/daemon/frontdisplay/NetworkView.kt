@@ -29,7 +29,7 @@ class NetworkView(
     hardware,
     "Network",
     Duration.ofSeconds(44),
-    Duration.ofSeconds(2),
+    Duration.ofSeconds(43),
     Duration.ofSeconds(5)
 ) {
 
@@ -44,13 +44,6 @@ class NetworkView(
         val name: String,
         val ip: Inet4Address,
         val isWifi: Boolean
-    )
-
-    data class WifiSignalInfo(
-        val ifName: String,
-        val linkQuality: Double, // in percent
-        val signalStrength: Double, // in dBm
-        val noiseLevel: Double
     )
 
     data class PingResult(
@@ -75,8 +68,6 @@ class NetworkView(
     )
 
     private var currentReport: CurrentReport? = null
-
-    private var currentWifiSignalInfo: WifiSignalInfo? = null
 
     companion object : KLogging() {
 
@@ -117,19 +108,6 @@ class NetworkView(
                 columns[6].trim().toInt()
             )
         }.collect(Collectors.toList())
-
-
-        fun parseProcNetWirelessFile(reader: BufferedReader): List<WifiSignalInfo> =
-            reader.lines().skip(2).map { line ->
-                val columns = line.trim().split(Regex("\\s+"))
-
-                WifiSignalInfo(
-                    columns[0].trim(':'),
-                    columns[2].toDouble() / 70.0 * 100.0,
-                    columns[3].toDouble(),
-                    columns[4].toDouble()
-                )
-            }.collect(Collectors.toList())
 
         fun pingAddress(pingBinary: Path, iface: String, address: String, timeout: Duration, noPings: Int): PingResult {
             require(iface.isNotBlank())
@@ -192,6 +170,8 @@ class NetworkView(
         private fun NetworkInterface.isEthernet(): Boolean = listOf("eth", "enp").any { this.name.startsWith(it) }
     }
 
+    override suspend fun poolInstantData(now: ZonedDateTime) = UpdateStatus.NO_NEW_DATA
+
     override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus {
         val (newReport, updateStatus) = try {
             val iface =
@@ -235,36 +215,10 @@ class NetworkView(
         return updateStatus
     }
 
-    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus {
-        val ai = currentReport?.interfaceInfo
-        val (newReport, updateStatus) = if (ai?.isWifi == true) {
-            try {
-                val wifiInterfaces = withContext(Dispatchers.IO) {
-                    Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
-                }
-                val activeInfo = checkNotNull(wifiInterfaces.firstOrNull { it.ifName == ai.name })
-                { "cannot find interface $ai in $PROC_NET_WIRELESS_PATH" }
-
-                logger.debug { "Wi-Fi signal strength on ${activeInfo.ifName} is ${activeInfo.linkQuality.toInt()}%." }
-
-                activeInfo to UpdateStatus.FULL_SUCCESS
-            } catch (e: Exception) {
-                logger.error(e) { "Cannot determine Wi-Fi signal level" }
-                null to UpdateStatus.FAILURE
-            }
-        } else {
-            null to UpdateStatus.NO_NEW_DATA
-        }
-
-        currentWifiSignalInfo = newReport
-        return updateStatus
-    }
-
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
         coroutineScope {
             val fd = hardware.frontDisplay
             val cr = currentReport
-            val wifiInfo = currentWifiSignalInfo
 
             if (redrawStatic) {
                 launch { fd.setStaticText(0, "IP:") }
@@ -292,12 +246,5 @@ class NetworkView(
                     }
                 }
             }
-
-            if (cr?.interfaceInfo?.isWifi == true && wifiInfo != null) {
-                launch {
-                    fd.setStaticText(25, String.format("%2.0f%%", wifiInfo.linkQuality))
-                }
-            }
         }
-
 }

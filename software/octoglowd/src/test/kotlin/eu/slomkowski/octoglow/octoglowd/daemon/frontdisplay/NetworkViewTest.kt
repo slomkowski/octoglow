@@ -6,7 +6,6 @@ import eu.slomkowski.octoglow.octoglowd.readToString
 import mu.KLogging
 import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -16,9 +15,7 @@ import java.time.Duration
 import kotlin.test.assertFails
 
 internal class NetworkViewTest {
-    companion object : KLogging() {
-        private const val DELTA = 0.01
-    }
+    companion object : KLogging()
 
     @Test
     fun testPingAddress() {
@@ -29,13 +26,20 @@ internal class NetworkViewTest {
 
         val active = checkNotNull(NetworkView.getActiveInterfaceInfo())
 
-        NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", Duration.ofSeconds(5), 4).apply {
-            assertNotNull(this)
-            logger.info { "Ping stats: $this" }
-        }
+        NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", Duration.ofSeconds(5), 4)
+            .apply {
+                assertNotNull(this)
+                logger.info { "Ping stats: $this" }
+            }
 
         assertFails {
-            NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "254.254.254.254", Duration.ofSeconds(3), 2)
+            NetworkView.pingAddress(
+                config[NetworkViewKey.pingBinary],
+                active.name,
+                "254.254.254.254",
+                Duration.ofSeconds(3),
+                2
+            )
         }
     }
 
@@ -82,9 +86,17 @@ internal class NetworkViewTest {
 
     @Test
     fun testParseProcNetRouteFile() {
-        fun getList(t: String): List<NetworkView.RouteEntry> = NetworkViewTest::class.java.getResourceAsStream("/proc-net-route/$t").use { inputStream ->
-            NetworkView.parseProcNetRouteFile(BufferedReader(InputStreamReader(inputStream, StandardCharsets.US_ASCII)))
-        }
+        fun getList(t: String): List<NetworkView.RouteEntry> =
+            NetworkViewTest::class.java.getResourceAsStream("/proc-net-route/$t").use { inputStream ->
+                NetworkView.parseProcNetRouteFile(
+                    BufferedReader(
+                        InputStreamReader(
+                            inputStream,
+                            StandardCharsets.US_ASCII
+                        )
+                    )
+                )
+            }
 
         getList("1.txt").apply {
             assertEquals(4, size)
@@ -123,36 +135,6 @@ internal class NetworkViewTest {
         }
     }
 
-    @Test
-    fun testParseProcNetWirelessFile() {
-        fun getList(t: String): List<NetworkView.WifiSignalInfo> = NetworkViewTest::class.java.getResourceAsStream("/proc-net-wireless/$t").use { inputStream ->
-            NetworkView.parseProcNetWirelessFile(BufferedReader(InputStreamReader(inputStream, StandardCharsets.US_ASCII)))
-        }
-
-        getList("1.txt").apply {
-            assertEquals(1, size)
-            get(0).apply {
-                assertEquals("wlp3s0", ifName)
-                assertEquals(68.57, linkQuality, DELTA)
-                assertEquals(-62.0, signalStrength, DELTA)
-            }
-        }
-
-        getList("2.txt").apply {
-            assertTrue(isEmpty())
-        }
-
-        getList("3.txt").apply {
-            assertEquals(1, size)
-            get(0).apply {
-                assertEquals("wlan0", ifName)
-                assertEquals(84.29, linkQuality, DELTA)
-                assertEquals(-51.0, signalStrength, DELTA)
-            }
-        }
-
-        //todo more tests on different files
-    }
 
     @Test
     fun testFormatPingRtt() {

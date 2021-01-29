@@ -2,7 +2,7 @@ package eu.slomkowski.octoglow.octoglowd
 
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
-import eu.slomkowski.octoglow.octoglowd.daemon.CpuUsageIndicatorDaemon
+import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
@@ -52,7 +52,7 @@ fun main() {
     )
 
     val controllers = listOf(
-        CpuUsageIndicatorDaemon(config, hardware),
+        AnalogGaugeDaemon(config, hardware),
         RealTimeClockDaemon(config, hardware),
         brightnessDaemon,
         FrontDisplayDaemon(config, GlobalScope.coroutineContext, hardware, frontDisplayViews, menus)
