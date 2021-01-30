@@ -84,13 +84,17 @@ class GeigerView(
             }
 
             if (redrawStatus) {
-                launch { fd.setStaticText(0, formatCPM(cr?.lastCPM)) }
-                launch { fd.setStaticText(20, formatUSVh(cr?.lastUSVh)) }
+                launch {
+                    fd.setStaticText(0, formatCPM(cr?.lastCPM))
+                 fd.setStaticText(20, formatUSVh(cr?.lastUSVh))
+                }
 
-                if (cr?.historical != null && cr.lastUSVh != null) {
-                    launch { fd.setOneLineDiffChart(5 * 8, cr.lastUSVh, cr.historical, 0.01) }
-                } else {
-                    fd.setStaticText(8, "    ")
+                launch {
+                    if (cr?.historical != null && cr.lastUSVh != null) {
+                        fd.setOneLineDiffChart(5 * 8, cr.lastUSVh, cr.historical, 0.01)
+                    } else {
+                        fd.setStaticText(8, "    ")
+                    }
                 }
             }
 
@@ -114,12 +118,12 @@ class GeigerView(
                         null -> "--"
                     }
                 )
-            }
 
-            if (cr != null) {
-                launch { fd.setUpperBar(listOf(getSegmentNumber(cr.progress, cr.timeSpan))) }
-            } else {
-                launch { fd.setUpperBar(emptyList()) }
+                if (cr != null) {
+                    fd.setUpperBar(listOf(getSegmentNumber(cr.progress, cr.timeSpan)))
+                } else {
+                    fd.setUpperBar(emptyList())
+                }
             }
 
             Unit

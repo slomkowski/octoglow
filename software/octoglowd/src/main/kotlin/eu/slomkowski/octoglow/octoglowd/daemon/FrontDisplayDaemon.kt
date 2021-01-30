@@ -23,6 +23,8 @@ import java.time.ZonedDateTime
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 
+//todo wywalić refleksję?
+
 class FrontDisplayDaemon(
     private val config: Config,
     private val coroutineContext: CoroutineContext,

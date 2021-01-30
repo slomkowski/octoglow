@@ -2,13 +2,16 @@ package eu.slomkowski.octoglow.octoglowd
 
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.source.yaml
-import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDaemon
+import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 fun main() {
 
@@ -60,6 +63,6 @@ fun main() {
     )
 
     runBlocking {
-        controllers.map { GlobalScope.launch { it.startPooling() } }.joinAll()
+        controllers.forEach { GlobalScope.launch { it.createJob() } }
     }
 }

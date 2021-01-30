@@ -95,7 +95,7 @@
 
         <dependency>
             <groupId>com.uchuhimo</groupId>
-            <artifactId>konf</artifactId>
+            <artifactId>konf-core</artifactId>
             <version>${konf.version}</version>
         </dependency>
         <dependency>
