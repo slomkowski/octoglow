@@ -26,14 +26,14 @@ internal class NetworkViewTest {
 
         val active = checkNotNull(NetworkView.getActiveInterfaceInfo())
 
-        NetworkView.pingAddress(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", Duration.ofSeconds(5), 4)
+        NetworkView.pingAddressAndGetRtt(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", Duration.ofSeconds(5), 4)
             .apply {
                 assertNotNull(this)
                 logger.info { "Ping stats: $this" }
             }
 
         assertFails {
-            NetworkView.pingAddress(
+            NetworkView.pingAddressAndGetRtt(
                 config[NetworkViewKey.pingBinary],
                 active.name,
                 "254.254.254.254",

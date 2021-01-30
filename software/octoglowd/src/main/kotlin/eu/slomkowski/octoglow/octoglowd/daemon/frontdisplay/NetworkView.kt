@@ -28,8 +28,8 @@ class NetworkView(
 ) : FrontDisplayView(
     hardware,
     "Network",
-    Duration.ofSeconds(44),
-    Duration.ofSeconds(43),
+    Duration.ofSeconds(38),
+    Duration.ofSeconds(37),
     Duration.ofSeconds(5)
 ) {
 
@@ -43,6 +43,7 @@ class NetworkView(
     data class InterfaceInfo(
         val name: String,
         val ip: Inet4Address,
+        val gatewayIp: Inet4Address,
         val isWifi: Boolean
     )
 
@@ -64,7 +65,8 @@ class NetworkView(
 
     data class CurrentReport(
         val interfaceInfo: InterfaceInfo,
-        val currentPing: Duration?
+        val remotePing: Duration?,
+        val gwPing: Duration?
     )
 
     private var currentReport: CurrentReport? = null
@@ -79,15 +81,16 @@ class NetworkView(
          */
         fun getActiveInterfaceInfo(): InterfaceInfo? = Files.newBufferedReader(PROC_NET_ROUTE_PATH).use { reader ->
             getDefaultRouteEntry(parseProcNetRouteFile(reader))
-                ?.let { NetworkInterface.getByName(it.dev) }
-                ?.let { iface ->
+                ?.let { it to NetworkInterface.getByName(it.dev) }
+                ?.let { (re, iface) ->
                     InterfaceInfo(iface.name,
                         iface.inetAddresses.toList().first { it is Inet4Address } as Inet4Address,
+                        re.gateway as Inet4Address,
                         !iface.isEthernet())
                 }
         }
 
-        /**
+        /*
          * We assume that only one interface is active and is routing all traffic.
          */
         private fun getDefaultRouteEntry(entries: Collection<RouteEntry>): RouteEntry? =
@@ -109,7 +112,13 @@ class NetworkView(
             )
         }.collect(Collectors.toList())
 
-        fun pingAddress(pingBinary: Path, iface: String, address: String, timeout: Duration, noPings: Int): PingResult {
+        fun pingAddressAndGetRtt(
+            pingBinary: Path,
+            iface: String,
+            address: String,
+            timeout: Duration,
+            noPings: Int
+        ): PingResult {
             require(iface.isNotBlank())
             require(address.isNotBlank())
             require(noPings > 0)
@@ -177,34 +186,29 @@ class NetworkView(
             val iface =
                 checkNotNull(withContext(Dispatchers.IO) { getActiveInterfaceInfo() }) { "cannot determine currently active network interface" }
 
-            try {
-                val address = config[NetworkViewKey.pingAddress]
-                logger.debug {
-                    "Pinging $address via interface ${iface.name} (" + when (iface.isWifi) {
-                        true -> "wireless"
-                        false -> "wired"
-                    } + ")."
-                }
-
-                val pingInfo = withContext(Dispatchers.IO) {
-                    pingAddress(
-                        config[NetworkViewKey.pingBinary],
-                        iface.name,
-                        address,
-                        Duration.ofSeconds(4),
-                        3
-                    )
-                }
-
-                val pingTime = pingInfo.rttAvg
-
-                logger.info { "RTT to $address is ${pingTime.toMillis()} ms." }
-
-                CurrentReport(iface, pingTime) to UpdateStatus.FULL_SUCCESS
+            val gatewayPingTime = try {
+                pingAddressAndGetRtt(iface.gatewayIp.hostAddress, iface)
             } catch (e: Exception) {
-                logger.error(e) { "Error when ping." }
-                CurrentReport(iface, null) to UpdateStatus.PARTIAL_SUCCESS
+                logger.error(e) { "Error during gateway ping." }
+                null
             }
+
+            val remotePingTime = try {
+                val remoteAddress = config[NetworkViewKey.pingAddress]
+                pingAddressAndGetRtt(remoteAddress, iface)
+            } catch (e: Exception) {
+                logger.error(e) { "Error during remote ping ping." }
+                null
+            }
+
+            val updateStatus = if (remotePingTime != null && gatewayPingTime != null) {
+                UpdateStatus.FULL_SUCCESS
+            } else {
+                UpdateStatus.PARTIAL_SUCCESS
+            }
+
+            CurrentReport(iface, remotePingTime, gatewayPingTime) to updateStatus
+
         } catch (e: Exception) {
             logger.error(e) { "Cannot determine active network interface." }
             null to UpdateStatus.FAILURE
@@ -215,6 +219,35 @@ class NetworkView(
         return updateStatus
     }
 
+    private suspend fun pingAddressAndGetRtt(
+        address: String,
+        interfaceInfo: InterfaceInfo
+    ): Duration {
+
+        logger.debug {
+            "Pinging $address via interface ${interfaceInfo.name} (" + when (interfaceInfo.isWifi) {
+                true -> "wireless"
+                false -> "wired"
+            } + ")."
+        }
+
+        val pingInfo = withContext(Dispatchers.IO) {
+            pingAddressAndGetRtt(
+                config[NetworkViewKey.pingBinary],
+                interfaceInfo.name,
+                address,
+                Duration.ofSeconds(4),
+                3
+            )
+        }
+
+        val pingTime = pingInfo.rttAvg
+
+        logger.info { "RTT to $address is ${pingTime.toMillis()} ms." }
+
+        return pingTime
+    }
+
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
         coroutineScope {
             val fd = hardware.frontDisplay
@@ -222,7 +255,8 @@ class NetworkView(
 
             if (redrawStatic) {
                 launch { fd.setStaticText(0, "IP:") }
-                launch { fd.setStaticText(29, "ping") }
+                launch { fd.setStaticText(20, "ping") }
+                launch { fd.setStaticText(32, "gw") }
             }
 
             if (redrawStatus) {
@@ -233,16 +267,17 @@ class NetworkView(
                 if (cr != null) {
                     launch {
                         fd.setStaticText(
-                            20,
+                            16,
                             when (cr.interfaceInfo.isWifi) {
-                                false -> "wired"
+                                false -> "wire"
                                 true -> "wifi"
                             }
                         )
                     }
 
                     launch {
-                        fd.setStaticText(34, formatPingRtt(cr.currentPing))
+                        fd.setStaticText(24, formatPingRtt(cr.remotePing))
+                        fd.setStaticText(34, formatPingRtt(cr.gwPing))
                     }
                 }
             }
