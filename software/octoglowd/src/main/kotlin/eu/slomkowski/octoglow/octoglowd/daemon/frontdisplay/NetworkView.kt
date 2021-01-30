@@ -94,7 +94,7 @@ class NetworkView(
          * We assume that only one interface is active and is routing all traffic.
          */
         private fun getDefaultRouteEntry(entries: Collection<RouteEntry>): RouteEntry? =
-            entries.filter { it.dst == InetAddress.getByAddress(byteArrayOf(0, 0, 0, 0)) }.minBy { it.metric }
+            entries.filter { it.dst == InetAddress.getByAddress(byteArrayOf(0, 0, 0, 0)) }.minByOrNull { it.metric }
 
         fun createIpFromHexString(str: String): InetAddress {
             require(str.length == 8) { "the string has to be 8 hex digits" }

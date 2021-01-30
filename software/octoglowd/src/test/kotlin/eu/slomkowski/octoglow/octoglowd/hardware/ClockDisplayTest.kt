@@ -19,6 +19,8 @@ class ClockDisplayTest {
     fun testGetOutdoorWeatherReport(hardware: Hardware) {
         runBlocking {
             ClockDisplay(hardware).apply {
+                initDevice()
+
                 val report1 = getOutdoorWeatherReport()
                         ?: fail("Report is invalid. Perhaps no measurement received yet?")
 

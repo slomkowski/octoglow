@@ -27,7 +27,7 @@ class AnalogGaugeDaemonTest {
         val d = AnalogGaugeDaemon(mockk(), hardware)
 
         val dacValueSlot = slot<Int>()
-        coEvery { hardware.dac.setValue(DacChannel.C2, capture(dacValueSlot)) } answers {
+        coEvery { hardware.dac.setValue(any(), capture(dacValueSlot)) } answers {
             assertTrue(dacValueSlot.captured in (0..255))
         }
 

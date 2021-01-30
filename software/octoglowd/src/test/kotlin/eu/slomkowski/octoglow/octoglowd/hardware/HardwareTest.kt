@@ -16,8 +16,9 @@ class HardwareTest {
 
     @Test
     fun testBrightness() {
-        val config = Config { addSpec(ConfKey) }
-        config[ConfKey.i2cBus] = testConfig[TestConfKey.i2cBus]
+        val config = Config { addSpec(ConfKey) }.from.map.kv(
+            mapOf("i2cBus" to testConfig[TestConfKey.i2cBus])
+        )
 
         runBlocking {
             Hardware(config).use { hardware ->

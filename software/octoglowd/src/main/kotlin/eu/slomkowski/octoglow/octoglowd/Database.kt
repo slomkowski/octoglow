@@ -13,6 +13,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.Executors
 
 abstract class TimestampedTable(name: String) : Table(name) {
     val id = long("id").autoIncrement().primaryKey()
@@ -71,7 +72,7 @@ class DatabaseLayer(
 
             val rangeLimitExpr = timeRanges
                 .flatMap { it.toList() }
-                .let { "$timestampCol BETWEEN ${it.min()?.fmt()} AND ${it.max()?.fmt()}" }
+                .let { "$timestampCol BETWEEN ${it.minOrNull()?.fmt()} AND ${it.maxOrNull()?.fmt()}" }
 
             val caseExpr = timeRanges.mapIndexed { idx, (lower, upper) ->
                 "WHEN $timestampCol BETWEEN ${lower.fmt()} AND ${upper.fmt()} THEN $idx"
@@ -119,7 +120,7 @@ class DatabaseLayer(
         val sqliteNativeDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss.SSSSSS")
     }
 
-    private val threadContext = newSingleThreadContext("database")
+    private val threadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
     init {
         Database.connect("jdbc:sqlite:$databaseFile", "org.sqlite.JDBC")

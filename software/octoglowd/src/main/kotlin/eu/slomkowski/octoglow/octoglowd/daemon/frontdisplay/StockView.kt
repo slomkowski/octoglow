@@ -172,7 +172,7 @@ class StockView(
     ): SingleStockReport? {
         val dbKey = Stock(ticker)
 
-        val newestToday = stockData.filter { it.ticker == ticker }.maxBy { it.timestamp }
+        val newestToday = stockData.filter { it.ticker == ticker }.maxByOrNull { it.timestamp }
 
         if (newestToday != null) {
             database.insertHistoricalValueAsync(newestToday.timestamp, dbKey, newestToday.typicalPrice.toDouble())

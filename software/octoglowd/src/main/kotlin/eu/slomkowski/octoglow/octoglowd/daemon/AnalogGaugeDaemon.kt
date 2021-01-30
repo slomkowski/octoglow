@@ -61,8 +61,16 @@ class AnalogGaugeDaemon(
 
         check(wifiInterfaces.size <= 1) { "more than one active Wi-Fi interface found" }
 
-        wifiInterfaces.singleOrNull()?.let { interfaceInfo ->
-            launch { setValue(WIFI_CHANNEL, interfaceInfo.linkQuality / 100.0) }
+        val interfaceInfo = wifiInterfaces.singleOrNull()
+
+        launch {
+            setValue(
+                WIFI_CHANNEL, if (interfaceInfo != null) {
+                    interfaceInfo.linkQuality / 100.0
+                } else {
+                    0.0
+                }
+            )
         }
 
         Unit

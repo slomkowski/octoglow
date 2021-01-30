@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import com.uchuhimo.konf.Config
+import com.uchuhimo.konf.source.yaml
 import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon

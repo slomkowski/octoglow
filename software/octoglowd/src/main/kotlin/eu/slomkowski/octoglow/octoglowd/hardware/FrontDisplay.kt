@@ -166,8 +166,8 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
                     val v = ((it.toDouble() - currentValue.toDouble()) / unit.toDouble()).roundToInt()
                     val (upperV, lowerV) = v.coerceIn(0, 7) to v.coerceIn(-7, 0)
 
-                    val upperC = (0..(upperV - 1)).fold(0) { columnByte, y -> columnByte or (0b1000000 shr y) }
-                    val lowerC = (0..(-lowerV - 1)).fold(0) { columnByte, y -> columnByte or (1 shl y) }
+                    val upperC = (0 until upperV).fold(0) { columnByte, y -> columnByte or (0b1000000 shr y) }
+                    val lowerC = (0 until -lowerV).fold(0) { columnByte, y -> columnByte or (1 shl y) }
 
                     upperC to lowerC
                 } ?: 0b1 to 0b1000000

@@ -41,6 +41,7 @@ class Bme280Test {
         runBlocking {
             Bme280(hardware).use { bme280 ->
                 assertNotNull(bme280)
+                bme280.initDevice()
 
                 delay(1_000)
 

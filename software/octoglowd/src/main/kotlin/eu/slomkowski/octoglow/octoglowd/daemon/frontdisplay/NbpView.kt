@@ -110,7 +110,7 @@ class NbpView(
         }
 
         fun createReport(code: String, rates: List<DatedPrice>, today: LocalDate): SingleCurrencyReport {
-            val mostRecentRate = checkNotNull(rates.maxBy { it.date })
+            val mostRecentRate = checkNotNull(rates.maxByOrNull { it.date })
 
             val historical = ((1)..HISTORIC_VALUES_LENGTH).map { dayNumber ->
                 val day = today.minusDays(dayNumber.toLong())

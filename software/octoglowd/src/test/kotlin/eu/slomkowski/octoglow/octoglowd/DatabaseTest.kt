@@ -165,14 +165,14 @@ class DatabaseTest {
     fun testCreateSqlQueryForAveragedDays() {
         assertEquals("""SELECT
         |CASE
-        |WHEN created BETWEEN 1548327600000 AND 1548329400000 THEN 0
-        |WHEN created BETWEEN 1548325800000 AND 1548327600000 THEN 1
-        |WHEN created BETWEEN 1548324000000 AND 1548325800000 THEN 2
-        |WHEN created BETWEEN 1548322200000 AND 1548324000000 THEN 3
+        |WHEN created BETWEEN 1606863600000 AND 1606950000000 THEN 0
+        |WHEN created BETWEEN 1606777200000 AND 1606863600000 THEN 1
+        |WHEN created BETWEEN 1606690800000 AND 1606777200000 THEN 2
+        |WHEN created BETWEEN 1606604400000 AND 1606690800000 THEN 3
         |ELSE -1 END AS bucket_no,
         |avg(value) as value
         |FROM tt
-        |WHERE created BETWEEN 1548322200000 AND 1548329400000 AND symbol = 'WER'
+        |WHERE created BETWEEN 1606604400000 AND 1606950000000 AND symbol = 'TEST'
         |GROUP BY 1
         |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
                 "tt",
