@@ -13,7 +13,7 @@ class Dac(hardware: Hardware) : I2CDevice(hardware, 0x4f) {
         setToZero()
     }
 
-    override fun close() {
+    override suspend fun closeDevice() {
         setToZero()
     }
 

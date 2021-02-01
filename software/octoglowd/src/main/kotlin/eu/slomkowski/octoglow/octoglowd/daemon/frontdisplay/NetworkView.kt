@@ -4,10 +4,7 @@ import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.readToString
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import mu.KLogging
 import java.io.BufferedReader
 import java.net.Inet4Address
@@ -181,33 +178,37 @@ class NetworkView(
 
     override suspend fun poolInstantData(now: ZonedDateTime) = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus {
+    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
         val (newReport, updateStatus) = try {
             val iface =
                 checkNotNull(withContext(Dispatchers.IO) { getActiveInterfaceInfo() }) { "cannot determine currently active network interface" }
 
-            val gatewayPingTime = try {
-                pingAddressAndGetRtt(iface.gatewayIp.hostAddress, iface)
-            } catch (e: Exception) {
-                logger.error(e) { "Error during gateway ping." }
-                null
+            val gatewayPingTime = async {
+                try {
+                    pingAddressAndGetRtt(iface.gatewayIp.hostAddress, iface)
+                } catch (e: Exception) {
+                    logger.error(e) { "Error during gateway ping." }
+                    null
+                }
             }
 
-            val remotePingTime = try {
-                val remoteAddress = config[NetworkViewKey.pingAddress]
-                pingAddressAndGetRtt(remoteAddress, iface)
-            } catch (e: Exception) {
-                logger.error(e) { "Error during remote ping ping." }
-                null
+            val remotePingTime = async {
+                try {
+                    val remoteAddress = config[NetworkViewKey.pingAddress]
+                    pingAddressAndGetRtt(remoteAddress, iface)
+                } catch (e: Exception) {
+                    logger.error(e) { "Error during remote ping ping." }
+                    null
+                }
             }
 
-            val updateStatus = if (remotePingTime != null && gatewayPingTime != null) {
+            val updateStatus = if (remotePingTime.await() != null && gatewayPingTime.await() != null) {
                 UpdateStatus.FULL_SUCCESS
             } else {
                 UpdateStatus.PARTIAL_SUCCESS
             }
 
-            CurrentReport(iface, remotePingTime, gatewayPingTime) to updateStatus
+            CurrentReport(iface, remotePingTime.await(), gatewayPingTime.await()) to updateStatus
 
         } catch (e: Exception) {
             logger.error(e) { "Cannot determine active network interface." }
@@ -216,7 +217,7 @@ class NetworkView(
 
         currentReport = newReport
 
-        return updateStatus
+        updateStatus
     }
 
     private suspend fun pingAddressAndGetRtt(

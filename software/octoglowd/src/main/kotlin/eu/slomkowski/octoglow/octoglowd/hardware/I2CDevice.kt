@@ -17,7 +17,7 @@ abstract class I2CDevice(
 
     open suspend fun closeDevice() {} //todo
 
-    override fun close() {
+    final override fun close() {
         try {
             runBlocking { closeDevice() }
         } catch (e: Exception) {

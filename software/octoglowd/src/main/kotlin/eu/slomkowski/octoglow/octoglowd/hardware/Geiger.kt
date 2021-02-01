@@ -4,7 +4,6 @@ import eu.slomkowski.octoglow.octoglowd.contentToString
 import eu.slomkowski.octoglow.octoglowd.toList
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
-import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import java.time.Duration
 
@@ -115,10 +114,8 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
         private const val I2C_READ_TRIES = 5
     }
 
-    override fun close() {
-        runBlocking {
-            setBrightness(3)
-        }
+    override suspend fun closeDevice() {
+        setBrightness(3)
     }
 
     override suspend fun setBrightness(brightness: Int) {

@@ -44,12 +44,10 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
         }
     }
 
-    override fun close() {
-        runBlocking {
-            clear()
-            setBrightness(3)
-            setStaticText(5, "SHUT  DOWN")
-        }
+    override suspend fun closeDevice() {
+        clear()
+        setBrightness(3)
+        setStaticText(5, "SHUT  DOWN")
     }
 
     override suspend fun setBrightness(brightness: Int) {

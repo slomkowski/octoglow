@@ -7,10 +7,12 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import io.dvlopt.linux.i2c.I2CFunctionality
 import io.dvlopt.linux.i2c.I2CTransaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import mu.KLogging
 import java.io.IOException
 import java.time.Duration
@@ -69,12 +71,14 @@ class Hardware(
     }
 
     suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = busMutex.withLock {
-        bus.doTransaction(I2CTransaction(1).apply {
-            getMessage(0).apply {
-                address = i2cAddress
-                buffer = writeBuffer
-            }
-        })
+        withContext(Dispatchers.IO) {
+            bus.doTransaction(I2CTransaction(1).apply {
+                getMessage(0).apply {
+                    address = i2cAddress
+                    buffer = writeBuffer
+                }
+            })
+        }
     }
 
     suspend fun doTransaction(
@@ -87,30 +91,32 @@ class Hardware(
 
         val readBuffer = I2CBuffer(bytesToRead)
 
-        for (tryNo in 1..numberOfTries) {
-            try {
-                busMutex.withLock {
-                    bus.selectSlave(i2cAddress)
-                    bus.write(writeBuffer)
-                    delay(1)
-                    bus.read(readBuffer)
-                }
+        withContext(Dispatchers.IO) {
+            for (tryNo in 1..numberOfTries) {
+                try {
+                    busMutex.withLock {
+                        bus.selectSlave(i2cAddress)
+                        bus.write(writeBuffer)
+                        delay(1)
+                        bus.read(readBuffer)
+                    }
 
-                break
-            } catch (e: IOException) {
-                logger.debug {
-                    "doTransaction error. " +
-                            "Address 0x${i2cAddress.toString(16)}. " +
-                            "Write buffer: ${writeBuffer.contentToString()}, " +
-                            "read buffer: ${readBuffer.contentToString()};"
-                }
+                    break
+                } catch (e: IOException) {
+                    logger.debug {
+                        "doTransaction error. " +
+                                "Address 0x${i2cAddress.toString(16)}. " +
+                                "Write buffer: ${writeBuffer.contentToString()}, " +
+                                "read buffer: ${readBuffer.contentToString()};"
+                    }
 
-                if (e.message?.contains("errno 6", ignoreCase = true) == true && tryNo < numberOfTries) {
-                    logger.warn("errno 6 happened, retrying ({}/{}).", tryNo, numberOfTries)
-                    continue
-                } else {
-                    logger.error(e) { "Error in bus transaction ($tryNo/$numberOfTries)" }
-                    throw e
+                    if (e.message?.contains("errno 6", ignoreCase = true) == true && tryNo < numberOfTries) {
+                        logger.warn("errno 6 happened, retrying ({}/{}).", tryNo, numberOfTries)
+                        continue
+                    } else {
+                        logger.error(e) { "Error in bus transaction ($tryNo/$numberOfTries)" }
+                        throw e
+                    }
                 }
             }
         }

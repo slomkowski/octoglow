@@ -3,7 +3,6 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import java.time.Duration
 
@@ -30,10 +29,16 @@ data class OutdoorWeatherReport(
             if ((buff[4] and VALID_MEASUREMENT_FLAG) == 0) {
                 return null
             }
-            // T: 6517.3, H: 1.0. Buffer: [4 149 254 1 2]
-            // T: 6510.9, H: 1.0. Buffer:  [4 85 254 1 2]
-            // T: 6543.6, H: 68.0. Buffer: [4 156 255 68 6]     prawidłowe: 23.2 stopnie, 45% wilgotnosć
-            val temperaturePart = (256 * buff[2] + buff[1]).toDouble() / 10.0
+
+            val temperatureBits = (256 * buff[2] + buff[1]).let {
+                if (it >= 0x1000) {
+                    it - 0x10000 - 1
+                } else {
+                    it
+                }
+            }
+
+            val temperaturePart = temperatureBits.toDouble() / 10.0
             val humidityPart = buff[3].toDouble()
 
             try {
@@ -68,17 +73,16 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
         doWrite(2, 0, 0)
     }
 
-    override fun close() {
-        runBlocking {
-            setBrightness(3)
-            doWrite(2, 0, 0)
-            doWrite(1, 45, 45, 45, 45)
-        }
+    override suspend fun closeDevice() {
+        setBrightness(3)
+        doWrite(2, 0, 0)
+        doWrite(1, 45, 45, 45, 45)
     }
 
     suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport? {
         val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 5)
         check(readBuffer[0] == 4)
+        logger.debug { "Report buffer: " + readBuffer.contentToString() }
         return OutdoorWeatherReport.parse(readBuffer)
     }
 

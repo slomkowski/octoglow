@@ -22,7 +22,7 @@ class ClockDisplayTest {
                 initDevice()
 
                 val report1 = getOutdoorWeatherReport()
-                        ?: fail("Report is invalid. Perhaps no measurement received yet?")
+                    ?: fail("Report is invalid. Perhaps no measurement received yet?")
 
                 logger.info("Report 1: {}", report1)
                 val report2 = getOutdoorWeatherReport()
@@ -49,6 +49,27 @@ class ClockDisplayTest {
         assertFailsWith(IllegalStateException::class) {
             OutdoorWeatherReport.parse(I2CBuffer(5).set(0, 4).set(1, 43).set(2, 34).set(3, 43).set(4, 43))
         }
+    }
+
+    @Test
+    fun testGetOutdoorWeatherReportParse() {
+        assertParsing(-2.6, 66.0, 4, 231, 255, 66, 6)
+        assertParsing(-2.7, 66.0, 4, 230, 255, 66, 6)
+        assertParsing(-2.9, 66.0, 4, 228, 255, 66, 2)
+
+        //todo more positive temp
+    }
+
+    private fun assertParsing(temperature: Double, humidity: Double, vararg buffer: Int) {
+        require(buffer.size == 5)
+        val i2CBuffer = I2CBuffer(buffer.size).apply {
+            buffer.forEachIndexed { i, v -> this.set(i, v) }
+        }
+
+        val report = assertNotNull(OutdoorWeatherReport.parse(i2CBuffer))
+
+        assertEquals(temperature, report.temperature)
+        assertEquals(humidity, report.humidity)
     }
 
     @Test
