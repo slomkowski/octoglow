@@ -1,13 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.coroutines.awaitString
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.Stock
 import eu.slomkowski.octoglow.octoglowd.StocksKey
 import eu.slomkowski.octoglow.octoglowd.WARSAW_ZONE_ID
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -17,7 +16,6 @@ import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import java.io.StringReader
 import java.math.BigDecimal
-import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
@@ -87,6 +85,8 @@ class StockView(
         private const val STOOQ_URL = "https://stooq.pl/db/d/"
 
         suspend fun downloadStockData(date: LocalDate): List<StockInfoDto> {
+            TODO("reimplement to other stock provider")
+
             val parameters = listOf(
                 "t" to "h",
                 "d" to date.format(DateTimeFormatter.BASIC_ISO_DATE),
@@ -95,7 +95,7 @@ class StockView(
 
             logger.debug("Downloading stock data for $date from stooq.pl.")
 
-            val responseString = Fuel.get(STOOQ_URL, parameters).awaitString(StandardCharsets.UTF_8)
+            val responseString = eu.slomkowski.octoglow.octoglowd.httpClient.get<String>(STOOQ_URL)
 
             if (responseString.isBlank()) {
                 throw IllegalStateException("response is empty")

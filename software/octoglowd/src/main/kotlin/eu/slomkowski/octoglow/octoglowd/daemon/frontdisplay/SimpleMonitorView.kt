@@ -3,23 +3,22 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.extensions.authentication
-import com.github.kittinunf.fuel.coroutines.awaitObject
-import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import io.ktor.client.request.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import mu.KLogging
 import org.apache.commons.lang3.StringUtils
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.*
 
 class SimpleMonitorView(
     private val config: Config,
@@ -57,17 +56,20 @@ class SimpleMonitorView(
     )
 
     companion object : KLogging() {
-        suspend fun getLatestSimpleMonitorJson(url: URL, user: String?, password: String?): SimpleMonitorJson {
 
-            val request = if (user != null && password != null) {
-                Fuel.get(url.toString()).authentication().basic(user, password)
-            } else {
-                Fuel.get(url.toString())
-            }
+
+        suspend fun getLatestSimpleMonitorJson(url: URL, user: String?, password: String?): SimpleMonitorJson {
 
             logger.info { "Downloading SimpleMonitor status from $url." }
 
-            return request.awaitObject(jacksonDeserializerOf(jacksonObjectMapper))
+            return if (user != null && password != null) {
+                val auth = Base64.getEncoder().encodeToString("$user:$password".toByteArray(StandardCharsets.UTF_8))
+                httpClient.get(url.toString()) {
+                    header("Authorization", "Basic $auth")
+                }
+            } else {
+                httpClient.get(url.toString())
+            }
         }
     }
 

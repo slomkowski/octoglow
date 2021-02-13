@@ -1,14 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.coroutines.awaitObject
-import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
 import eu.slomkowski.octoglow.octoglowd.NbpKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
+import eu.slomkowski.octoglow.octoglowd.httpClient
+import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -88,13 +86,9 @@ class NbpView(
             logger.debug { "Downloading currency rates for $currencyCode." }
             val url = "$NBP_API_BASE/exchangerates/rates/a/$currencyCode/last/$howMany"
 
-            val resp = Fuel.get(url).awaitObject<CurrencyDto>(jacksonDeserializerOf(jacksonObjectMapper))
+            val resp: CurrencyDto = httpClient.get(url)
 
-            return resp.let {
-                check(it.code == currencyCode)
-                check(it.rates.isNotEmpty())
-                it.rates
-            }
+            return resp.rates
         }
 
         suspend fun getGoldRates(howMany: Int): List<GoldPrice> {
@@ -102,7 +96,7 @@ class NbpView(
             logger.debug { "Downloading gold price." }
             val url = "$NBP_API_BASE/cenyzlota/last/$howMany"
 
-            val resp = Fuel.get(url).awaitObject<List<GoldPrice>>(jacksonDeserializerOf(jacksonObjectMapper))
+            val resp: List<GoldPrice> = httpClient.get(url)
 
             return resp.apply {
                 check(isNotEmpty())

@@ -12,16 +12,16 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
+<!--        <maven.compiler.source>1.8</maven.compiler.source>-->
+<!--        <maven.compiler.target>1.8</maven.compiler.target>-->
+        <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
         <main.class>eu.slomkowski.octoglow.octoglowd.MainKt</main.class>
 
-        <kotlin.version>1.4.21</kotlin.version>
+        <kotlin.version>1.4.30</kotlin.version>
         <junit.version>5.7.0</junit.version>
-        <fuel.version>2.3.1</fuel.version>
         <jackson.version>2.12.1</jackson.version>
         <konf.version>1.0.0</konf.version>
+        <ktor.version>1.5.1</ktor.version>
 
         <sonar.language>kotlin</sonar.language>
         <sonar.sources>src/main/kotlin</sonar.sources>
@@ -133,19 +133,14 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.kittinunf.fuel</groupId>
-            <artifactId>fuel</artifactId>
-            <version>${fuel.version}</version>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-cio-jvm</artifactId>
+            <version>${ktor.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.kittinunf.fuel</groupId>
-            <artifactId>fuel-coroutines</artifactId>
-            <version>${fuel.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.kittinunf.fuel</groupId>
-            <artifactId>fuel-jackson</artifactId>
-            <version>${fuel.version}</version>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-jackson</artifactId>
+            <version>${ktor.version}</version>
         </dependency>
 
         <dependency>
@@ -189,6 +184,8 @@
     </dependencies>
 
     <build>
+        <sourceDirectory>src/main/kotlin</sourceDirectory>
+        <testSourceDirectory>src/test/kotlin</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>
@@ -218,31 +215,23 @@
                 </executions>
             </plugin>
             <plugin>
-                <artifactId>kotlin-maven-plugin</artifactId>
                 <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>
                 <executions>
                     <execution>
                         <id>compile</id>
+                        <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
-                            </sourceDirs>
-                        </configuration>
                     </execution>
                     <execution>
                         <id>test-compile</id>
+                        <phase>test-compile</phase>
                         <goals>
                             <goal>test-compile</goal>
                         </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/test/kotlin</sourceDir>
-                            </sourceDirs>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -313,9 +302,20 @@
             <id>Kotlin Exposed</id>
             <url>https://dl.bintray.com/kotlin/exposed/</url>
         </repository>
+<!--        <repository>-->
+<!--            <id>jitpack</id>-->
+<!--            <url>https://jitpack.io</url>-->
+<!--        </repository>-->
         <repository>
-            <id>jitpack</id>
-            <url>https://jitpack.io</url>
+            <id>repo2</id>
+            <url>https://kotlin.bintray.com/ktor</url>
+<!--            <releases><enabled>true</enabled></releases>-->
+        </repository>
+        <repository>
+            <id>repo1</id>
+            <url>https://jcenter.bintray.com</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
         </repository>
     </repositories>
 </project>

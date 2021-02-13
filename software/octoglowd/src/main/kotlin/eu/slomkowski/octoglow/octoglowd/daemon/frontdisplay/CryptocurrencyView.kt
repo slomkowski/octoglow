@@ -2,16 +2,11 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.type.TypeReference
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.coroutines.awaitObject
-import com.github.kittinunf.fuel.jackson.jacksonDeserializerOf
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
-import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
-import eu.slomkowski.octoglow.octoglowd.Cryptocurrency
-import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
+import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -43,11 +38,9 @@ class CryptocurrencyView(
             val url = "$COINPAPRIKA_API_BASE/coins/$coinId/ohlcv/today"
             logger.debug { "Downloading OHLC info from $url" }
 
-            val resp = Fuel.get(url)
-                .appendHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101")
-                .awaitObject<OhlcDto>(jacksonDeserializerOf(jacksonObjectMapper))
-
-            return resp
+            return httpClient.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101")
+            }
         }
 
         fun formatDollars(amount: Double?): String {

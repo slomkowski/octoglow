@@ -4,15 +4,15 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.github.kittinunf.fuel.core.ResponseDeserializable
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.dvlopt.linux.i2c.I2CBuffer
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.features.*
+import io.ktor.client.features.json.*
 import kotlinx.coroutines.delay
 import mu.KLogger
-import org.apache.commons.csv.CSVFormat
-import org.apache.commons.csv.CSVParser
-import org.apache.commons.csv.CSVRecord
 import org.shredzone.commons.suncalc.SunTimes
 import java.io.*
 import java.nio.charset.StandardCharsets
@@ -30,6 +30,19 @@ val jacksonObjectMapper: ObjectMapper = com.fasterxml.jackson.databind.ObjectMap
     .registerModules(JavaTimeModule(), KotlinModule())
     .configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true)
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+
+val httpClient = HttpClient(CIO) {
+    install(HttpTimeout) {
+        requestTimeoutMillis = 15_000
+        connectTimeoutMillis = 15_000
+        socketTimeoutMillis = 15_000
+    }
+
+    install(JsonFeature) {
+        serializer = JacksonSerializer(jacksonObjectMapper)
+        //todo kotlinx serializer
+    }
+}
 
 fun isSleeping(start: LocalTime, duration: Duration, now: LocalTime): Boolean {
     val sleepTime = Duration.between(LocalTime.MIN, start)
@@ -144,17 +157,3 @@ fun I2CBuffer.contentToString(): String =
 fun I2CBuffer.toList(): List<Int> = (0 until this.length).map { this[it] }.toList()
 
 fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).readText()
-
-inline fun <reified T : Any> csvDeserializerOf(
-    csvFormat: CSVFormat = CSVFormat.DEFAULT,
-    crossinline recordMappingFunction: (CSVRecord) -> T
-) = object : ResponseDeserializable<List<T>> {
-    override fun deserialize(reader: Reader): List<T> = CSVParser(reader, csvFormat).records.map(recordMappingFunction)
-
-    override fun deserialize(content: String): List<T> = StringReader(content).use { deserialize(it) }
-
-    override fun deserialize(bytes: ByteArray): List<T> = ByteArrayInputStream(bytes).use { deserialize(it) }
-
-    override fun deserialize(inputStream: InputStream): List<T> =
-        InputStreamReader(inputStream, StandardCharsets.UTF_8).use { deserialize(it) }
-}
