@@ -1,9 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.SimpleMonitorKey
-import eu.slomkowski.octoglow.octoglowd.jacksonObjectMapper
+import eu.slomkowski.octoglow.octoglowd.jsonSerializer
+import eu.slomkowski.octoglow.octoglowd.readToString
 import eu.slomkowski.octoglow.octoglowd.testConfig
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.decodeFromString
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -16,7 +18,7 @@ class SimpleMonitorViewTest {
     @Test
     fun testDeserialization() {
         SimpleMonitorViewTest::class.java.getResourceAsStream("/simplemonitor-json/1.json").use {
-            jacksonObjectMapper.readValue(it, SimpleMonitorView.SimpleMonitorJson::class.java)
+            jsonSerializer.decodeFromString<SimpleMonitorView.SimpleMonitorJson>(it.readToString())
         }.apply {
             assertNotNull(this)
 
@@ -36,7 +38,11 @@ class SimpleMonitorViewTest {
         runBlocking {
             SimpleMonitorView.getLatestSimpleMonitorJson(url, user, password).apply {
                 assertNotNull(this)
-                logger.debug { "${monitors.size} monitors defined, ${monitors.filterValues { it.status == SimpleMonitorView.MonitorStatus.OK }.count()} are OK." }
+                logger.debug {
+                    "${monitors.size} monitors defined, ${
+                        monitors.filterValues { it.status == SimpleMonitorView.MonitorStatus.OK }.count()
+                    } are OK."
+                }
             }
         }
     }

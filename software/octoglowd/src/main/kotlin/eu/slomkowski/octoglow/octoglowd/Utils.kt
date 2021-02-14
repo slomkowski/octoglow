@@ -1,9 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.dvlopt.linux.i2c.I2CBuffer
@@ -11,6 +7,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.features.*
 import io.ktor.client.features.json.*
+import io.ktor.client.features.json.serializer.*
 import kotlinx.coroutines.delay
 import mu.KLogger
 import org.shredzone.commons.suncalc.SunTimes
@@ -26,10 +23,10 @@ const val DEGREE: Char = '\u00B0'
 
 val WARSAW_ZONE_ID: ZoneId = ZoneId.of("Europe/Warsaw")
 
-val jacksonObjectMapper: ObjectMapper = com.fasterxml.jackson.databind.ObjectMapper()
-    .registerModules(JavaTimeModule(), KotlinModule())
-    .configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true)
-    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+val jsonSerializer = kotlinx.serialization.json.Json {
+    prettyPrint = true
+    ignoreUnknownKeys = true
+}
 
 val httpClient = HttpClient(CIO) {
     install(HttpTimeout) {
@@ -39,8 +36,7 @@ val httpClient = HttpClient(CIO) {
     }
 
     install(JsonFeature) {
-        serializer = JacksonSerializer(jacksonObjectMapper)
-        //todo kotlinx serializer
+        serializer = KotlinxSerializer(jsonSerializer)
     }
 }
 

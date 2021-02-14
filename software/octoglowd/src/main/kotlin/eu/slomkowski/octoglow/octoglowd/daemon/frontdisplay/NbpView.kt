@@ -1,8 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
+import eu.slomkowski.octoglow.octoglowd.LocalDateSerializer
 import eu.slomkowski.octoglow.octoglowd.NbpKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.httpClient
@@ -11,10 +11,15 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import mu.KLogging
 import java.time.Duration
-import java.time.LocalDate
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 class NbpView(
     private val config: Config,
@@ -32,8 +37,10 @@ class NbpView(
         val price: Double
     }
 
+    @Serializable
     data class RateDto(
         val no: String,
+        @Serializable(LocalDateSerializer::class)
         val effectiveDate: LocalDate,
         val mid: Double
     ) : DatedPrice {
@@ -43,6 +50,7 @@ class NbpView(
             get() = mid
     }
 
+    @Serializable
     data class CurrencyDto(
         val table: String,
         val currency: String,
@@ -66,10 +74,13 @@ class NbpView(
         val currencies: Map<RequiredItem<String>, SingleCurrencyReport>
     )
 
+    @Serializable
     data class GoldPrice(
-        @JsonProperty("data")
+        @Serializable(LocalDateSerializer::class)
+        @SerialName("data")
         override val date: LocalDate,
-        @JsonProperty("cena")
+
+        @SerialName("cena")
         override val price: Double
     ) : DatedPrice
 
@@ -107,7 +118,7 @@ class NbpView(
             val mostRecentRate = checkNotNull(rates.maxByOrNull { it.date })
 
             val historical = ((1)..HISTORIC_VALUES_LENGTH).map { dayNumber ->
-                val day = today.minusDays(dayNumber.toLong())
+                val day = today.minus(dayNumber, DateTimeUnit.DAY)
                 rates.singleOrNull { it.date == day }?.price
             }.asReversed()
 
@@ -196,7 +207,10 @@ class NbpView(
             async {
                 val code = config[currencyKey]
                 try {
-                    currencyKey to getCurrencyReport(code, now.toLocalDate())
+                    currencyKey to getCurrencyReport(
+                        code,
+                        LocalDate.parse(now.toLocalDate().format(DateTimeFormatter.ISO_DATE))
+                    ) //todo remove parsing
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to update status on $code." }
                     null

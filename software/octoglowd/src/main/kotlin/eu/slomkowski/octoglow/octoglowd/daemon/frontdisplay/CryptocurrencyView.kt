@@ -1,7 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.core.type.TypeReference
 import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.RequiredItem
 import eu.slomkowski.octoglow.octoglowd.*
@@ -11,9 +9,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toJavaInstant
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import mu.KLogging
 import java.time.Duration
-import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -38,9 +40,9 @@ class CryptocurrencyView(
             val url = "$COINPAPRIKA_API_BASE/coins/$coinId/ohlcv/today"
             logger.debug { "Downloading OHLC info from $url" }
 
-            return httpClient.get(url) {
+            return httpClient.get<List<OhlcDto>>(url) {
                 header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101")
-            }
+            }.single()
         }
 
         fun formatDollars(amount: Double?): String {
@@ -55,26 +57,34 @@ class CryptocurrencyView(
 
         fun fillAvailableCryptocurrencies(): Set<CoinInfoDto> = CryptocurrencyView::class.java
             .getResourceAsStream("/coinpaprika-cryptocurrencies.json").use {
-                jacksonObjectMapper.readValue(it, object : TypeReference<Set<CoinInfoDto>>() {})
+                jsonSerializer.decodeFromString(it.readToString())
             }
     }
 
+    @Serializable
     data class CoinInfoDto(
         val id: String,
         val name: String,
         val symbol: String
     )
 
+    @Serializable
     data class OhlcDto(
-        @JsonProperty("time_open") val timeOpen: OffsetDateTime,
-        @JsonProperty("time_close") val timeClose: OffsetDateTime,
+        @Serializable(InstantSerializer::class)
+        @SerialName("time_open")
+        val timeOpen: Instant,
+
+        @Serializable(InstantSerializer::class)
+        @SerialName("time_close")
+        val timeClose: Instant,
+
         val open: Double,
         val close: Double,
         val low: Double,
         val high: Double
     ) {
         init {
-            require(!timeOpen.isAfter(timeClose))
+            require(timeClose >= timeOpen)
             require(low <= high)
             doubleArrayOf(low, high, open, close).forEach { require(it > 0) }
         }
@@ -148,7 +158,7 @@ class CryptocurrencyView(
                 try {
                     val ohlc = getLatestOhlc(coinId)
                     val value = ohlc.close
-                    val ohlcTimestamp = ZonedDateTime.ofInstant(ohlc.timeClose.toInstant(), ZoneId.systemDefault())
+                    val ohlcTimestamp = ZonedDateTime.ofInstant(ohlc.timeClose.toJavaInstant(), ZoneId.systemDefault())
                     val dbKey = Cryptocurrency(symbol)
                     logger.info { "Value of $symbol at $now is \$$value." }
                     database.insertHistoricalValueAsync(ohlcTimestamp, dbKey, value)

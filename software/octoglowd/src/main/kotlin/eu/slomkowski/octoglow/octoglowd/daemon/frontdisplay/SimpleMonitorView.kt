@@ -1,8 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.fasterxml.jackson.annotation.JsonFormat
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.annotation.JsonValue
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -10,12 +7,17 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import io.ktor.client.request.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import mu.KLogging
 import org.apache.commons.lang3.StringUtils
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.time.Duration
-import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -32,21 +34,29 @@ class SimpleMonitorView(
     Duration.ofSeconds(8)
 ) {
 
-    enum class MonitorStatus(@JsonValue val jsonName: String) {
-        OK("OK"),
-        FAIL("Fail"),
-        SKIPPED("Skipped")
+    @Serializable
+    enum class MonitorStatus {
+        @SerialName("OK")
+        OK,
+
+        @SerialName("Fail")
+        FAIL,
+
+        @SerialName("Skipped")
+        SKIPPED
     }
 
+    @Serializable
     data class Monitor(
         val status: MonitorStatus,
-        @JsonProperty("virtual_fail_count") val virtualFailCount: Int,
+        @SerialName("virtual_fail_count") val virtualFailCount: Int,
         val result: String
     )
 
+    @Serializable
     data class SimpleMonitorJson(
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ssxxx")
-        val generated: OffsetDateTime,
+        @Serializable(SimpleMonitorInstantSerializer::class)
+        val generated: Instant,
         val monitors: Map<String, Monitor>
     )
 
@@ -122,7 +132,8 @@ class SimpleMonitorView(
                 val failedMonitors = monitors(MonitorStatus.FAIL)
 
                 launch {
-                    val time = report?.data?.generated?.toLocalDateTimeInSystemTimeZone()
+                    val time = report?.data?.generated?.toLocalDateTime(TimeZone.currentSystemDefault())
+                        ?.toJavaLocalDateTime() //todo?
                         ?.format(DateTimeFormatter.ofPattern("HH:mm"))
                         ?: "--:--"
                     fd.setStaticText(0, "*$time")

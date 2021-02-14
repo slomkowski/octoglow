@@ -1,11 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
@@ -36,12 +36,12 @@ class NbpViewTest {
     @Test
     fun testCreateReport1() {
         val rates = listOf(
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 12), 123.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 13), 124.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 14), 125.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 15), 126.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 16), 127.4))
-        val today = LocalDate.of(2019, 4, 19)
+                NbpView.GoldPrice(LocalDate(2019, 4, 12), 123.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 13), 124.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 14), 125.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 15), 126.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 16), 127.4))
+        val today = LocalDate(2019, 4, 19)
 
         val report = NbpView.createReport("TEST", rates, today)
         assertEquals(14, report.historical.size)
@@ -53,15 +53,15 @@ class NbpViewTest {
     @Test
     fun testCreateReport2() {
         val rates = listOf(
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 12), 123.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 13), 124.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 14), 125.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 15), 126.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 16), 127.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 17), 128.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 18), 129.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 19), 130.4))
-        val today = LocalDate.of(2019, 4, 19)
+                NbpView.GoldPrice(LocalDate(2019, 4, 12), 123.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 13), 124.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 14), 125.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 15), 126.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 16), 127.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 17), 128.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 18), 129.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 19), 130.4))
+        val today = LocalDate(2019, 4, 19)
 
         val report = NbpView.createReport("TEST", rates, today)
         assertEquals(14, report.historical.size)
@@ -73,14 +73,14 @@ class NbpViewTest {
     @Test
     fun testCreateReport3() {
         val rates = listOf(
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 12), 123.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 13), 124.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 14), 125.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 15), 126.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 16), 127.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 17), 128.4),
-                NbpView.GoldPrice(LocalDate.of(2019, 4, 18), 129.4))
-        val today = LocalDate.of(2019, 4, 19)
+                NbpView.GoldPrice(LocalDate(2019, 4, 12), 123.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 13), 124.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 14), 125.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 15), 126.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 16), 127.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 17), 128.4),
+                NbpView.GoldPrice(LocalDate(2019, 4, 18), 129.4))
+        val today = LocalDate(2019, 4, 19)
 
         val report = NbpView.createReport("TEST", rates, today)
         assertEquals(14, report.historical.size)

@@ -12,14 +12,14 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-<!--        <maven.compiler.source>1.8</maven.compiler.source>-->
-<!--        <maven.compiler.target>1.8</maven.compiler.target>-->
+        <!--        <maven.compiler.source>1.8</maven.compiler.source>-->
+        <!--        <maven.compiler.target>1.8</maven.compiler.target>-->
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
         <main.class>eu.slomkowski.octoglow.octoglowd.MainKt</main.class>
 
         <kotlin.version>1.4.30</kotlin.version>
+        <serialization.version>1.0.1</serialization.version>
         <junit.version>5.7.0</junit.version>
-        <jackson.version>2.12.1</jackson.version>
         <konf.version>1.0.0</konf.version>
         <ktor.version>1.5.1</ktor.version>
 
@@ -82,18 +82,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-kotlin</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.uchuhimo</groupId>
             <artifactId>konf-core</artifactId>
             <version>${konf.version}</version>
@@ -139,8 +127,20 @@
         </dependency>
         <dependency>
             <groupId>io.ktor</groupId>
-            <artifactId>ktor-client-jackson</artifactId>
+            <artifactId>ktor-client-serialization-jvm</artifactId>
             <version>${ktor.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-datetime-jvm</artifactId>
+            <version>0.1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-serialization-json-jvm</artifactId>
+            <version>${serialization.version}</version>
         </dependency>
 
         <dependency>
@@ -234,6 +234,18 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <compilerPlugins>
+                        <plugin>kotlinx-serialization</plugin>
+                    </compilerPlugins>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-maven-serialization</artifactId>
+                        <version>${kotlin.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -302,20 +314,29 @@
             <id>Kotlin Exposed</id>
             <url>https://dl.bintray.com/kotlin/exposed/</url>
         </repository>
-<!--        <repository>-->
-<!--            <id>jitpack</id>-->
-<!--            <url>https://jitpack.io</url>-->
-<!--        </repository>-->
+        <!--        <repository>-->
+        <!--            <id>jitpack</id>-->
+        <!--            <url>https://jitpack.io</url>-->
+        <!--        </repository>-->
         <repository>
             <id>repo2</id>
             <url>https://kotlin.bintray.com/ktor</url>
-<!--            <releases><enabled>true</enabled></releases>-->
+            <!--            <releases><enabled>true</enabled></releases>-->
+        </repository>
+        <repository>
+            <id>kotlinx</id>
+            <name>kotlinx</name>
+            <url>https://kotlin.bintray.com/kotlinx/</url>
         </repository>
         <repository>
             <id>repo1</id>
             <url>https://jcenter.bintray.com</url>
-            <releases><enabled>true</enabled></releases>
-            <snapshots><enabled>true</enabled></snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
     </repositories>
 </project>

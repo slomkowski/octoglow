@@ -86,7 +86,7 @@ class GeigerView(
             if (redrawStatus) {
                 launch {
                     fd.setStaticText(0, formatCPM(cr?.lastCPM))
-                 fd.setStaticText(20, formatUSVh(cr?.lastUSVh))
+                    fd.setStaticText(20, formatUSVh(cr?.lastUSVh))
                 }
 
                 launch {
