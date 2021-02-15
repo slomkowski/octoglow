@@ -15,6 +15,8 @@ _saved_*
 
 rescue-backup/
 
+*.sch-bak
+
 
 # Netlist files (exported from Eeschema)
 *.net
@@ -26,9 +28,12 @@ rescue-backup/
 *.xml
 *.csv
 
+*-rescue.lib
+*-rescue.dcm
 *-cache.lib
 #*-rescue.lib
 fp-lib-table
+fp-info-cache
 sym-lib-table
 
 *.gbr
