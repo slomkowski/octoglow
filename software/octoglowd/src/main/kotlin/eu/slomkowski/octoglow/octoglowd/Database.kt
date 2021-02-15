@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd
 
 
 import kotlinx.coroutines.*
+import kotlinx.datetime.toJavaInstant
 import mu.KLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -193,6 +194,14 @@ class DatabaseLayer(
         return result
     }
 
+    fun getLastHistoricalValuesByHourAsync(
+        currentTime: kotlinx.datetime.Instant,
+        key: HistoricalValueType,
+        numberOfPastHours: Int
+    ): Deferred<List<Double?>> =
+        getLastHistoricalValuesByHourAsync(currentTime.toJavaInstant().atZone(WARSAW_ZONE_ID), key, numberOfPastHours)
+
+    @Deprecated("migrating to kotlinx date time")
     fun getLastHistoricalValuesByHourAsync(
         currentTime: ZonedDateTime,
         key: HistoricalValueType,

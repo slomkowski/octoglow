@@ -34,6 +34,16 @@ data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
         get() = "CRYPTOCURRENCY_$symbol".toUpperCase()
 }
 
+data class AirQuality(val stationId: Long) : HistoricalValueType() {
+    init {
+        require(stationId > 0)
+    }
+
+    override val databaseSymbol: String
+        get() = "AIR_QUALITY_$stationId"
+}
+
+
 data class Stock(val symbol: String) : HistoricalValueType() {
 
     companion object {

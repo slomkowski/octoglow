@@ -24,6 +24,7 @@ fun main() {
         addSpec(NbpKey)
 //        addSpec(StocksKey)
         addSpec(SimpleMonitorKey)
+        addSpec(AirQualityKey)
     }.from.yaml.file("config.yml")
 
     val hardware = Hardware(config)
@@ -46,6 +47,7 @@ fun main() {
         NbpView(config, hardware),
 //            StockView(config, database, hardware),
         SimpleMonitorView(config, database, hardware),
+        AirQualityView(config, database, hardware),
         NetworkView(config, hardware)
     )
 
