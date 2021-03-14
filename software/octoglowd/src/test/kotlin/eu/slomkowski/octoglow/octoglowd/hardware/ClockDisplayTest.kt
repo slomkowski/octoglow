@@ -4,6 +4,7 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
+import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -13,7 +14,9 @@ import kotlin.test.*
 @ExtendWith(HardwareParameterResolver::class)
 class ClockDisplayTest {
 
-    companion object : KLogging()
+    companion object : KLogging() {
+        private const val DELTA = 0.05
+    }
 
     @Test
     fun testGetOutdoorWeatherReport(hardware: Hardware) {
@@ -33,8 +36,8 @@ class ClockDisplayTest {
 
                 assertTrue(report2.alreadyReadFlag)
 
-                assertEquals(report1.temperature, report2.temperature)
-                assertEquals(report1.humidity, report2.humidity)
+                assertEquals(report1.temperature, report2.temperature, DELTA)
+                assertEquals(report1.humidity, report2.humidity, DELTA)
                 assertEquals(report1.batteryIsWeak, report2.batteryIsWeak)
             }
         }
@@ -53,23 +56,21 @@ class ClockDisplayTest {
 
     @Test
     fun testGetOutdoorWeatherReportParse() {
-        assertParsing(-2.6, 66.0, 4, 231, 255, 66, 6)
-        assertParsing(-2.7, 66.0, 4, 230, 255, 66, 6)
-        assertParsing(-2.9, 66.0, 4, 228, 255, 66, 2)
+        assertParsing(23.9, 32.0, 4, 1, 183, 160, 103, 51, 33)
 
         //todo more positive temp
     }
 
     private fun assertParsing(temperature: Double, humidity: Double, vararg buffer: Int) {
-        require(buffer.size == 5)
+        require(buffer.size == 7)
         val i2CBuffer = I2CBuffer(buffer.size).apply {
             buffer.forEachIndexed { i, v -> this.set(i, v) }
         }
 
         val report = assertNotNull(OutdoorWeatherReport.parse(i2CBuffer))
 
-        assertEquals(temperature, report.temperature)
-        assertEquals(humidity, report.humidity)
+        assertEquals(temperature, report.temperature, DELTA)
+        assertEquals(humidity, report.humidity, DELTA)
     }
 
     @Test

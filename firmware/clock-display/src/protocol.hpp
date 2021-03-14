@@ -5,8 +5,6 @@
 namespace octoglow {
     namespace vfd_clock {
         namespace protocol {
-
-            constexpr uint8_t WEAK_BATTERY_FLAG = 1 << 0;
             constexpr uint8_t VALID_MEASUREMENT_FLAG = 1 << 1;
             constexpr uint8_t ALREADY_READ_FLAG = 1 << 2;
 
@@ -38,12 +36,11 @@ namespace octoglow {
             static_assert(sizeof(RelayState) == 2);
 
             struct WeatherSensorState {
-                int16_t temperature; // in 0.1 deg C
-                uint8_t humidity; // in %
                 uint8_t flags;
+                uint8_t rawData[5];
             };
 
-            static_assert(sizeof(WeatherSensorState) == 4);
+            static_assert(sizeof(WeatherSensorState) == 6);
         }
 
     }

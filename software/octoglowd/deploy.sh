@@ -3,7 +3,7 @@
 set -e
 set -u
 
-mvn -DskipTests package
+JAVA_HOME=/usr/lib/jvm/java-11-openjdk/ mvn -DskipTests package
 
 OCTOGLOW_HOST='octoglow'
 JAR_FILE='target/octoglowd-1.0-SNAPSHOT-jar-with-dependencies-with-exclude-files.jar'

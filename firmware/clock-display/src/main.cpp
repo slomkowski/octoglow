@@ -18,6 +18,10 @@ using namespace octoglow::vfd_clock::protocol;
 
 static Command currentCommand = Command::NONE;
 
+/*
+ * Test Bus Pirate commands:
+ * - set 2345 at the display: [ 0x20 1 50 51 52 53  ]
+ */
 static inline void processI2cCommands() {
     using namespace octoglow::vfd_clock::protocol;
 
@@ -25,11 +29,13 @@ static inline void processI2cCommands() {
 
         i2c_rdbuf[0] = i2c_wrbuf[0];
 
+        static_assert(sizeof(protocol::WeatherSensorState) + 1 <= sizeof(i2c_rdbuf));
+
         if (currentCommand == Command::GET_WEATHER_SENSOR_STATE) {
             for (uint8_t i = sizeof(protocol::WeatherSensorState); i != 0; --i) {
                 i2c_rdbuf[i] = reinterpret_cast<uint8_t *>(&(receiver433::currentWeatherSensorState))[i - 1];
             }
-            receiver433::currentWeatherSensorState.flags |= ALREADY_READ_FLAG;
+            receiver433::currentWeatherSensorState.flags |= protocol::ALREADY_READ_FLAG;
             i2c_reply_done(sizeof(protocol::WeatherSensorState) + 1);
             currentCommand = Command::NONE;
         }
@@ -64,6 +70,7 @@ static inline void processI2cCommands() {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
+
 int main() {
     i2c_initialize();
     display::init();

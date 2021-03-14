@@ -12,7 +12,7 @@ namespace octoglow {
     }
 }
 
-constexpr uint8_t NUM_OF_BITS_IN_PACKET = 37;
+constexpr uint8_t NUM_OF_BITS_IN_PACKET = 40;
 
 enum class ValueUpdateState : uint8_t {
     WAITING_FOR_FIRST_MEASUREMENT,
@@ -77,30 +77,12 @@ void ::octoglow::vfd_clock::receiver433::pool() {
         }
 
         if (buffersAreEqual) {
-            currentWeatherSensorState.flags = 0;
-            currentWeatherSensorState.humidity =
-                    (0xf0 & (mainMeasurementBuffer[3] << 4)) + (0x0f & (mainMeasurementBuffer[4] >> 4));
-
-            // this is 12-bit two's complement value
-            currentWeatherSensorState.temperature = (((uint16_t) mainMeasurementBuffer[2]) << 4) + (0x0f & (mainMeasurementBuffer[3] >> 4));
-            if (currentWeatherSensorState.temperature > 0b11111111111) {
-                currentWeatherSensorState.temperature -= 0b111111111111;
+            for (uint8_t i = 0; i != sizeof(currentWeatherSensorState.rawData); ++i) {
+                currentWeatherSensorState.rawData[i] = comparingMeasurementBuffer[i];
             }
+            currentWeatherSensorState.flags = protocol::VALID_MEASUREMENT_FLAG;
 
-            if ((mainMeasurementBuffer[1] & 0b1000) != 0) {
-                currentWeatherSensorState.flags |= protocol::WEAK_BATTERY_FLAG;
-            }
-
-            // sanity check
-            if (currentWeatherSensorState.humidity <= 100
-            && currentWeatherSensorState.temperature > -450 && currentWeatherSensorState.temperature < 500) {
-                currentWeatherSensorState.flags |= protocol::VALID_MEASUREMENT_FLAG;
-                display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::VALID);
-
-            } else {
-                display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::INVALID);
-            }
-
+            display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::VALID);
             updateState = ValueUpdateState::MEASUREMENT_ACCEPTED_BLINK_ENABLED;
         } else {
             updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
@@ -119,11 +101,11 @@ ISR(INT0_vect) {
 
     timerStop();
 
-    if (position < NUM_OF_BITS_IN_PACKET and TCNT0L > msToTimer0pulses(4) and TCNT0L < msToTimer0pulses(5.2)) {
+    if (position < NUM_OF_BITS_IN_PACKET and TCNT0L > msToTimer0pulses(3.8) and TCNT0L < msToTimer0pulses(5.2)) {
         // this is 1
         mainMeasurementBuffer[position / 8] |= _BV(7 - (position % 8));
         ++position;
-    } else if (position < NUM_OF_BITS_IN_PACKET and TCNT0L > msToTimer0pulses(2) and TCNT0L < msToTimer0pulses(3)) {
+    } else if (position < NUM_OF_BITS_IN_PACKET and TCNT0L > msToTimer0pulses(1.9) and TCNT0L < msToTimer0pulses(3)) {
         // this is 0
         mainMeasurementBuffer[position / 8] &= ~_BV(7 - (position % 8));
         ++position;

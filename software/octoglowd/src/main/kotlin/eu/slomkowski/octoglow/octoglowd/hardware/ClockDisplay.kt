@@ -1,53 +1,67 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToString
+import eu.slomkowski.octoglow.octoglowd.toList
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
 import mu.KLogging
 import java.time.Duration
 
 data class OutdoorWeatherReport(
+    val channel: Int,
     val temperature: Double,
     val humidity: Double,
     val batteryIsWeak: Boolean,
-    val alreadyReadFlag: Boolean
+    val alreadyReadFlag: Boolean,
+    val manualTx: Boolean
 ) {
 
     init {
-        require(temperature in -40.0..60.0)
+        require(channel in (1..3))
+        require(temperature in -10.0..30.0) //todo further range
         require(humidity in 0.0..100.0)
     }
 
-    companion object {
-        private const val WEAK_BATTERY_FLAG = 1 shl 0
+    companion object : KLogging() {
         private const val VALID_MEASUREMENT_FLAG = 1 shl 1
         private const val ALREADY_READ_FLAG = 1 shl 2
 
         fun parse(buff: I2CBuffer): OutdoorWeatherReport? {
-            require(buff.length == 5)
+            require(buff.length == 7)
+            require(buff[0] == 4)
 
-            if ((buff[4] and VALID_MEASUREMENT_FLAG) == 0) {
+            //todo crc?
+
+            if ((buff[1] and VALID_MEASUREMENT_FLAG) == 0) {
                 return null
             }
 
-            val temperatureBits = (256 * buff[2] + buff[1]).let {
-                if (it >= 0x1000) {
-                    it - 0x10000 - 1
-                } else {
-                    it
-                }
-            }
+            val alreadyRead = (buff[1] and ALREADY_READ_FLAG) != 0
 
-            val temperaturePart = temperatureBits.toDouble() / 10.0
-            val humidityPart = buff[3].toDouble()
+            val sensorId = buff[6] and 0b11
+            val manualTx = (buff[3] and 0b1000) != 0
+            val weakBattery = (buff[3] and 0b100) != 0
+
+            val temperatureBits = (buff[4] shl 4) + ((buff[5] shr 4) and 0b1111)
+            val temperaturePart = (temperatureBits.toDouble() - 1220.0) * 1.0 / 18.0 + 0.0
+
+            val humidityPart = 10.0 * (buff[5] and 0b1111) + ((buff[6] shr 4) and 0b1111)
 
             try {
                 return OutdoorWeatherReport(
+                    sensorId,
                     temperaturePart,
                     humidityPart,
-                    (buff[4] and WEAK_BATTERY_FLAG) != 0,
-                    (buff[4] and ALREADY_READ_FLAG) != 0
-                )
+                    weakBattery,
+                    alreadyRead,
+                    manualTx
+                ).apply {
+                    logger.debug {
+                        val buffContent =
+                            buff.toList().subList(2, 7).map { it.toString(2).padStart(8, '0') }.joinToString(" ")
+                        "RAW: $buffContent, $this"
+                    }
+                }
             } catch (e: IllegalArgumentException) {
                 throw IllegalStateException(
                     "insane values despite valid flag set: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}",
@@ -80,7 +94,7 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
     }
 
     suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport? {
-        val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 5)
+        val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 7)
         check(readBuffer[0] == 4)
         logger.debug { "Report buffer: " + readBuffer.contentToString() }
         return OutdoorWeatherReport.parse(readBuffer)
