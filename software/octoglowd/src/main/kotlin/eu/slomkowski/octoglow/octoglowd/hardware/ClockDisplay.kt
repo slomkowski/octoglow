@@ -1,36 +1,63 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.contentToString
-import eu.slomkowski.octoglow.octoglowd.toList
+import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
 import mu.KLogging
 import java.time.Duration
 
 data class OutdoorWeatherReport(
-    val channel: Int,
+    val sensorId: Int,
     val temperature: Double,
     val humidity: Double,
     val batteryIsWeak: Boolean,
     val alreadyReadFlag: Boolean,
     val manualTx: Boolean
 ) {
-
-    init {
-        require(channel in (1..3))
-        require(temperature in -10.0..30.0) //todo further range
-        require(humidity in 0.0..100.0)
-    }
-
     companion object : KLogging() {
         private const val VALID_MEASUREMENT_FLAG = 1 shl 1
         private const val ALREADY_READ_FLAG = 1 shl 2
 
+        fun toBitArray(i2CBuffer: I2CBuffer) = BooleanArray(40).apply {
+            for (i in 0..39) {
+                this[i] = i2CBuffer[2 + i / 8] and (0b10000000 shr (i % 8)) != 0
+            }
+        }
+
+        /**
+         * This code is ported from https://www.chaosgeordend.nl/documents/analyse_rf433.py
+         */
+        fun calculateChecksum(i2CBuffer: I2CBuffer): Boolean {
+
+            var csum = 0x0
+            var mask = 0xC
+            val msg = toBitArray(i2CBuffer)
+            val calculationBuffer = msg.copyOfRange(0, 8)
+                .plus(msg.copyOfRange(36, 40))
+                .plus(msg.copyOfRange(12, 36))
+
+            val checksum = (i2CBuffer[3] shr 4) and 0xf
+
+            for (b in calculationBuffer) {
+                val bit = mask and 0x1
+                mask = mask shr 1
+                if (bit == 0x1) {
+                    mask = mask xor 0x9
+                }
+
+                if (b) {
+                    csum = csum xor mask
+                }
+            }
+
+            csum = csum and 0xf
+
+            return csum == checksum
+        }
+
         fun parse(buff: I2CBuffer): OutdoorWeatherReport? {
             require(buff.length == 7)
             require(buff[0] == 4)
-
-            //todo crc?
 
             if ((buff[1] and VALID_MEASUREMENT_FLAG) == 0) {
                 return null
@@ -43,31 +70,42 @@ data class OutdoorWeatherReport(
             val weakBattery = (buff[3] and 0b100) != 0
 
             val temperatureBits = (buff[4] shl 4) + ((buff[5] shr 4) and 0b1111)
-            val temperaturePart = (temperatureBits.toDouble() - 1220.0) * 1.0 / 18.0 + 0.0
+            val temperature = (temperatureBits.toDouble() - 1220.0) * 1.0 / 18.0 + 0.0
 
-            val humidityPart = 10.0 * (buff[5] and 0b1111) + ((buff[6] shr 4) and 0b1111)
+            val humidity = 10.0 * (buff[5] and 0b1111) + ((buff[6] shr 4) and 0b1111)
 
-            try {
-                return OutdoorWeatherReport(
-                    sensorId,
-                    temperaturePart,
-                    humidityPart,
-                    weakBattery,
-                    alreadyRead,
-                    manualTx
-                ).apply {
-                    logger.debug {
-                        val buffContent =
-                            buff.toList().subList(2, 7).map { it.toString(2).padStart(8, '0') }.joinToString(" ")
-                        "RAW: $buffContent, $this"
-                    }
-                }
-            } catch (e: IllegalArgumentException) {
-                throw IllegalStateException(
-                    "insane values despite valid flag set: T: $temperaturePart, H: $humidityPart. Buffer: ${buff.contentToString()}",
-                    e
-                )
+            val areValuesValid = (sensorId in (1..3)) && (temperature in -40.0..60.0) && (humidity in 0.0..100.0)
+
+            if (!areValuesValid) {
+                return null
             }
+
+            if (!calculateChecksum(buff)) {
+                return null
+            }
+
+            if (!alreadyRead) {
+                logger.debug {
+                    String.format(
+                        "ch=%d,temp=%2.1f,hum=%2.0f%%,wb=%b,tx=%b,raw=%s",
+                        sensorId,
+                        temperature,
+                        humidity,
+                        weakBattery,
+                        manualTx,
+                        buff.contentToBitString().drop(18)
+                    )
+                }
+            }
+
+            return OutdoorWeatherReport(
+                sensorId,
+                temperature,
+                humidity,
+                weakBattery,
+                alreadyRead,
+                manualTx
+            )
         }
     }
 }
@@ -96,7 +134,6 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
     suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport? {
         val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 7)
         check(readBuffer[0] == 4)
-        logger.debug { "Report buffer: " + readBuffer.contentToString() }
         return OutdoorWeatherReport.parse(readBuffer)
     }
 

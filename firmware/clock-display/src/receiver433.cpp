@@ -36,7 +36,7 @@ constexpr uint8_t msToTimer1overflows(double milliseconds) {
     return uint8_t(milliseconds / 1000.0 * ((double) F_CPU) / 512.0 / 255.0);// we assume prescaler is set to 512
 }
 
-static inline void timerStart() {
+static inline void timerRestart() {
     TCNT0L = 0;
     TCCR0B = _BV(CS02) | _BV(CS00); // prescaler to fclk/1024
 }
@@ -54,7 +54,7 @@ void ::octoglow::vfd_clock::receiver433::init() {
 
     currentWeatherSensorState.flags = 0;
 
-    timerStart();
+    timerRestart();
 }
 
 void ::octoglow::vfd_clock::receiver433::pool() {
@@ -98,18 +98,32 @@ void ::octoglow::vfd_clock::receiver433::pool() {
 ISR(INT0_vect) {
 
     static uint8_t position;
+    static bool startBitWasFound = false;
 
     timerStop();
 
-    if (position < NUM_OF_BITS_IN_PACKET and TCNT0L > msToTimer0pulses(3.8) and TCNT0L < msToTimer0pulses(5.2)) {
+    constexpr double DELTA_MS = 0.2;
+
+    if (position == 0
+        and TCNT0L > msToTimer0pulses(8.8 - DELTA_MS)
+        and TCNT0L < msToTimer0pulses(9.1 + DELTA_MS)) {
+        startBitWasFound = true;
+    } else if (startBitWasFound
+               and position < NUM_OF_BITS_IN_PACKET
+               and TCNT0L > msToTimer0pulses(4.7 - DELTA_MS)
+               and TCNT0L < msToTimer0pulses(5.2 + DELTA_MS)) {
         // this is 1
         mainMeasurementBuffer[position / 8] |= _BV(7 - (position % 8));
         ++position;
-    } else if (position < NUM_OF_BITS_IN_PACKET and TCNT0L > msToTimer0pulses(1.9) and TCNT0L < msToTimer0pulses(3)) {
+    } else if (startBitWasFound
+               and position < NUM_OF_BITS_IN_PACKET
+               and TCNT0L > msToTimer0pulses(2.4 - DELTA_MS)
+               and TCNT0L < msToTimer0pulses(2.9 + DELTA_MS)) {
         // this is 0
         mainMeasurementBuffer[position / 8] &= ~_BV(7 - (position % 8));
         ++position;
     } else {
+        startBitWasFound = false;
         position = 0;
     }
 
@@ -121,7 +135,7 @@ ISR(INT0_vect) {
         }
     }
 
-    timerStart();
+    timerRestart();
 }
 
 // this is configured in init() in display.cpp. called every 16.384 ms

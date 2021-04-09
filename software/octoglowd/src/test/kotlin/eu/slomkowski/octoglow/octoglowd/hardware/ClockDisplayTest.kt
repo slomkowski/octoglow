@@ -1,5 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -16,6 +17,15 @@ class ClockDisplayTest {
 
     companion object : KLogging() {
         private const val DELTA = 0.05
+    }
+
+    @Test
+    fun testCalculateChecksum() {
+        val i2CBuffer = createI2CBuffer(4, 6, 183, 160, 103, 51, 33)
+        logger.info { i2CBuffer.contentToBitString() }
+        logger.info("{}", OutdoorWeatherReport.toBitArray(i2CBuffer))
+
+        assertTrue(OutdoorWeatherReport.calculateChecksum(i2CBuffer))
     }
 
     @Test
@@ -56,17 +66,18 @@ class ClockDisplayTest {
 
     @Test
     fun testGetOutdoorWeatherReportParse() {
-        assertParsing(23.9, 32.0, 4, 1, 183, 160, 103, 51, 33)
+        assertParsing(23.9, 32.0, 4, 6, 183, 160, 103, 51, 33)
 
         //todo more positive temp
     }
 
-    private fun assertParsing(temperature: Double, humidity: Double, vararg buffer: Int) {
+    private fun createI2CBuffer(vararg buffer: Int) = I2CBuffer(buffer.size).apply {
         require(buffer.size == 7)
-        val i2CBuffer = I2CBuffer(buffer.size).apply {
-            buffer.forEachIndexed { i, v -> this.set(i, v) }
-        }
+        buffer.forEachIndexed { i, v -> this.set(i, v) }
+    }
 
+    private fun assertParsing(temperature: Double, humidity: Double, vararg buffer: Int) {
+        val i2CBuffer = createI2CBuffer(*buffer)
         val report = assertNotNull(OutdoorWeatherReport.parse(i2CBuffer))
 
         assertEquals(temperature, report.temperature, DELTA)
@@ -105,6 +116,21 @@ class ClockDisplayTest {
                 ringBell(Duration.ofMillis(100))
                 delay(1000)
                 ringBell(Duration.ofMillis(500))
+            }
+        }
+    }
+
+    @Test
+    @Disabled("persistent displaying new reports")
+    fun testConstantReportsReceiving(hardware: Hardware) {
+        runBlocking {
+            ClockDisplay(hardware).apply {
+
+                repeat(100000) {
+                    getOutdoorWeatherReport()
+                    delay(300)
+                }
+
             }
         }
     }

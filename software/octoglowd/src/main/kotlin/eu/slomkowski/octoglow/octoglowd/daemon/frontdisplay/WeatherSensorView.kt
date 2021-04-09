@@ -18,8 +18,8 @@ class WeatherSensorView(
 ) : FrontDisplayView(
     hardware,
     "Weather sensor view",
-    Duration.ofSeconds(20),
-    Duration.ofSeconds(7),
+    Duration.ofSeconds(2),
+    Duration.ofSeconds(1),
     Duration.ofSeconds(12)
 ) {
 
