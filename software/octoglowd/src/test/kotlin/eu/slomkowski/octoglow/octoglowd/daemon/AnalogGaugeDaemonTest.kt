@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDaemon.Companion.parseProcNetWirelessFile
-import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -14,7 +13,9 @@ import org.junit.jupiter.api.Test
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class AnalogGaugeDaemonTest {
 
     companion object : KLogging() {

@@ -11,6 +11,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toLocalDateTime
 import mu.KLogging
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
@@ -22,7 +26,11 @@ import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.time.ExperimentalTime
+import kotlin.time.minutes
+import kotlin.time.seconds
 
+@ExperimentalTime
 class StockView(
     private val config: Config,
     private val database: DatabaseLayer,
@@ -30,9 +38,9 @@ class StockView(
 ) : FrontDisplayView(
     hardware,
     "Warsaw Stock Exchange index",
-    Duration.ofMinutes(1),//todo change to 20 min, stays 1 minute for dev
-    Duration.ofSeconds(15),
-    Duration.ofSeconds(1)
+    1.minutes,//todo change to 20 min, stays 1 minute for dev
+    15.seconds,
+    1.seconds
 ) {
 
     data class StockInfoDto(
@@ -69,7 +77,7 @@ class StockView(
     }
 
     data class CurrentReport(
-        val timestamp: ZonedDateTime,
+        val timestamp: Instant,
         val currencies: Map<String, SingleStockReport>
     )
 
@@ -124,7 +132,7 @@ class StockView(
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
             val fd = hardware.frontDisplay
             launch { fd.setStaticText(0, "stock view") }
@@ -135,14 +143,15 @@ class StockView(
     /**
      * Progress bar is dependent only on current time so always success.
      */
-    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
+    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
         val tickers = config[StocksKey.tickers]
         require(tickers.isNotEmpty()) { "no tickets defined" }
 
-        val stockData = downloadStockData(now.toLocalDate())
+        val stockData =
+            downloadStockData(now.toLocalDateTime(TimeZone.currentSystemDefault()).toJavaLocalDateTime().toLocalDate())
 
         val newReport = CurrentReport(now, tickers.map { ticker ->
             require(ticker.isNotBlank()) { "ticker is blank" }
@@ -167,7 +176,7 @@ class StockView(
 
     suspend fun createSingleStockReport(
         stockData: Collection<StockInfoDto>,
-        ts: ZonedDateTime,
+        ts: Instant,
         ticker: String
     ): SingleStockReport? {
         val dbKey = Stock(ticker)

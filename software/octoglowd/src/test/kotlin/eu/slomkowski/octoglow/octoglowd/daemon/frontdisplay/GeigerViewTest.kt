@@ -2,8 +2,10 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.minutes
 
+@ExperimentalTime
 class GeigerViewTest {
 
     @Test
@@ -23,6 +25,6 @@ class GeigerViewTest {
 
     @Test
     fun testCalculate() {
-        assertEquals(0.108, GeigerView.calculateUSVh(81, Duration.ofMinutes(5)), 0.001)
+        assertEquals(0.108, GeigerView.calculateUSVh(81, 5.minutes), 0.001)
     }
 }

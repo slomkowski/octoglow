@@ -12,7 +12,9 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 fun main() {
 
     val config = Config {
@@ -25,6 +27,7 @@ fun main() {
 //        addSpec(StocksKey)
         addSpec(SimpleMonitorKey)
         addSpec(AirQualityKey)
+        addSpec(RemoteSensorsKey)
     }.from.yaml.file("config.yml")
 
     val hardware = Hardware(config)

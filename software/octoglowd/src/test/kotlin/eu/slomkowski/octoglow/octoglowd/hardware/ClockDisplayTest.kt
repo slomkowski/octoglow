@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.time.Duration
 import kotlin.test.*
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 @ExtendWith(HardwareParameterResolver::class)
 class ClockDisplayTest {
 
@@ -23,9 +25,9 @@ class ClockDisplayTest {
     fun testCalculateChecksum() {
         val i2CBuffer = createI2CBuffer(4, 6, 183, 160, 103, 51, 33)
         logger.info { i2CBuffer.contentToBitString() }
-        logger.info("{}", OutdoorWeatherReport.toBitArray(i2CBuffer))
+        logger.info("{}", RemoteSensorReport.toBitArray(i2CBuffer))
 
-        assertTrue(OutdoorWeatherReport.calculateChecksum(i2CBuffer))
+        assertTrue(RemoteSensorReport.calculateChecksum(i2CBuffer))
     }
 
     @Test
@@ -34,11 +36,11 @@ class ClockDisplayTest {
             ClockDisplay(hardware).apply {
                 initDevice()
 
-                val report1 = getOutdoorWeatherReport()
+                val report1 = retrieveRemoteSensorReport()
                     ?: fail("Report is invalid. Perhaps no measurement received yet?")
 
                 logger.info("Report 1: {}", report1)
-                val report2 = getOutdoorWeatherReport()
+                val report2 = retrieveRemoteSensorReport()
                 logger.info("Report 2: {}", report2)
 
                 assertNotNull(report1)
@@ -56,12 +58,10 @@ class ClockDisplayTest {
     @Test
     fun testParseInvalid() {
         assertFails {
-            OutdoorWeatherReport.parse(I2CBuffer(3))
+            RemoteSensorReport.parse(I2CBuffer(3))
         }
 
-        assertFailsWith(IllegalStateException::class) {
-            OutdoorWeatherReport.parse(I2CBuffer(5).set(0, 4).set(1, 43).set(2, 34).set(3, 43).set(4, 43))
-        }
+        assertNull(RemoteSensorReport.parse(I2CBuffer(7).set(0, 4).set(1, 43).set(2, 34).set(3, 43).set(4, 43)))
     }
 
     @Test
@@ -78,7 +78,7 @@ class ClockDisplayTest {
 
     private fun assertParsing(temperature: Double, humidity: Double, vararg buffer: Int) {
         val i2CBuffer = createI2CBuffer(*buffer)
-        val report = assertNotNull(OutdoorWeatherReport.parse(i2CBuffer))
+        val report = assertNotNull(RemoteSensorReport.parse(i2CBuffer))
 
         assertEquals(temperature, report.temperature, DELTA)
         assertEquals(humidity, report.humidity, DELTA)
@@ -127,7 +127,7 @@ class ClockDisplayTest {
             ClockDisplay(hardware).apply {
 
                 repeat(100000) {
-                    getOutdoorWeatherReport()
+                    retrieveRemoteSensorReport()
                     delay(300)
                 }
 

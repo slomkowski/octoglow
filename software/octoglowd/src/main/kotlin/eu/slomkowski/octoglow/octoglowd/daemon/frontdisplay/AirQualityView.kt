@@ -9,15 +9,14 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import kotlinx.datetime.toJavaInstant
-import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KLogging
-import java.time.Duration
-import java.time.ZoneId
-import java.time.ZonedDateTime
+import kotlin.time.ExperimentalTime
+import kotlin.time.minutes
+import kotlin.time.seconds
 
+@ExperimentalTime
 class AirQualityView(
     private val config: Config,
     private val database: DatabaseLayer,
@@ -25,9 +24,9 @@ class AirQualityView(
 ) : FrontDisplayView(
     hardware,
     "Air quality from powietrze.gios.gov.pl",
-    Duration.ofMinutes(10),
-    Duration.ofSeconds(15),
-    Duration.ofSeconds(13)
+    10.minutes,
+    15.seconds,
+    13.seconds
 ) {
 
     enum class AirQualityIndex(val text: String) {
@@ -124,8 +123,7 @@ class AirQualityView(
         val dto = retrieveAirQualityData(station.id)
         val dbKey = AirQuality(station.id)
         val value = dto.stIndexLevel.id.toDouble()
-        val timestamp = dto.stSourceDataDate.toJavaInstant().atZone(ZoneId.systemDefault())
-        database.insertHistoricalValueAsync(timestamp, dbKey, value)
+        database.insertHistoricalValueAsync(dto.stSourceDataDate, dbKey, value)
 
         val history =
             database.getLastHistoricalValuesByHourAsync(now, dbKey, HISTORIC_VALUES_LENGTH).await()
@@ -136,13 +134,12 @@ class AirQualityView(
         null
     }
 
-    override suspend fun poolInstantData(now: ZonedDateTime) = UpdateStatus.NO_NEW_DATA
+    override suspend fun poolInstantData(now: Instant) = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
-        val instantNow = now.toInstant().toKotlinInstant()
+    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
-        val rep1 = async { createStationReport(instantNow, config[AirQualityKey.station1]) }
-        val rep2 = async { createStationReport(instantNow, config[AirQualityKey.station2]) }
+        val rep1 = async { createStationReport(now, config[AirQualityKey.station1]) }
+        val rep2 = async { createStationReport(now, config[AirQualityKey.station2]) }
 
         val newRep = CurrentReport(rep1.await(), rep2.await())
 
@@ -151,7 +148,7 @@ class AirQualityView(
         newRep.updateStatus
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
 
             val fd = hardware.frontDisplay

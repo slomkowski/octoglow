@@ -5,6 +5,7 @@ import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.readToString
 import kotlinx.coroutines.*
+import kotlinx.datetime.Instant
 import mu.KLogging
 import java.io.BufferedReader
 import java.net.Inet4Address
@@ -13,21 +14,24 @@ import java.net.NetworkInterface
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.time.Duration
-import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 import kotlin.math.roundToLong
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.nanoseconds
+import kotlin.time.seconds
 
+@ExperimentalTime
 class NetworkView(
     private val config: Config,
     hardware: Hardware
 ) : FrontDisplayView(
     hardware,
     "Network",
-    Duration.ofSeconds(38),
-    Duration.ofSeconds(37),
-    Duration.ofSeconds(5)
+    38.seconds,
+    37.seconds,
+    5.seconds
 ) {
 
     data class RouteEntry(
@@ -119,14 +123,14 @@ class NetworkView(
             require(iface.isNotBlank())
             require(address.isNotBlank())
             require(noPings > 0)
-            require(!timeout.isNegative)
+            require(timeout > Duration.ZERO)
             val pb = ProcessBuilder(
                 pingBinary.toAbsolutePath().toString(),
                 "-4",
                 "-c", noPings.toString(),
                 "-i", "0.2",
                 "-I", iface,
-                "-w", timeout.seconds.toString(),
+                "-w", timeout.inSeconds.toInt().toString(),
                 address
             )
 
@@ -137,7 +141,7 @@ class NetworkView(
                 output.append(process.inputStream.readToString())
             }
 
-            process.waitFor(timeout.seconds + 2, TimeUnit.SECONDS)
+            process.waitFor((timeout.inMilliseconds + 2000).roundToLong(), TimeUnit.MILLISECONDS)
 
             check(output.isNotBlank()) {
                 val errorMsg = process.errorStream.readToString()
@@ -160,12 +164,12 @@ class NetworkView(
             { "info about RTT not found in ping output" }
                 .groupValues
                 .subList(1, 4)
-                .map { Duration.ofNanos((it.toDouble() * 1_000_000.0).roundToLong()) }
+                .map { (it.toDouble() * 1_000_000.0).roundToLong().nanoseconds }
 
             return PingResult(packetsTransmitted, packetsReceived, rttMin, rttAvg, rttMax)
         }
 
-        fun formatPingRtt(d: Duration?): String = when (val ms = d?.toMillis()?.toInt()) {
+        fun formatPingRtt(d: Duration?): String = when (val ms = d?.inMilliseconds?.toInt()) {
             null -> " -- ms"
             0 -> " <1 ms"
             in 1..99 -> String.format(" %2d ms", ms)
@@ -176,9 +180,9 @@ class NetworkView(
         private fun NetworkInterface.isEthernet(): Boolean = listOf("eth", "enp").any { this.name.startsWith(it) }
     }
 
-    override suspend fun poolInstantData(now: ZonedDateTime) = UpdateStatus.NO_NEW_DATA
+    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
+    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
         val (newReport, updateStatus) = try {
             val iface =
                 checkNotNull(withContext(Dispatchers.IO) { getActiveInterfaceInfo() }) { "cannot determine currently active network interface" }
@@ -237,19 +241,19 @@ class NetworkView(
                 config[NetworkViewKey.pingBinary],
                 interfaceInfo.name,
                 address,
-                Duration.ofSeconds(4),
+                4.seconds,
                 3
             )
         }
 
         val pingTime = pingInfo.rttAvg
 
-        logger.info { "RTT to $address is ${pingTime.toMillis()} ms." }
+        logger.info { "RTT to $address is ${pingTime.inMilliseconds} ms." }
 
         return pingTime
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
             val fd = hardware.frontDisplay
             val cr = currentReport

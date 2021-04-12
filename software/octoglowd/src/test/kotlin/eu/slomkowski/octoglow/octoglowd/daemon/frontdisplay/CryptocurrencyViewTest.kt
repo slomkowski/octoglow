@@ -4,15 +4,17 @@ import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.now
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.time.ZonedDateTime
 import kotlin.test.assertEquals
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class CryptocurrencyViewTest {
 
     companion object : KLogging()
@@ -57,7 +59,7 @@ class CryptocurrencyViewTest {
         runBlocking {
             val view = CryptocurrencyView(config, db, hardware)
 
-            view.redrawDisplay(true, true, ZonedDateTime.now())
+            view.redrawDisplay(true, true, now())
 
             coVerify {
                 hardware.frontDisplay.setStaticText(0, "---")

@@ -2,8 +2,10 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
 import mu.KLogging
+import kotlin.time.ExperimentalTime
 
 
+@ExperimentalTime
 class BrightnessMenu(private val brightnessDaemon: BrightnessDaemon) : Menu("Brightness") {
     companion object : KLogging() {
         private val optAuto = MenuOption("AUTO")

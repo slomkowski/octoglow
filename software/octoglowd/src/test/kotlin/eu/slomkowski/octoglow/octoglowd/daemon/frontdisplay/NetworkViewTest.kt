@@ -11,9 +11,13 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.InetAddress
 import java.nio.charset.StandardCharsets
-import java.time.Duration
 import kotlin.test.assertFails
+import kotlin.time.ExperimentalTime
+import kotlin.time.milliseconds
+import kotlin.time.nanoseconds
+import kotlin.time.seconds
 
+@ExperimentalTime
 internal class NetworkViewTest {
     companion object : KLogging()
 
@@ -26,7 +30,7 @@ internal class NetworkViewTest {
 
         val active = checkNotNull(NetworkView.getActiveInterfaceInfo())
 
-        NetworkView.pingAddressAndGetRtt(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", Duration.ofSeconds(5), 4)
+        NetworkView.pingAddressAndGetRtt(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", 5.seconds, 4)
             .apply {
                 assertNotNull(this)
                 logger.info { "Ping stats: $this" }
@@ -37,7 +41,7 @@ internal class NetworkViewTest {
                 config[NetworkViewKey.pingBinary],
                 active.name,
                 "254.254.254.254",
-                Duration.ofSeconds(3),
+                3.seconds,
                 2
             )
         }
@@ -52,9 +56,9 @@ internal class NetworkViewTest {
         NetworkView.parsePingOutput(readText("1.txt")).apply {
             assertEquals(3, packetsReceived)
             assertEquals(3, packetsTransmitted)
-            assertEquals(Duration.ofNanos(8_967_000), rttMin)
-            assertEquals(Duration.ofNanos(10_496_000), rttAvg)
-            assertEquals(Duration.ofNanos(12_114_000), rttMax)
+            assertEquals(8_967_000.nanoseconds, rttMin)
+            assertEquals(10_496_000.nanoseconds, rttAvg)
+            assertEquals(12_114_000.nanoseconds, rttMax)
         }
 
         assertFails("info about RTT not found in ping output") {
@@ -139,11 +143,11 @@ internal class NetworkViewTest {
     @Test
     fun testFormatPingRtt() {
         assertEquals(" -- ms", NetworkView.formatPingRtt(null))
-        assertEquals(" <1 ms", NetworkView.formatPingRtt(Duration.ofNanos(44_000)))
-        assertEquals(">999ms", NetworkView.formatPingRtt(Duration.ofMillis(1500)))
-        assertEquals(" 21 ms", NetworkView.formatPingRtt(Duration.ofMillis(21)))
-        assertEquals("  7 ms", NetworkView.formatPingRtt(Duration.ofNanos(7_800_000)))
-        assertEquals(" 534ms", NetworkView.formatPingRtt(Duration.ofMillis(534)))
-        assertEquals(" 999ms", NetworkView.formatPingRtt(Duration.ofMillis(999)))
+        assertEquals(" <1 ms", NetworkView.formatPingRtt(44_000.nanoseconds))
+        assertEquals(">999ms", NetworkView.formatPingRtt(1500.milliseconds))
+        assertEquals(" 21 ms", NetworkView.formatPingRtt(21.milliseconds))
+        assertEquals("  7 ms", NetworkView.formatPingRtt(7_800_000.nanoseconds))
+        assertEquals(" 534ms", NetworkView.formatPingRtt(534.milliseconds))
+        assertEquals(" 999ms", NetworkView.formatPingRtt(999.milliseconds))
     }
 }

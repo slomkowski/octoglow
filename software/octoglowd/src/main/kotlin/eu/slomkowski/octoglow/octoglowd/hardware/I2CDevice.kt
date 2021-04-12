@@ -3,7 +3,9 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.runBlocking
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 abstract class I2CDevice(
     private val hardware: Hardware,
     private val i2cAddress: Int

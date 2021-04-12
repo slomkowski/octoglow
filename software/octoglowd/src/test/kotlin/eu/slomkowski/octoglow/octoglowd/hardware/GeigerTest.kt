@@ -8,10 +8,13 @@ import mu.KLogging
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import java.time.Duration
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlin.time.ExperimentalTime
+import kotlin.time.minutes
+import kotlin.time.seconds
 
+@ExperimentalTime
 @ExtendWith(HardwareParameterResolver::class)
 class GeigerTest {
 
@@ -19,31 +22,43 @@ class GeigerTest {
 
     @Test
     fun testGeigerCounterStateParse() {
-        assertEquals(GeigerCounterState(false, false, 23,
-                32, Duration.ofSeconds(50), Duration.ofSeconds(200)),
-                GeigerCounterState.parse(I2CBuffer(9)
-                        .set(0, 0)
-                        .set(1, 23)
-                        .set(2, 0)
-                        .set(3, 32)
-                        .set(4, 0)
-                        .set(5, 50)
-                        .set(6, 0)
-                        .set(7, 200)
-                        .set(8, 0)))
+        assertEquals(
+            GeigerCounterState(
+                false, false, 23,
+                32, 50.seconds, 200.seconds
+            ),
+            GeigerCounterState.parse(
+                I2CBuffer(9)
+                    .set(0, 0)
+                    .set(1, 23)
+                    .set(2, 0)
+                    .set(3, 32)
+                    .set(4, 0)
+                    .set(5, 50)
+                    .set(6, 0)
+                    .set(7, 200)
+                    .set(8, 0)
+            )
+        )
 
-        assertEquals(GeigerCounterState(true, true, 23,
-                92, Duration.ofSeconds(50), Duration.ofMinutes(5)),
-                GeigerCounterState.parse(I2CBuffer(9)
-                        .set(0, 3)
-                        .set(1, 23)
-                        .set(2, 0)
-                        .set(3, 92)
-                        .set(4, 0)
-                        .set(5, 50)
-                        .set(6, 0)
-                        .set(7, 44)
-                        .set(8, 1)))
+        assertEquals(
+            GeigerCounterState(
+                true, true, 23,
+                92, 50.seconds, 5.minutes
+            ),
+            GeigerCounterState.parse(
+                I2CBuffer(9)
+                    .set(0, 3)
+                    .set(1, 23)
+                    .set(2, 0)
+                    .set(3, 92)
+                    .set(4, 0)
+                    .set(5, 50)
+                    .set(6, 0)
+                    .set(7, 44)
+                    .set(8, 1)
+            )
+        )
 
         assertFails {
             val invalid = listOf(0, 255, 255, 255, 255, 255, 255, 255, 255).toI2CBuffer()

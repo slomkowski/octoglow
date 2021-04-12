@@ -10,33 +10,37 @@ import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.Duration
-import java.time.ZonedDateTime
+import kotlin.time.ExperimentalTime
+import kotlin.time.seconds
 
+@ExperimentalTime
 class FrontDisplayDaemonTest {
 
     companion object : KLogging()
 
-    class TestView(name: String) : FrontDisplayView(mockk(),
-            name,
-            Duration.ofSeconds(10),
-            Duration.ofSeconds(1),
-            Duration.ofSeconds(7)) {
+    class TestView(name: String) : FrontDisplayView(
+        mockk(),
+        name,
+        10.seconds,
+        1.seconds,
+        7.seconds
+    ) {
 
-        override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus {
+        override suspend fun poolStatusData(now: Instant): UpdateStatus {
             logger.info { "Call poolStatusData." }
             return UpdateStatus.FULL_SUCCESS
         }
 
-        override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus {
+        override suspend fun poolInstantData(now: Instant): UpdateStatus {
             logger.info { "Call poolInstantData." }
             return UpdateStatus.FULL_SUCCESS
         }
 
-        override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) {
+        override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) {
             logger.info { "Screen redrawn." }
         }
 

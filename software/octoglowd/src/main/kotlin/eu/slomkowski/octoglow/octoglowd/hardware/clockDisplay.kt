@@ -5,8 +5,9 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
 import mu.KLogging
 import java.time.Duration
+import kotlin.time.ExperimentalTime
 
-data class OutdoorWeatherReport(
+data class RemoteSensorReport(
     val sensorId: Int,
     val temperature: Double,
     val humidity: Double,
@@ -55,7 +56,7 @@ data class OutdoorWeatherReport(
             return csum == checksum
         }
 
-        fun parse(buff: I2CBuffer): OutdoorWeatherReport? {
+        fun parse(buff: I2CBuffer): RemoteSensorReport? {
             require(buff.length == 7)
             require(buff[0] == 4)
 
@@ -98,7 +99,7 @@ data class OutdoorWeatherReport(
                 }
             }
 
-            return OutdoorWeatherReport(
+            return RemoteSensorReport(
                 sensorId,
                 temperature,
                 humidity,
@@ -110,6 +111,7 @@ data class OutdoorWeatherReport(
     }
 }
 
+@ExperimentalTime
 class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightness {
 
     companion object : KLogging() {
@@ -131,10 +133,10 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
         doWrite(1, 45, 45, 45, 45)
     }
 
-    suspend fun getOutdoorWeatherReport(): OutdoorWeatherReport? {
+    suspend fun retrieveRemoteSensorReport(): RemoteSensorReport? {
         val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 7)
         check(readBuffer[0] == 4)
-        return OutdoorWeatherReport.parse(readBuffer)
+        return RemoteSensorReport.parse(readBuffer)
     }
 
     suspend fun setDisplay(hours: Int, minutes: Int, upperDot: Boolean, lowerDot: Boolean) {

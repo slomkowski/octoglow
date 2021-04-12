@@ -4,11 +4,14 @@ import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.toKotlinLocalDate
 import mu.KLogging
 import java.time.Duration
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class BrightnessDaemon(
     private val config: Config,
     private val database: DatabaseLayer,
@@ -83,7 +86,7 @@ class BrightnessDaemon(
         val (sunrise, sunset) = calculateSunriseAndSunset(
             config[GeoPosKey.latitude],
             config[GeoPosKey.longitude],
-            ts.toLocalDate()
+            ts.toLocalDate().toKotlinLocalDate()
         )
         logger.debug { "On ${ts.toLocalDate()} sun is up from $sunrise to $sunset." }
 

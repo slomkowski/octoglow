@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.now
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
@@ -8,10 +9,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.ZonedDateTime
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 internal class StockViewTest {
 
     companion object : KLogging()
@@ -54,7 +56,7 @@ internal class StockViewTest {
         val stockView = StockView(mockk(), db, mockk())
 
         runBlocking {
-            assertNull(stockView.createSingleStockReport(emptyList(), ZonedDateTime.now(), "TEST"))
+            assertNull(stockView.createSingleStockReport(emptyList(), now(), "TEST"))
         }
     }
 }

@@ -14,7 +14,9 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZonedDateTime
 import kotlin.test.assertEquals
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class BrightnessDaemonTest {
     companion object : KLogging()
 
@@ -38,8 +40,14 @@ class BrightnessDaemonTest {
             }
         }, databaseMock, hardwareMock)
 
-        assertEquals(3, bd.calculateBrightnessFraction(ZonedDateTime.of(LocalDateTime.of(2019, 1, 23, 17, 21), WARSAW_ZONE_ID)))
-        assertEquals(4, bd.calculateBrightnessFraction(ZonedDateTime.of(LocalDateTime.of(2019, 1, 23, 8, 21), WARSAW_ZONE_ID)))
+        assertEquals(
+            3,
+            bd.calculateBrightnessFraction(ZonedDateTime.of(LocalDateTime.of(2019, 1, 23, 17, 21), WARSAW_ZONE_ID))
+        )
+        assertEquals(
+            4,
+            bd.calculateBrightnessFraction(ZonedDateTime.of(LocalDateTime.of(2019, 1, 23, 8, 21), WARSAW_ZONE_ID))
+        )
 
         runBlocking {
             bd.pool()
@@ -49,14 +57,16 @@ class BrightnessDaemonTest {
             bd.pool()
 
             coVerify(exactly = 1) { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, "3") }
-            coVerify(exactly = 2) { hardwareMock.setBrightness(3) }
+            coVerify(exactly = 3) { hardwareMock.setBrightness(3) }
         }
     }
 
     @Test
     fun testCalculateFromData() {
-        fun cr(sleepTime: LocalTime, sleepDurationHours: Int, time: LocalTime) = BrightnessDaemon.calculateFromData(LocalTime.of(7, 32), LocalTime.of(17, 23),
-                sleepTime, Duration.ofHours(sleepDurationHours.toLong()), time)
+        fun cr(sleepTime: LocalTime, sleepDurationHours: Int, time: LocalTime) = BrightnessDaemon.calculateFromData(
+            LocalTime.of(7, 32), LocalTime.of(17, 23),
+            sleepTime, Duration.ofHours(sleepDurationHours.toLong()), time
+        )
 
         (LocalTime.of(23, 31) to 8).let { (st, d) ->
             assertEquals(5, cr(st, d, LocalTime.of(12, 34)))

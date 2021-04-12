@@ -22,7 +22,7 @@ enum class ValueUpdateState : uint8_t {
     MEASUREMENT_ACCEPTED_BLINK_ENABLED
 };
 
-static volatile uint8_t timer1overflowCounter = 0;
+static volatile uint16_t timer1overflowCounter = 0;
 static volatile ValueUpdateState updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
 static volatile uint8_t mainMeasurementBuffer[NUM_OF_BITS_IN_PACKET / 8 + 1];
 static uint8_t comparingMeasurementBuffer[NUM_OF_BITS_IN_PACKET / 8 + 1];
@@ -33,7 +33,7 @@ constexpr uint8_t msToTimer0pulses(double milliseconds) {
 }
 
 constexpr uint8_t msToTimer1overflows(double milliseconds) {
-    return uint8_t(milliseconds / 1000.0 * ((double) F_CPU) / 512.0 / 255.0);// we assume prescaler is set to 512
+    return uint8_t(milliseconds / 1000.0 * ((double) F_CPU) / 128.0 / 255.0);// we assume prescaler is set to 512
 }
 
 static inline void timerRestart() {
@@ -140,7 +140,7 @@ ISR(INT0_vect) {
 
 // this is configured in init() in display.cpp. called every 16.384 ms
 ISR(TIMER1_OVF_vect) {
-    if (timer1overflowCounter != 250) {
+    if (timer1overflowCounter !=  4 * 250) {
         ++timer1overflowCounter;
     }
 }

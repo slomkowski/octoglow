@@ -1,16 +1,21 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.uchuhimo.konf.Config
+import com.uchuhimo.konf.RequiredItem
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import mu.KLogging
-import java.time.Duration
-import java.time.Instant
-import java.time.ZonedDateTime
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.minutes
+import kotlin.time.seconds
 
+@ExperimentalTime
 class WeatherSensorView(
     private val config: Config,
     private val databaseLayer: DatabaseLayer,
@@ -18,37 +23,35 @@ class WeatherSensorView(
 ) : FrontDisplayView(
     hardware,
     "Weather sensor view",
-    Duration.ofSeconds(2),
-    Duration.ofSeconds(1),
-    Duration.ofSeconds(12)
+    5.seconds,
+    2.seconds,
+    12.seconds
 ) {
 
     companion object : KLogging() {
         private const val HISTORIC_VALUES_LENGTH = 14
 
-        private val MAXIMAL_DURATION_BETWEEN_MEASUREMENTS: Duration = Duration.ofMinutes(5)
+        private val MINIMAL_DURATION_BETWEEN_MEASUREMENTS: Duration = 2.minutes
 
-        /**
-         * BME280 has quite big self-heating. This is the empirically determined temperature offset.
-         */
-        private const val INDOOR_SENSOR_TEMPERATURE_OFFSET = -0.76
+        private val MAXIMAL_DURATION_BETWEEN_MEASUREMENTS: Duration = 5.minutes
     }
 
-    data class IndoorReport(
-        val lastTemperature: Double,
+    init {
+        require(MINIMAL_DURATION_BETWEEN_MEASUREMENTS < MAXIMAL_DURATION_BETWEEN_MEASUREMENTS)
+        require(config[RemoteSensorsKey.indoorChannelId] != config[RemoteSensorsKey.outdoorChannelId]) { "indoor and outdoor sensors cannot have identical IDs" }
+    }
+
+    data class LocalReport(
         val lastPressure: Double,
-        val historicalTemperature: List<Double?>,
         val historicalPressure: List<Double?>
     ) {
         init {
-            require(lastTemperature in (5.0..45.0)) { "invalid temperature value: $lastTemperature" }
             require(lastPressure in (900.0..1100.0)) { "invalid pressure value: $lastPressure" }
             require(historicalPressure.size == HISTORIC_VALUES_LENGTH)
-            require(historicalTemperature.size == HISTORIC_VALUES_LENGTH)
         }
     }
 
-    data class OutdoorReport(
+    data class RemoteReport(
         val lastTemperature: Double,
         val historicalTemperature: List<Double?>,
         val isWeakBattery: Boolean
@@ -60,14 +63,14 @@ class WeatherSensorView(
     }
 
     data class CurrentReport(
-        val timestamp: ZonedDateTime,
-        val indoor: IndoorReport?,
-        val outdoor: OutdoorReport?
+        val localSensor: Pair<Instant, LocalReport>?,
+        val indoorSensor: Pair<Instant, RemoteReport>?,
+        val outdoorSensor: Pair<Instant, RemoteReport>?
     )
 
     private var currentReport: CurrentReport? = null
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
             val rep = currentReport
             val fd = hardware.frontDisplay
@@ -77,28 +80,36 @@ class WeatherSensorView(
             }
 
             if (redrawStatus) {
-                launch {
+                fun drawTemperature(
+                    textPosition: Int,
+                    graphPosition: Int,
+                    rep: RemoteReport?
+                ) = launch {
                     fd.setStaticText(
-                        0, formatTemperature(rep?.outdoor?.lastTemperature) + when (rep?.outdoor?.isWeakBattery) {
+                        textPosition,
+                        formatTemperature(rep?.lastTemperature)
+                                + when (rep?.isWeakBattery) {
                             true -> "!"
                             else -> ""
                         }
                     )
-                }
-                launch { fd.setStaticText(13, formatTemperature(rep?.indoor?.lastTemperature)) }
-                launch { fd.setStaticText(24, formatPressure(rep?.indoor?.lastPressure)) }
 
-                rep?.outdoor?.let {
-                    launch {
+                    rep?.let {
                         fd.setOneLineDiffChart(
-                            5 * 20,
+                            graphPosition,
                             it.lastTemperature,
                             it.historicalTemperature,
                             1.0
                         )
                     }
                 }
-                rep?.indoor?.let {
+
+                drawTemperature(0, 5 * 20, rep?.outdoorSensor?.second)
+                drawTemperature(13, 5 * 37, rep?.indoorSensor?.second)
+
+                launch { fd.setStaticText(24, formatPressure(rep?.localSensor?.second?.lastPressure)) }
+
+                rep?.localSensor?.second?.let {
                     launch {
                         fd.setOneLineDiffChart(
                             5 * 33,
@@ -108,39 +119,90 @@ class WeatherSensorView(
                         )
                     }
                 }
-                rep?.indoor?.let {
-                    launch {
-                        fd.setOneLineDiffChart(
-                            5 * 37,
-                            it.lastTemperature,
-                            it.historicalTemperature,
-                            1.0
-                        )
-                    }
-                }
             }
 
-            drawProgressBar(rep?.timestamp, now, MAXIMAL_DURATION_BETWEEN_MEASUREMENTS)
+            drawProgressBar(
+                minOf(
+                    rep?.indoorSensor?.first ?: Instant.DISTANT_PAST,
+                    rep?.outdoorSensor?.first ?: Instant.DISTANT_PAST,
+                    rep?.localSensor?.first ?: Instant.DISTANT_PAST
+                ), now, MAXIMAL_DURATION_BETWEEN_MEASUREMENTS
+            )
 
             Unit
         }
 
-    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(now: ZonedDateTime) = coroutineScope {
-        val oldReport = currentReport
+    private suspend fun poolLocalSensor(
+        now: Instant,
+        previousReport: Pair<Instant, LocalReport>?
+    ): Pair<UpdateStatus, LocalReport?> = coroutineScope {
 
-        val newOutdoorSensorData = hardware.clockDisplay.getOutdoorWeatherReport()
+        if (now - (previousReport?.first ?: Instant.DISTANT_PAST) < MINIMAL_DURATION_BETWEEN_MEASUREMENTS) {
+//            logger.debug("Values for local sensor saved at {}, skipping.", previousReport?.first)
+            return@coroutineScope UpdateStatus.NO_NEW_DATA to null
+        }
 
-        val (outdoorStatus, outdoorReport) = if (newOutdoorSensorData == null) {
-            logger.warn { "Invalid outdoor sensor report." }
-            UpdateStatus.FAILURE to null
-        } else if (!newOutdoorSensorData.alreadyReadFlag || oldReport == null) {
-            logger.info { "Got outdoor report : $newOutdoorSensorData." }
+        try {
+            val rep = hardware.bme280.readReport()
+
+            val elevation = config[GeoPosKey.elevation]
+            val mslPressure = rep.getMeanSeaLevelPressure(elevation)
+
+            logger.debug { "Got BMP280 report : $rep." }
+            logger.debug { "Mean sea-level pressure at $elevation m is $mslPressure hPa." }
+
             listOf(
-                databaseLayer.insertHistoricalValueAsync(now, OutdoorTemperature, newOutdoorSensorData.temperature),
+                databaseLayer.insertHistoricalValueAsync(now, RealPressure, rep.realPressure),
+                databaseLayer.insertHistoricalValueAsync(now, MSLPressure, mslPressure)
+            ).joinAll()
+
+            val historicalPressure =
+                databaseLayer.getLastHistoricalValuesByHourAsync(now, MSLPressure, HISTORIC_VALUES_LENGTH)
+
+            UpdateStatus.FULL_SUCCESS to LocalReport(
+                mslPressure,
+                historicalPressure.await()
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "Error during updating state of local sensor." }
+            UpdateStatus.FAILURE to null
+        }
+    }
+
+    private suspend fun poolRemoteSensor(
+        now: Instant,
+        receivedReport: RemoteSensorReport?,
+        channelIdConfigKey: RequiredItem<Int>,
+        previousReport: Pair<Instant, RemoteReport>?,
+        temperatureDbKey: HistoricalValueType,
+        weakBatteryDbKey: HistoricalValueType
+    ): Pair<UpdateStatus, RemoteReport?> = coroutineScope {
+
+        if (receivedReport == null || receivedReport.alreadyReadFlag) {
+            return@coroutineScope UpdateStatus.NO_NEW_DATA to null
+        }
+
+        if (config[channelIdConfigKey] != receivedReport.sensorId) {
+            return@coroutineScope UpdateStatus.NO_NEW_DATA to null
+        }
+
+        // don't update report if it is younger than MINIMAL_DURATION_BETWEEN_MEASUREMENTS
+        if (now - (previousReport?.first ?: Instant.DISTANT_PAST) < MINIMAL_DURATION_BETWEEN_MEASUREMENTS) {
+            logger.debug(
+                "Values for remote sensor (channel {}) saved at {}, skipping.",
+                config[channelIdConfigKey],
+                previousReport?.first
+            )
+            return@coroutineScope UpdateStatus.NO_NEW_DATA to null
+        }
+
+        try {
+            listOf(
+                databaseLayer.insertHistoricalValueAsync(now, temperatureDbKey, receivedReport.temperature),
                 databaseLayer.insertHistoricalValueAsync(
-                    now, OutdoorWeakBattery, if (newOutdoorSensorData.batteryIsWeak) {
+                    now, weakBatteryDbKey, if (receivedReport.batteryIsWeak) {
                         1.0
                     } else {
                         0.0
@@ -149,72 +211,88 @@ class WeatherSensorView(
             ).joinAll()
 
             val historicalTemperature =
-                databaseLayer.getLastHistoricalValuesByHourAsync(now, OutdoorTemperature, HISTORIC_VALUES_LENGTH)
+                databaseLayer.getLastHistoricalValuesByHourAsync(now, temperatureDbKey, HISTORIC_VALUES_LENGTH)
 
-            UpdateStatus.FULL_SUCCESS to OutdoorReport(
-                newOutdoorSensorData.temperature,
+            UpdateStatus.FULL_SUCCESS to RemoteReport(
+                receivedReport.temperature,
                 historicalTemperature.await(),
-                newOutdoorSensorData.batteryIsWeak
+                receivedReport.batteryIsWeak
             )
-        } else { // no new data
-            UpdateStatus.NO_NEW_DATA to oldReport.outdoor
+        } catch (e: Exception) {
+            logger.error(e) { "Error during updating state of remote sensor (channel ${receivedReport.sensorId})." }
+            UpdateStatus.FAILURE to null
         }
+    }
 
-        val (indoorStatus, indoorReport) = if (outdoorStatus == UpdateStatus.FULL_SUCCESS
-            || Duration.between(
-                oldReport?.timestamp
-                    ?: Instant.EPOCH, now
-            ) >= MAXIMAL_DURATION_BETWEEN_MEASUREMENTS
-        ) {
-            val rep = hardware.bme280.readReport()
+    override suspend fun poolStatusData(now: Instant) = coroutineScope {
 
-            val elevation = config[GeoPosKey.elevation]
-            val mslPressure = rep.getMeanSeaLevelPressure(elevation)
-            val temperature = rep.temperature + INDOOR_SENSOR_TEMPERATURE_OFFSET
+        // if status failure, set null; other
+        fun <T : Any> takeIfReportAppropriate(
+            repPair: Pair<UpdateStatus, T?>,
+            oldRep: Pair<Instant, T>?
+        ): Pair<Instant, T>? {
+            val (newStatus, newRep) = repPair
 
-            logger.info { "Got BMP280 report : $rep." }
-            logger.info { "Mean sea-level pressure at $elevation m is $mslPressure hPa." }
-
-            listOf(
-                databaseLayer.insertHistoricalValueAsync(now, IndoorTemperature, temperature),
-                databaseLayer.insertHistoricalValueAsync(now, RealPressure, rep.realPressure),
-                databaseLayer.insertHistoricalValueAsync(now, MSLPressure, mslPressure)
-            ).joinAll()
-
-            val historicalTemperature =
-                databaseLayer.getLastHistoricalValuesByHourAsync(now, IndoorTemperature, HISTORIC_VALUES_LENGTH)
-            val historicalPressure =
-                databaseLayer.getLastHistoricalValuesByHourAsync(now, MSLPressure, HISTORIC_VALUES_LENGTH)
-
-            UpdateStatus.FULL_SUCCESS to IndoorReport(
-                temperature,
-                mslPressure,
-                historicalTemperature.await(),
-                historicalPressure.await()
-            )
-        } else {
-            UpdateStatus.NO_NEW_DATA to oldReport?.indoor
-        }
-
-        val (overallStatus, newReport) = setOf(indoorStatus, outdoorStatus).let { statuses ->
-            val newRep = CurrentReport(now, indoorReport, outdoorReport)
-            when {
-                statuses == setOf(UpdateStatus.FAILURE, UpdateStatus.FAILURE) -> UpdateStatus.FAILURE to null
-                statuses == setOf(
-                    UpdateStatus.NO_NEW_DATA,
-                    UpdateStatus.FAILURE
-                ) -> UpdateStatus.PARTIAL_SUCCESS to oldReport
-                statuses.contains(UpdateStatus.FAILURE) -> UpdateStatus.PARTIAL_SUCCESS to newRep
-                statuses == setOf(
-                    UpdateStatus.NO_NEW_DATA,
-                    UpdateStatus.NO_NEW_DATA
-                ) -> UpdateStatus.NO_NEW_DATA to oldReport
-                else -> UpdateStatus.FULL_SUCCESS to newRep
+            return when (newStatus) {
+                UpdateStatus.FAILURE -> null
+                UpdateStatus.FULL_SUCCESS -> now to checkNotNull(newRep) { "status is $newStatus, but $newRep is null" }
+                UpdateStatus.NO_NEW_DATA -> oldRep?.takeIf { (prevTimestamp, _) -> now - prevTimestamp < MAXIMAL_DURATION_BETWEEN_MEASUREMENTS }
+                else -> throw IllegalStateException("status $newStatus not supported")
             }
         }
 
-        currentReport = newReport
+        val oldReport = currentReport
 
-        overallStatus
+        val remoteSensorReport = hardware.clockDisplay.retrieveRemoteSensorReport()
+
+        val newLocal = poolLocalSensor(now, oldReport?.localSensor)
+
+        val newIndoorReport = poolRemoteSensor(
+            now,
+            remoteSensorReport,
+            RemoteSensorsKey.indoorChannelId,
+            oldReport?.indoorSensor,
+            IndoorTemperature,
+            IndoorWeakBattery
+        )
+
+        val newOutdoorReport = poolRemoteSensor(
+            now,
+            remoteSensorReport,
+            RemoteSensorsKey.outdoorChannelId,
+            oldReport?.outdoorSensor,
+            OutdoorTemperature,
+            OutdoorWeakBattery
+        )
+
+        val statuses = listOf(newOutdoorReport, newIndoorReport, newLocal)
+            .map { it.first }
+            .groupingBy { it }
+            .eachCount()
+
+        val newReport = CurrentReport(
+            takeIfReportAppropriate(newLocal, oldReport?.localSensor),
+            takeIfReportAppropriate(newIndoorReport, oldReport?.indoorSensor),
+            takeIfReportAppropriate(newOutdoorReport, oldReport?.outdoorSensor)
+        )
+
+        if (newReport != oldReport) {
+            currentReport = newReport
+        }
+
+        return@coroutineScope when {
+            statuses[UpdateStatus.FAILURE] == 3 -> {
+                UpdateStatus.FAILURE
+            }
+            statuses[UpdateStatus.NO_NEW_DATA] == 3 -> {
+                UpdateStatus.NO_NEW_DATA
+            }
+            statuses[UpdateStatus.FAILURE] ?: 0 > 0 -> {
+                UpdateStatus.PARTIAL_SUCCESS
+            }
+            else -> {
+                UpdateStatus.FULL_SUCCESS
+            }
+        }
     }
 }

@@ -5,7 +5,9 @@ import eu.slomkowski.octoglow.octoglowd.toList
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
 import mu.KLogging
-import java.time.Duration
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.seconds
 
 enum class EyeDisplayMode {
     ANIMATION,
@@ -19,6 +21,7 @@ enum class EyeInverterState {
     RUNNING
 }
 
+@ExperimentalTime
 data class GeigerCounterState(
     val hasNewCycleStarted: Boolean,
     val hasCycleEverCompleted: Boolean,
@@ -54,8 +57,8 @@ data class GeigerCounterState(
                 },
                 (buff[2] shl 8) + buff[1],
                 (buff[4] shl 8) + buff[3],
-                Duration.ofSeconds(((buff[6] shl 8) + buff[5]).toLong()),
-                Duration.ofSeconds(((buff[8] shl 8) + buff[7]).toLong())
+                ((buff[6] shl 8) + buff[5]).seconds,
+                ((buff[8] shl 8) + buff[7]).seconds
             )
         }
     }
@@ -106,10 +109,11 @@ data class GeigerDeviceState(
     }
 }
 
+@ExperimentalTime
 class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
 
     companion object : KLogging() {
-        private val CYCLE_MAX_DURATION: Duration = Duration.ofSeconds(0xffff)
+        private val CYCLE_MAX_DURATION: Duration = 0xffff.seconds
 
         private const val I2C_READ_TRIES = 5
     }
@@ -139,7 +143,7 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
 
         assert(duration > Duration.ZERO) { "duration has to be non-zero" }
         assert(duration < CYCLE_MAX_DURATION) { "duration can be max $CYCLE_MAX_DURATION" }
-        val seconds = duration.seconds.toInt()
+        val seconds = duration.inSeconds.toInt()
 
         doWrite(3, 0xff and seconds, 0xff and (seconds shr 8))
     }

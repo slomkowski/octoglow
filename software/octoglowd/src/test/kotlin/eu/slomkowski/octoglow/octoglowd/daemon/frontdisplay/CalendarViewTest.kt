@@ -5,14 +5,18 @@ import eu.slomkowski.octoglow.octoglowd.ConfKey
 import eu.slomkowski.octoglow.octoglowd.GeoPosKey
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.CalendarView.Companion.formatDate
 import io.mockk.mockk
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.LocalDate
 import java.time.LocalTime
 import java.util.*
 import kotlin.test.assertTrue
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 internal class CalendarViewTest {
 
     companion object : KLogging()
@@ -28,7 +32,7 @@ internal class CalendarViewTest {
         val cv = CalendarView(config, mockk())
 
         fun assertOk(text: String, year: Int, month: Int, day: Int) {
-            val d = LocalDate.of(year, month, day)
+            val d = LocalDate(year, month, day)
             val realText = cv.getInfoForDay(d)
             logger.debug { "Text for $d is $realText, length: ${realText.length}." }
             assertEquals(text, realText)
@@ -42,13 +46,13 @@ internal class CalendarViewTest {
 
     @Test
     fun testFormatDate() {
-        assertEquals("Sunday 1 Dec", formatDate(LocalDate.of(2019, 12, 1)))
-        assertEquals("Monday 18 Mar", formatDate(LocalDate.of(2019, 3, 18)))
-        assertEquals("Thursday 21 Feb", formatDate(LocalDate.of(2019, 2, 21)))
-        assertEquals("Wed, 20 Feb", formatDate(LocalDate.of(2019, 2, 20)))
+        assertEquals("Sunday 1 Dec", formatDate(LocalDate(2019, 12, 1)))
+        assertEquals("Monday 18 Mar", formatDate(LocalDate(2019, 3, 18)))
+        assertEquals("Thursday 21 Feb", formatDate(LocalDate(2019, 2, 21)))
+        assertEquals("Wed, 20 Feb", formatDate(LocalDate(2019, 2, 20)))
 
-        for (noOfDays in (0..200L)) {
-            val str = formatDate(LocalDate.of(2019, 2, 1).plusDays(noOfDays))
+        for (noOfDays in (0..200)) {
+            val str = formatDate(LocalDate(2019, 2, 1).plus(DatePeriod(0, 0, noOfDays)))
             assertTrue("$str has length ${str.length}") { str.length <= 15 }
         }
     }

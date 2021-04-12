@@ -17,8 +17,10 @@ import java.nio.file.Paths
 import java.time.Duration
 import java.util.stream.Collectors
 import kotlin.math.roundToInt
+import kotlin.time.ExperimentalTime
 
 
+@ExperimentalTime
 class AnalogGaugeDaemon(
     config: Config,
     private val hardware: Hardware

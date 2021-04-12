@@ -10,15 +10,15 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import kotlinx.datetime.toJavaInstant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import mu.KLogging
-import java.time.Duration
-import java.time.ZoneId
-import java.time.ZonedDateTime
+import kotlin.time.ExperimentalTime
+import kotlin.time.minutes
+import kotlin.time.seconds
 
+@ExperimentalTime
 class CryptocurrencyView(
     private val config: Config,
     private val database: DatabaseLayer,
@@ -26,9 +26,9 @@ class CryptocurrencyView(
 ) : FrontDisplayView(
     hardware,
     "Cryptocurrencies",
-    Duration.ofMinutes(5),
-    Duration.ofSeconds(15),
-    Duration.ofSeconds(13)
+    5.minutes,
+    15.seconds,
+    13.seconds
 ) {
 
     companion object : KLogging() {
@@ -101,7 +101,7 @@ class CryptocurrencyView(
     }
 
     data class CurrentReport(
-        val timestamp: ZonedDateTime,
+        val timestamp: Instant,
         val coins: Map<RequiredItem<String>, CoinReport>
     )
 
@@ -127,7 +127,7 @@ class CryptocurrencyView(
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
             val report = currentReport
 
@@ -147,9 +147,9 @@ class CryptocurrencyView(
     /**
      * Progress bar is dependent only on current time so always success.
      */
-    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
+    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
         val newReport = CurrentReport(now, coinKeys.map { coinKey ->
             async {
@@ -158,10 +158,9 @@ class CryptocurrencyView(
                 try {
                     val ohlc = getLatestOhlc(coinId)
                     val value = ohlc.close
-                    val ohlcTimestamp = ZonedDateTime.ofInstant(ohlc.timeClose.toJavaInstant(), ZoneId.systemDefault())
                     val dbKey = Cryptocurrency(symbol)
                     logger.info { "Value of $symbol at $now is \$$value." }
-                    database.insertHistoricalValueAsync(ohlcTimestamp, dbKey, value)
+                    database.insertHistoricalValueAsync(ohlc.timeClose, dbKey, value)
                     val history =
                         database.getLastHistoricalValuesByHourAsync(now, dbKey, HISTORIC_VALUES_LENGTH).await()
                     coinKey to CoinReport(symbol, value, history)

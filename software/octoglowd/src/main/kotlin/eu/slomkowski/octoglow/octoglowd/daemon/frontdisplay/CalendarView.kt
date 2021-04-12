@@ -8,30 +8,34 @@ import eu.slomkowski.octoglow.octoglowd.GeoPosKey
 import eu.slomkowski.octoglow.octoglowd.calculateSunriseAndSunset
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import eu.slomkowski.octoglow.octoglowd.toLocalDate
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.*
+import kotlinx.datetime.TimeZone
 import mu.KLogging
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
-import java.time.Duration
-import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.time.ExperimentalTime
+import kotlin.time.minutes
+import kotlin.time.seconds
 
+@ExperimentalTime
 class CalendarView(
     private val config: Config,
     hardware: Hardware
 ) : FrontDisplayView(
     hardware,
     "Calendar",
-    Duration.ofMinutes(3),
-    Duration.ofMinutes(1),
-    Duration.ofSeconds(20)
+    3.minutes,
+    1.minutes,
+    20.seconds
 ) {
 
     data class NameDayRow(
@@ -62,9 +66,9 @@ class CalendarView(
         val sunriseSunsetTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm")
 
         fun formatDate(day: LocalDate): String {
-            val str = day.format(fullDateFormatter)
+            val str = day.toJavaLocalDate().format(fullDateFormatter)
             return when {
-                str.length > 15 -> day.format(shortDateFormatter)
+                str.length > 15 -> day.toJavaLocalDate().format(shortDateFormatter)
                 else -> str
             }
         }
@@ -83,8 +87,8 @@ class CalendarView(
     }
 
     fun getInfoForDay(day: LocalDate): String {
-        val holiday = holidayManager.getHolidays(day, day).firstOrNull()
-        val names = nameDays.find { it.month == day.monthValue && it.day == day.dayOfMonth }?.names
+        val holiday = holidayManager.getHolidays(day.toJavaLocalDate(), day.toJavaLocalDate()).firstOrNull()
+        val names = nameDays.find { it.month == day.monthNumber && it.day == day.dayOfMonth }?.names
 
         return listOfNotNull(
             holiday?.description?.toUpperCase(),
@@ -94,14 +98,14 @@ class CalendarView(
             .let { it.capitalize() }
     }
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun poolStatusData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
-    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
             val fd = hardware.frontDisplay
-            val today = now.toLocalDate()
+            val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
 
             if (redrawStatus) {
                 launch {

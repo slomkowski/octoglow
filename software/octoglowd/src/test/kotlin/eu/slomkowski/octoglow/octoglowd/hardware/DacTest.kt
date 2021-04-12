@@ -4,7 +4,9 @@ import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 @ExtendWith(HardwareParameterResolver::class)
 class DacTest {
 

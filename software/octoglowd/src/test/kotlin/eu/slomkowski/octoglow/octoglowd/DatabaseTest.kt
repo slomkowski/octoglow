@@ -39,12 +39,13 @@ class DatabaseTest {
 
             runBlocking {
                 listOf(
-                        now.minusDays(3) to -23.3,
-                        now.minusHours(2) to 15.0,
-                        now.minusHours(1) to 20.0,
-                        now to 25.0)
-                        .map { (dt, temp) -> db.insertHistoricalValueAsync(dt, OutdoorTemperature, temp) }
-                        .joinAll()
+                    now.minusDays(3) to -23.3,
+                    now.minusHours(2) to 15.0,
+                    now.minusHours(1) to 20.0,
+                    now to 25.0
+                )
+                    .map { (dt, temp) -> db.insertHistoricalValueAsync(dt, OutdoorTemperature, temp) }
+                    .joinAll()
 
                 val results = db.getLastHistoricalValuesByHourAsync(now, OutdoorTemperature, 5).await()
                 assertEquals(5, results.size)
@@ -75,14 +76,18 @@ class DatabaseTest {
 
     @Test
     fun testDateTimeFormat() {
-        assertEquals("2019-01-25 00:32:35.212000", LocalDateTime.of(2019, 1, 25, 0, 32, 35, 212_000_000).format(DatabaseLayer.sqliteNativeDateTimeFormat))
+        assertEquals(
+            "2019-01-25 00:32:35.212000",
+            LocalDateTime.of(2019, 1, 25, 0, 32, 35, 212_000_000).format(DatabaseLayer.sqliteNativeDateTimeFormat)
+        )
     }
 
     @Test
     fun testCreateSqlQueryForAveragedHours() {
         val d = ZonedDateTime.of(2018, 6, 24, 16, 20, 11, 0, WARSAW_ZONE_ID)
 
-        assertEquals("""SELECT
+        assertEquals(
+            """SELECT
         |CASE
         |WHEN created BETWEEN 1529846411000 AND 1529850011000 THEN 0
         |WHEN created BETWEEN 1529842811000 AND 1529846411000 THEN 1
@@ -96,10 +101,14 @@ class DatabaseTest {
         |FROM indoor_weather_report
         |WHERE created BETWEEN 1529824811000 AND 1529850011000
         |GROUP BY 1
-        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval("indoor_weather_report",
-                listOf("temperature", "humidity", "pressure"), d, Duration.ofHours(1), 7, false))
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+                "indoor_weather_report",
+                listOf("temperature", "humidity", "pressure"), d, Duration.ofHours(1), 7, false
+            )
+        )
 
-        assertEquals("""SELECT
+        assertEquals(
+            """SELECT
         |CASE
         |WHEN created BETWEEN 1529848211000 AND 1529850011000 THEN 0
         |WHEN created BETWEEN 1529846411000 AND 1529848211000 THEN 1
@@ -119,10 +128,14 @@ class DatabaseTest {
         |FROM indoor_weather_report
         |WHERE created BETWEEN 1529826611000 AND 1529850011000 AND created < (SELECT MAX(created) FROM indoor_weather_report)
         |GROUP BY 1
-        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval("indoor_weather_report",
-                listOf("temperature"), d, Duration.ofMinutes(30), 13, true))
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+                "indoor_weather_report",
+                listOf("temperature"), d, Duration.ofMinutes(30), 13, true
+            )
+        )
 
-        assertEquals("""SELECT
+        assertEquals(
+            """SELECT
         |CASE
         |WHEN created BETWEEN 1548327600000 AND 1548329400000 THEN 0
         |WHEN created BETWEEN 1548325800000 AND 1548327600000 THEN 1
@@ -140,9 +153,12 @@ class DatabaseTest {
                 Duration.ofMinutes(30),
                 4,
                 false,
-                "symbol" to "WER"))
+                "symbol" to "WER"
+            )
+        )
 
-        assertEquals("""SELECT
+        assertEquals(
+            """SELECT
         |CASE
         |WHEN created BETWEEN 1548327600000 AND 1548329400000 THEN 0
         |WHEN created BETWEEN 1548325800000 AND 1548327600000 THEN 1
@@ -158,12 +174,15 @@ class DatabaseTest {
                 Duration.ofMinutes(30),
                 2,
                 true,
-                "symbol" to null))
+                "symbol" to null
+            )
+        )
     }
 
     @Test
     fun testCreateSqlQueryForAveragedDays() {
-        assertEquals("""SELECT
+        assertEquals(
+            """SELECT
         |CASE
         |WHEN created BETWEEN 1606863600000 AND 1606950000000 THEN 0
         |WHEN created BETWEEN 1606777200000 AND 1606863600000 THEN 1
@@ -181,6 +200,8 @@ class DatabaseTest {
                 Duration.ofDays(1),
                 4,
                 false,
-                "symbol" to "TEST"))
+                "symbol" to "TEST"
+            )
+        )
     }
 }

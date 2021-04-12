@@ -7,7 +7,9 @@ import mu.KLogging
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class HardwareParameterResolver : ParameterResolver {
 
     companion object : KLogging()

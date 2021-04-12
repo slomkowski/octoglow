@@ -10,15 +10,17 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertFails
 import kotlin.test.assertNotNull
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 @ExtendWith(HardwareParameterResolver::class)
 class Bme280Test {
     companion object : KLogging()
 
     @Test
     fun testGetMeanSeaLevelPressure() {
-        assertEquals(1018.14, IndoorWeatherReport(22.0, 0.0, 1017.9).getMeanSeaLevelPressure(2.0), 0.01)
-        assertEquals(1027.25, IndoorWeatherReport(22.0, 0.0, 1017.9).getMeanSeaLevelPressure(79.0), 0.01)
+        assertEquals(1018.14, LocalSensorReport(22.0, 0.0, 1017.9).getMeanSeaLevelPressure(2.0), 0.01)
+        assertEquals(1027.25, LocalSensorReport(22.0, 0.0, 1017.9).getMeanSeaLevelPressure(79.0), 0.01)
     }
 
     @Test
@@ -31,9 +33,11 @@ class Bme280Test {
             checkNot00andNotFF(I2CBuffer(3).set(0, 255).set(1, 255).set(2, 255))
         }
 
-        checkNot00andNotFF(I2CBuffer(3)
+        checkNot00andNotFF(
+            I2CBuffer(3)
                 .set(0, 0xff)
-                .set(1, 0xff))
+                .set(1, 0xff)
+        )
     }
 
     @Test

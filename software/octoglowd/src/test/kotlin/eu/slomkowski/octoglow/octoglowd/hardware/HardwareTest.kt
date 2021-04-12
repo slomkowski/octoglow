@@ -9,7 +9,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Test
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class HardwareTest {
 
     companion object : KLogging()

@@ -10,7 +10,9 @@ import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class SimpleMonitorViewTest {
 
     companion object : KLogging()

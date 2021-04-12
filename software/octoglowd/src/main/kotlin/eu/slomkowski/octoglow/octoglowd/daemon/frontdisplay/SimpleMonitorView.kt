@@ -18,10 +18,12 @@ import org.apache.commons.lang3.StringUtils
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.time.Duration
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.time.ExperimentalTime
+import kotlin.time.seconds
 
+@ExperimentalTime
 class SimpleMonitorView(
     private val config: Config,
     private val database: DatabaseLayer,
@@ -29,9 +31,9 @@ class SimpleMonitorView(
 ) : FrontDisplayView(
     hardware,
     "SimpleMonitor",
-    Duration.ofSeconds(90),
-    Duration.ofSeconds(15),
-    Duration.ofSeconds(8)
+    90.seconds,
+    15.seconds,
+    8.seconds
 ) {
 
     @Serializable
@@ -61,7 +63,7 @@ class SimpleMonitorView(
     )
 
     data class CurrentReport(
-        val timestamp: ZonedDateTime,
+        val timestamp: Instant,
         val data: SimpleMonitorJson?
     )
 
@@ -85,7 +87,7 @@ class SimpleMonitorView(
 
     private var currentReport: CurrentReport? = null
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
+    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
         val (status, newReport) = try {
             val json = getLatestSimpleMonitorJson(
                 config[SimpleMonitorKey.url],
@@ -116,9 +118,9 @@ class SimpleMonitorView(
         status
     }
 
-    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
             val report = currentReport
             val fd = hardware.frontDisplay

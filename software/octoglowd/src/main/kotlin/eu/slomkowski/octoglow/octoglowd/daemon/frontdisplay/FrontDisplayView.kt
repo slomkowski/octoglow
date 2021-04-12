@@ -6,9 +6,13 @@ import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toKotlinInstant
 import mu.KLogging
-import java.time.Duration
 import java.time.ZonedDateTime
+import kotlin.time.ExperimentalTime
+import kotlin.time.toJavaDuration
+import kotlin.time.toKotlinDuration
 
 enum class UpdateStatus {
     NO_NEW_DATA,
@@ -22,40 +26,53 @@ enum class UpdateStatus {
  * status - values provided by the view, updatable usually once a minute or so.
  * instant - exact state of the processing on the device, updatable once every several seconds.
  */
+@ExperimentalTime
 abstract class FrontDisplayView(
     val hardware: Hardware,
     val name: String,
-    val poolStatusEvery: Duration,
-    val poolInstantEvery: Duration,
-    val preferredDisplayTime: Duration
+    val poolStatusEvery: kotlin.time.Duration,
+    val poolInstantEvery: kotlin.time.Duration,
+    val preferredDisplayTime: kotlin.time.Duration
 ) {
 
     init {
         check(name.isNotBlank())
-        check(poolStatusEvery > Duration.ZERO)
-        check(poolInstantEvery > Duration.ZERO)
+        check(poolStatusEvery.isPositive())
+        check(poolInstantEvery.isPositive())
         check(poolStatusEvery > poolInstantEvery)
     }
 
     open fun getMenus(): List<Menu> = emptyList()
 
-    abstract suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus
+    abstract suspend fun poolStatusData(now: Instant): UpdateStatus
 
-    abstract suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus
+    abstract suspend fun poolInstantData(now: Instant): UpdateStatus
 
-    abstract suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime)
+    abstract suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant)
 
     override fun toString(): String = "'$name'"
 
+    @Deprecated("migrating to kotlinx date time")
     protected suspend fun drawProgressBar(
         reportTimestamp: ZonedDateTime?,
         now: ZonedDateTime,
-        period: Duration = poolStatusEvery
+        period: java.time.Duration = poolStatusEvery.toJavaDuration()
+    ) = drawProgressBar(
+        reportTimestamp?.toInstant()?.toKotlinInstant(),
+        now.toInstant().toKotlinInstant(),
+        period.toKotlinDuration()
+    )
+
+    @ExperimentalTime
+    protected suspend fun drawProgressBar(
+        reportTimestamp: Instant?,
+        now: Instant,
+        period: kotlin.time.Duration = poolStatusEvery
     ) = coroutineScope {
         val fd = hardware.frontDisplay
         if (reportTimestamp != null) {
-            val currentCycleDuration = Duration.between(reportTimestamp, now)
-            check(!currentCycleDuration.isNegative)
+            val currentCycleDuration = now - reportTimestamp
+            check(!currentCycleDuration.isNegative())
             launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, period))) }
         } else {
             launch { fd.setUpperBar(emptyList()) }

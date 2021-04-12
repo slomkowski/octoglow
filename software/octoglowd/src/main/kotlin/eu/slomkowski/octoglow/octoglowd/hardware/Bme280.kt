@@ -6,11 +6,12 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
 import mu.KLogging
 import kotlin.math.exp
+import kotlin.time.ExperimentalTime
 
 /**
  * Temperature in deg C, humidity in %, pressure in hPa.
  */
-data class IndoorWeatherReport(
+data class LocalSensorReport(
     val temperature: Double,
     val humidity: Double,
     val realPressure: Double
@@ -42,7 +43,7 @@ data class IndoorWeatherReport(
         This code was directly transplanted from
         https://github.com/ControlEverythingCommunity/BME280/blob/master/Java/BME280.java
          */
-        fun parse(cd: CompensationData, adcP: Int, adcT: Int, adcH: Int): IndoorWeatherReport {
+        fun parse(cd: CompensationData, adcP: Int, adcT: Int, adcH: Int): LocalSensorReport {
             var var1 = (adcT.toDouble() / 16384.0 - cd.t1.toDouble() / 1024.0) * cd.t2.toDouble()
             var var2 =
                 (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * (adcT.toDouble() / 131072.0 - cd.t1.toDouble() / 8192.0) * cd.t3.toDouble()
@@ -67,7 +68,7 @@ data class IndoorWeatherReport(
                 (adcH - (cd.h4 * 64.0 + cd.h5 / 16384.0 * varH)) * (cd.h2 / 65536.0 * (1.0 + cd.h6 / 67108864.0 * varH * (1.0 + cd.h3 / 67108864.0 * varH)))
             val humidity = varH * (1.0 - cd.h1 * varH / 524288.0)
 
-            return IndoorWeatherReport(cTemp, humidity, pressure)
+            return LocalSensorReport(cTemp, humidity, pressure)
         }
     }
 }
@@ -95,6 +96,7 @@ data class CompensationData(
     val h6: Int
 )
 
+@ExperimentalTime
 class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76) {
 
     companion object : KLogging() {
@@ -185,7 +187,7 @@ class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76) {
 
     private suspend fun isReadingCalibration(): Boolean = doTransaction(listOf(0xf3), 1)[0] and 0x1 != 0
 
-    suspend fun readReport(): IndoorWeatherReport = trySeveralTimes(3, logger) {
+    suspend fun readReport(): LocalSensorReport = trySeveralTimes(3, logger) {
         val buf = doTransaction(listOf(0xf7), 8)
 
         check(buf != uninitializedSensorReport) { "sensor is not initialized" }
@@ -196,6 +198,6 @@ class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76) {
 
         logger.trace { "adcP: $adcP, adcT: $adcT, adcH: $adcH." }
 
-        IndoorWeatherReport.parse(checkNotNull(compensationData) { "sensor is not initialized" }, adcP, adcT, adcH)
+        LocalSensorReport.parse(checkNotNull(compensationData) { "sensor is not initialized" }, adcP, adcT, adcH)
     }
 }

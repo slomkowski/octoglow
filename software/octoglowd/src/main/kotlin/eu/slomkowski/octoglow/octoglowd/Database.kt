@@ -162,6 +162,10 @@ class DatabaseLayer(
         }
     }
 
+    fun insertHistoricalValueAsync(ts: kotlinx.datetime.Instant, key: HistoricalValueType, value: Double) =
+        insertHistoricalValueAsync(ts.toJavaInstant().atZone(WARSAW_ZONE_ID), key, value)
+
+    @Deprecated("migrating to kotlinx date time")
     fun insertHistoricalValueAsync(ts: ZonedDateTime, key: HistoricalValueType, value: Double): Job {
         val tsj = toJodaDateTime(ts)
         return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {

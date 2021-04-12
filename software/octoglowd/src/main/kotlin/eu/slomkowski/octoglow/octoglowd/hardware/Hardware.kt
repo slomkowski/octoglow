@@ -16,7 +16,9 @@ import kotlinx.coroutines.withContext
 import mu.KLogging
 import java.io.IOException
 import java.time.Duration
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class Hardware(
     private val bus: I2CBus,
     ringAtStartup: Boolean

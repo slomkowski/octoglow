@@ -43,6 +43,11 @@ object StocksKey : ConfigSpec("stocks") {
     val diffChartFraction by optional(0.005)
 }
 
+object RemoteSensorsKey : ConfigSpec("remote-sensors") {
+    val indoorChannelId by required<Int>()
+    val outdoorChannelId by required<Int>()
+}
+
 object NbpKey : ConfigSpec("nbp") {
     val currency1 by required<String>()
     val currency2 by required<String>()

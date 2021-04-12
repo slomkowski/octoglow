@@ -9,6 +9,9 @@ import io.ktor.client.features.*
 import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
 import kotlinx.coroutines.delay
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toKotlinInstant
 import mu.KLogger
 import org.shredzone.commons.suncalc.SunTimes
 import java.io.*
@@ -18,6 +21,7 @@ import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlin.time.ExperimentalTime
 
 const val DEGREE: Char = '\u00B0'
 
@@ -51,7 +55,7 @@ fun calculateSunriseAndSunset(latitude: Double, longitude: Double, ts: LocalDate
 
     val sunTimes = SunTimes.compute()
         .at(latitude, longitude)
-        .on(ts.year, ts.monthValue, ts.dayOfMonth)
+        .on(ts.year, ts.monthNumber, ts.dayOfMonth)
         .oneDay()
         .execute()
 
@@ -81,8 +85,9 @@ fun formatPressure(t: Double?): String = when (t) {
 /**
  * Used to calculate which segment to light of the upper progress bar on front display.
  */
-fun getSegmentNumber(currentTime: Duration, maxTime: Duration): Int =
-    floor(20.0 * (currentTime.toMillis().toDouble() / maxTime.toMillis())).roundToInt().coerceIn(0, 19)
+@ExperimentalTime
+fun getSegmentNumber(currentTime: kotlin.time.Duration, maxTime: kotlin.time.Duration): Int =
+    floor(20.0 * (currentTime.inMilliseconds / maxTime.inMilliseconds)).roundToInt().coerceIn(0, 19)
 
 suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func: suspend (tryNo: Int) -> T): T {
     require(numberOfTries > 0)
@@ -101,6 +106,7 @@ suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func:
     throw IllegalStateException() // cannot be ever called
 }
 
+@ExperimentalTime
 suspend fun ringBellIfNotSleeping(
     config: Config,
     logger: KLogger,
@@ -115,6 +121,7 @@ suspend fun ringBellIfNotSleeping(
     true -> logger.warn { "Skipping ringing because it is sleep time." }
 }
 
+@ExperimentalTime
 suspend fun handleException(
     config: Config,
     logger: KLogger,
@@ -156,3 +163,7 @@ fun I2CBuffer.contentToBitString(): String =
 fun I2CBuffer.toList(): List<Int> = (0 until this.length).map { this[it] }.toList()
 
 fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).readText()
+
+fun kotlinx.datetime.LocalDateTime.toLocalDate() = LocalDate(year, month, dayOfMonth)
+
+fun now(): Instant = java.time.Instant.now().toKotlinInstant()

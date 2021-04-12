@@ -8,6 +8,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
 import kotlin.math.roundToInt
+import kotlin.time.ExperimentalTime
 
 enum class Slot(val capacity: Int) {
     SLOT0(150),
@@ -30,6 +31,7 @@ data class ButtonReport(
     }
 }
 
+@ExperimentalTime
 class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightness {
 
     companion object : KLogging() {

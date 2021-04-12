@@ -6,10 +6,12 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.*
 import mu.KLogger
 import java.time.Duration
+import kotlin.time.ExperimentalTime
 
 /**
  * Daemons implement features which are long-running and periodical.
  */
+@ExperimentalTime
 abstract class Daemon(
     private val config: Config,
     private val hardware: Hardware,

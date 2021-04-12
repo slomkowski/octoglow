@@ -6,30 +6,30 @@ import eu.slomkowski.octoglow.octoglowd.LocalDateSerializer
 import eu.slomkowski.octoglow.octoglowd.NbpKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.httpClient
+import eu.slomkowski.octoglow.octoglowd.toLocalDate
 import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
+import kotlinx.datetime.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KLogging
-import java.time.Duration
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
+import kotlin.time.ExperimentalTime
+import kotlin.time.minutes
+import kotlin.time.seconds
 
+@ExperimentalTime
 class NbpView(
     private val config: Config,
     hardware: Hardware
 ) : FrontDisplayView(
     hardware,
     "NBP exchange rates",
-    Duration.ofMinutes(10),
-    Duration.ofSeconds(15),
-    Duration.ofSeconds(13)
+    10.minutes,
+    15.seconds,
+    13.seconds
 ) {
 
     interface DatedPrice {
@@ -70,7 +70,7 @@ class NbpView(
     }
 
     data class CurrentReport(
-        val timestamp: ZonedDateTime,
+        val timestamp: Instant,
         val currencies: Map<RequiredItem<String>, SingleCurrencyReport>
     )
 
@@ -179,7 +179,7 @@ class NbpView(
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
             val report = currentReport
 
@@ -199,9 +199,9 @@ class NbpView(
     /**
      * Progress bar is dependent only on current time so always success.
      */
-    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus = coroutineScope {
+    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
         val newReport = CurrentReport(now, currencyKeys.map { currencyKey ->
             async {
@@ -209,8 +209,8 @@ class NbpView(
                 try {
                     currencyKey to getCurrencyReport(
                         code,
-                        LocalDate.parse(now.toLocalDate().format(DateTimeFormatter.ISO_DATE))
-                    ) //todo remove parsing
+                        now.toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
+                    )
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to update status on $code." }
                     null

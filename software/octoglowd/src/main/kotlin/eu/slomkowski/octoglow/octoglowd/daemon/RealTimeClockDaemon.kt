@@ -5,7 +5,9 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import mu.KLogging
 import java.time.Duration
 import java.time.LocalDateTime
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class RealTimeClockDaemon(
     config: Config,
     private val hardware: Hardware

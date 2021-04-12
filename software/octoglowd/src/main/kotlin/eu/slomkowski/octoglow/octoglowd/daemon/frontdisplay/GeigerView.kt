@@ -10,19 +10,22 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import mu.KLogging
-import java.time.Duration
-import java.time.ZonedDateTime
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.seconds
 
+@ExperimentalTime
 class GeigerView(
     private val database: DatabaseLayer,
     hardware: Hardware
 ) : FrontDisplayView(
     hardware,
     "Geiger counter",
-    Duration.ofSeconds(7),
-    Duration.ofSeconds(3),
-    Duration.ofSeconds(11)
+    7.seconds,
+    3.seconds,
+    11.seconds
 ) {
 
     companion object : KLogging() {
@@ -30,7 +33,7 @@ class GeigerView(
 
         private const val GEIGER_TUBE_SENSITIVITY = 25.0
 
-        fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.toMinutes().toDouble()
+        fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.inMinutes
 
         fun calculateUSVh(v: Int, duration: Duration): Double =
             calculateCPM(v, duration) / 60.0 * 10.0 / GEIGER_TUBE_SENSITIVITY
@@ -70,7 +73,7 @@ class GeigerView(
 
     private var deviceReport: GeigerDeviceState? = null
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: ZonedDateTime) =
+    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
 
             val fd = hardware.frontDisplay
@@ -158,7 +161,7 @@ class GeigerView(
         })
     }
 
-    override suspend fun poolInstantData(now: ZonedDateTime): UpdateStatus {
+    override suspend fun poolInstantData(now: Instant): UpdateStatus {
         return try {
             deviceReport = hardware.geiger.getDeviceState()
             UpdateStatus.FULL_SUCCESS
@@ -169,7 +172,7 @@ class GeigerView(
         }
     }
 
-    override suspend fun poolStatusData(now: ZonedDateTime): UpdateStatus {
+    override suspend fun poolStatusData(now: Instant): UpdateStatus {
         try {
             val cs = hardware.geiger.getCounterState()
 

@@ -17,7 +17,7 @@
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
         <main.class>eu.slomkowski.octoglow.octoglowd.MainKt</main.class>
 
-        <kotlin.version>1.4.30</kotlin.version>
+        <kotlin.version>1.4.32</kotlin.version>
         <serialization.version>1.0.1</serialization.version>
         <junit.version>5.7.0</junit.version>
         <konf.version>1.0.0</konf.version>
