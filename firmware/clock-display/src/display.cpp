@@ -144,7 +144,7 @@ void octoglow::vfd_clock::display::init() {
     // setup timer
     DDR(CL_PORT) |= _BV(CL_PIN);
     TCCR1A = _BV(COM1B1) | _BV(PWM1B);
-    TCCR1B = _BV(PSR1) | _BV(CS13) | _BV(CS11); // clk / 512
+    TCCR1B = _BV(PSR1) | _BV(CS13); // clk / 128
 
     setBrightness(3);
 
