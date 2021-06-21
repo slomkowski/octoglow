@@ -36,9 +36,7 @@ class Hardware(
 
     val dac = Dac(this)
 
-    val bme280 = Bme280(this)
-
-    private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac, bme280)
+    private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac)
 
     init {
         require(bus.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }

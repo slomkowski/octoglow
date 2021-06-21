@@ -15,15 +15,11 @@ object RadioactivityCpm : HistoricalValueType()
 object RadioactivityUSVH : HistoricalValueType() // uSv/h
 
 object OutdoorTemperature : HistoricalValueType()
+object OutdoorHumidity : HistoricalValueType()
 object OutdoorWeakBattery : HistoricalValueType()
 object IndoorTemperature : HistoricalValueType()
 object IndoorWeakBattery : HistoricalValueType()
-object RealPressure : HistoricalValueType()
-
-object MSLPressure : HistoricalValueType() {
-    override val databaseSymbol: String
-        get() = "MSL_PRESSURE"
-}
+object IndoorHumidity : HistoricalValueType()
 
 data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
     init {

@@ -68,8 +68,8 @@ fun calculateSunriseAndSunset(latitude: Double, longitude: Double, ts: LocalDate
 }
 
 fun formatHumidity(h: Double?): String = when (h) {
-    null -> "H:--%"
-    else -> String.format("H:%2.0f%%", h)
+    null -> "--%"
+    else -> String.format("%2.0f%%", h)
 }
 
 fun formatTemperature(t: Double?): String = when (t) {

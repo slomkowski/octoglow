@@ -29,7 +29,9 @@ class WeatherSensorView(
 ) {
 
     companion object : KLogging() {
-        private const val HISTORIC_VALUES_LENGTH = 14
+        const val HISTORIC_VALUES_LENGTH = 11
+        const val TEMPERATURE_CHART_UNIT = 1.0
+        const val HUMIDITY_CHART_UNIT = 5.0
 
         private val MINIMAL_DURATION_BETWEEN_MEASUREMENTS: Duration = 2.minutes
 
@@ -41,34 +43,26 @@ class WeatherSensorView(
         require(config[RemoteSensorsKey.indoorChannelId] != config[RemoteSensorsKey.outdoorChannelId]) { "indoor and outdoor sensors cannot have identical IDs" }
     }
 
-    data class LocalReport(
-        val lastPressure: Double,
-        val historicalPressure: List<Double?>
-    ) {
-        init {
-            require(lastPressure in (900.0..1100.0)) { "invalid pressure value: $lastPressure" }
-            require(historicalPressure.size == HISTORIC_VALUES_LENGTH)
-        }
-    }
-
     data class RemoteReport(
         val lastTemperature: Double,
         val historicalTemperature: List<Double?>,
+        val lastHumidity: Double,
+        val historicalHumidity: List<Double?>,
         val isWeakBattery: Boolean
     ) {
         init {
+            require(lastHumidity in (1.0..100.0)) { "invalid humidity: $lastHumidity" }
             require(lastTemperature in (-40.0..45.0)) { "invalid temperature value: $lastTemperature" }
             require(historicalTemperature.size == HISTORIC_VALUES_LENGTH)
         }
     }
 
     data class CurrentReport(
-        val localSensor: Pair<Instant, LocalReport>?,
         val indoorSensor: Pair<Instant, RemoteReport>?,
         val outdoorSensor: Pair<Instant, RemoteReport>?
     )
 
-    private var currentReport: CurrentReport? = null
+    var currentReport: CurrentReport? = null
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {
@@ -76,56 +70,71 @@ class WeatherSensorView(
             val fd = hardware.frontDisplay
 
             if (redrawStatic) {
-                launch { fd.setStaticText(9, "in:") }
+                launch {
+                    fd.setStaticText(9, "in:")
+//                    fd.setStaticText(10, "out:")
+                }
             }
 
             if (redrawStatus) {
-                fun drawTemperature(
-                    textPosition: Int,
-                    graphPosition: Int,
-                    rep: RemoteReport?
-                ) = launch {
-                    fd.setStaticText(
-                        textPosition,
-                        formatTemperature(rep?.lastTemperature)
-                                + when (rep?.isWeakBattery) {
-                            true -> "!"
-                            else -> ""
-                        }
-                    )
+                val outs = rep?.outdoorSensor?.second
+                val ins = rep?.indoorSensor?.second
 
-                    rep?.let {
-                        fd.setOneLineDiffChart(
-                            graphPosition,
-                            it.lastTemperature,
-                            it.historicalTemperature,
-                            1.0
-                        )
-                    }
+                fd.setStaticText(1, formatHumidity(outs?.lastHumidity))
+                fd.setStaticText(13, formatHumidity(ins?.lastHumidity))
+
+                fd.setStaticText(20, formatTemperature(outs?.lastTemperature))
+                fd.setStaticText(30, formatTemperature(ins?.lastTemperature))
+
+                outs?.let {
+                    fd.setOneLineDiffChart(
+                        5 * 5,
+                        it.lastHumidity,
+                        it.historicalHumidity,
+                        HUMIDITY_CHART_UNIT
+                    )
                 }
 
-                drawTemperature(0, 5 * 20, rep?.outdoorSensor?.second)
-                drawTemperature(13, 5 * 37, rep?.indoorSensor?.second)
+                ins?.let {
+                    fd.setOneLineDiffChart(
+                        85,
+                        it.lastHumidity,
+                        it.historicalHumidity,
+                        HUMIDITY_CHART_UNIT
+                    )
+                }
 
-                launch { fd.setStaticText(24, formatPressure(rep?.localSensor?.second?.lastPressure)) }
+                outs?.let {
+                    fd.setOneLineDiffChart(
+                        5 * 20 + 36,
+                        it.lastTemperature,
+                        it.historicalTemperature,
+                        TEMPERATURE_CHART_UNIT
+                    )
+                }
 
-                rep?.localSensor?.second?.let {
-                    launch {
-                        fd.setOneLineDiffChart(
-                            5 * 33,
-                            it.lastPressure,
-                            it.historicalPressure,
-                            1.0
-                        )
-                    }
+                ins?.let {
+                    fd.setOneLineDiffChart(
+                        5 * 30 + 37,
+                        it.lastTemperature,
+                        it.historicalTemperature,
+                        TEMPERATURE_CHART_UNIT
+                    )
+                }
+
+                if (outs?.isWeakBattery == true) {
+                    fd.setStaticText(4, "!")
+                }
+
+                if (ins?.isWeakBattery == true) {
+                    fd.setStaticText(16, "!")
                 }
             }
 
             drawProgressBar(
                 minOf(
                     rep?.indoorSensor?.first ?: Instant.DISTANT_PAST,
-                    rep?.outdoorSensor?.first ?: Instant.DISTANT_PAST,
-                    rep?.localSensor?.first ?: Instant.DISTANT_PAST
+                    rep?.outdoorSensor?.first ?: Instant.DISTANT_PAST
                 ), now, MAXIMAL_DURATION_BETWEEN_MEASUREMENTS
             )
 
@@ -134,49 +143,13 @@ class WeatherSensorView(
 
     override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    private suspend fun poolLocalSensor(
-        now: Instant,
-        previousReport: Pair<Instant, LocalReport>?
-    ): Pair<UpdateStatus, LocalReport?> = coroutineScope {
-
-        if (now - (previousReport?.first ?: Instant.DISTANT_PAST) < MINIMAL_DURATION_BETWEEN_MEASUREMENTS) {
-//            logger.debug("Values for local sensor saved at {}, skipping.", previousReport?.first)
-            return@coroutineScope UpdateStatus.NO_NEW_DATA to null
-        }
-
-        try {
-            val rep = hardware.bme280.readReport()
-
-            val elevation = config[GeoPosKey.elevation]
-            val mslPressure = rep.getMeanSeaLevelPressure(elevation)
-
-            logger.debug { "Got BMP280 report : $rep." }
-            logger.debug { "Mean sea-level pressure at $elevation m is $mslPressure hPa." }
-
-            listOf(
-                databaseLayer.insertHistoricalValueAsync(now, RealPressure, rep.realPressure),
-                databaseLayer.insertHistoricalValueAsync(now, MSLPressure, mslPressure)
-            ).joinAll()
-
-            val historicalPressure =
-                databaseLayer.getLastHistoricalValuesByHourAsync(now, MSLPressure, HISTORIC_VALUES_LENGTH)
-
-            UpdateStatus.FULL_SUCCESS to LocalReport(
-                mslPressure,
-                historicalPressure.await()
-            )
-        } catch (e: Exception) {
-            logger.error(e) { "Error during updating state of local sensor." }
-            UpdateStatus.FAILURE to null
-        }
-    }
-
     private suspend fun poolRemoteSensor(
         now: Instant,
         receivedReport: RemoteSensorReport?,
         channelIdConfigKey: RequiredItem<Int>,
         previousReport: Pair<Instant, RemoteReport>?,
         temperatureDbKey: HistoricalValueType,
+        humidityDbKey: HistoricalValueType,
         weakBatteryDbKey: HistoricalValueType
     ): Pair<UpdateStatus, RemoteReport?> = coroutineScope {
 
@@ -201,6 +174,7 @@ class WeatherSensorView(
         try {
             listOf(
                 databaseLayer.insertHistoricalValueAsync(now, temperatureDbKey, receivedReport.temperature),
+                databaseLayer.insertHistoricalValueAsync(now, humidityDbKey, receivedReport.humidity),
                 databaseLayer.insertHistoricalValueAsync(
                     now, weakBatteryDbKey, if (receivedReport.batteryIsWeak) {
                         1.0
@@ -213,9 +187,14 @@ class WeatherSensorView(
             val historicalTemperature =
                 databaseLayer.getLastHistoricalValuesByHourAsync(now, temperatureDbKey, HISTORIC_VALUES_LENGTH)
 
+            val historicalHumidity =
+                databaseLayer.getLastHistoricalValuesByHourAsync(now, humidityDbKey, HISTORIC_VALUES_LENGTH)
+
             UpdateStatus.FULL_SUCCESS to RemoteReport(
                 receivedReport.temperature,
                 historicalTemperature.await(),
+                receivedReport.humidity,
+                historicalHumidity.await(),
                 receivedReport.batteryIsWeak
             )
         } catch (e: Exception) {
@@ -245,14 +224,13 @@ class WeatherSensorView(
 
         val remoteSensorReport = hardware.clockDisplay.retrieveRemoteSensorReport()
 
-        val newLocal = poolLocalSensor(now, oldReport?.localSensor)
-
         val newIndoorReport = poolRemoteSensor(
             now,
             remoteSensorReport,
             RemoteSensorsKey.indoorChannelId,
             oldReport?.indoorSensor,
             IndoorTemperature,
+            IndoorHumidity,
             IndoorWeakBattery
         )
 
@@ -262,16 +240,16 @@ class WeatherSensorView(
             RemoteSensorsKey.outdoorChannelId,
             oldReport?.outdoorSensor,
             OutdoorTemperature,
+            OutdoorHumidity,
             OutdoorWeakBattery
         )
 
-        val statuses = listOf(newOutdoorReport, newIndoorReport, newLocal)
+        val statuses = listOf(newOutdoorReport, newIndoorReport)
             .map { it.first }
             .groupingBy { it }
             .eachCount()
 
         val newReport = CurrentReport(
-            takeIfReportAppropriate(newLocal, oldReport?.localSensor),
             takeIfReportAppropriate(newIndoorReport, oldReport?.indoorSensor),
             takeIfReportAppropriate(newOutdoorReport, oldReport?.outdoorSensor)
         )
@@ -281,10 +259,10 @@ class WeatherSensorView(
         }
 
         return@coroutineScope when {
-            statuses[UpdateStatus.FAILURE] == 3 -> {
+            statuses[UpdateStatus.FAILURE] == 2 -> {
                 UpdateStatus.FAILURE
             }
-            statuses[UpdateStatus.NO_NEW_DATA] == 3 -> {
+            statuses[UpdateStatus.NO_NEW_DATA] == 2 -> {
                 UpdateStatus.NO_NEW_DATA
             }
             statuses[UpdateStatus.FAILURE] ?: 0 > 0 -> {
