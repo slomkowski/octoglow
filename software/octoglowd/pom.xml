@@ -12,16 +12,14 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!--        <maven.compiler.source>1.8</maven.compiler.source>-->
-        <!--        <maven.compiler.target>1.8</maven.compiler.target>-->
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
         <main.class>eu.slomkowski.octoglow.octoglowd.MainKt</main.class>
 
         <kotlin.version>1.4.32</kotlin.version>
-        <serialization.version>1.0.1</serialization.version>
-        <junit.version>5.7.0</junit.version>
-        <konf.version>1.0.0</konf.version>
-        <ktor.version>1.5.1</ktor.version>
+        <serialization.version>1.2.1</serialization.version>
+        <junit.version>5.7.2</junit.version>
+        <konf.version>1.1.2</konf.version>
+        <ktor.version>1.6.0</ktor.version>
 
         <sonar.language>kotlin</sonar.language>
         <sonar.sources>src/main/kotlin</sonar.sources>
@@ -44,7 +42,7 @@
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core</artifactId>
-            <version>1.4.2</version>
+            <version>1.4.3</version>
         </dependency>
         <dependency>
             <groupId>io.dvlopt</groupId>
@@ -54,7 +52,7 @@
         <dependency>
             <groupId>io.github.microutils</groupId>
             <artifactId>kotlin-logging-jvm</artifactId>
-            <version>2.0.4</version>
+            <version>2.0.8</version>
         </dependency>
 
         <dependency>
@@ -66,7 +64,7 @@
         <dependency>
             <groupId>org.jetbrains.exposed</groupId>
             <artifactId>exposed</artifactId>
-            <version>0.17.7</version>
+            <version>0.17.13</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.h2database</groupId>
@@ -105,7 +103,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.11</version>
+            <version>3.12.0</version>
         </dependency>
 
         <dependency>
@@ -177,7 +175,7 @@
         <dependency>
             <groupId>io.mockk</groupId>
             <artifactId>mockk</artifactId>
-            <version>1.10.5</version>
+            <version>1.11.0</version>
             <scope>test</scope>
         </dependency>
 

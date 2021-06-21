@@ -47,12 +47,12 @@ class UtilsTest {
 
     @Test
     fun testFormatHumidity() {
-        assertEquals("H:100%", formatHumidity(100.0))
-        assertEquals("H: 3%", formatHumidity(3.0))
-        assertEquals("H: 0%", formatHumidity(0.0))
-        assertEquals("H:24%", formatHumidity(24.1001))
-        assertEquals("H:39%", formatHumidity(38.8903))
-        assertEquals("H:--%", formatHumidity(null))
+        assertEquals("100%", formatHumidity(100.0))
+        assertEquals(" 3%", formatHumidity(3.0))
+        assertEquals(" 0%", formatHumidity(0.0))
+        assertEquals("24%", formatHumidity(24.1001))
+        assertEquals("39%", formatHumidity(38.8903))
+        assertEquals("--%", formatHumidity(null))
     }
 
     @Test
