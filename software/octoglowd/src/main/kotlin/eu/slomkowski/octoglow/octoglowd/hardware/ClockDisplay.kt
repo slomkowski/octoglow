@@ -35,6 +35,8 @@ data class OutdoorWeatherReport(
             val temperaturePart = (256 * buff[2] + buff[1]).toDouble() / 10.0
             val humidityPart = buff[3].toDouble()
 
+            // ng.IllegalStateException: insane values despite valid flag set: T: 6523.8, H: 80.0. Buffer: [4 214 254 80 6]
+            // 14.8 stopnia, 70 coś tam H
             try {
                 return OutdoorWeatherReport(
                         temperaturePart,

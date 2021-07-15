@@ -3,9 +3,10 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.ConfKey
 import io.dvlopt.linux.i2c.I2CBus
-import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
 import java.time.Duration
+import java.util.concurrent.Executors
 
 interface Hardware : HasBrightness, AutoCloseable {
     val clockDisplay: ClockDisplay
@@ -21,7 +22,7 @@ interface Hardware : HasBrightness, AutoCloseable {
 
 class PhysicalHardware(config: Config) : Hardware {
 
-    private val threadContext = newSingleThreadContext("hardware")
+    private val threadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
     private val bus = I2CBus(config[ConfKey.i2cBus])
 

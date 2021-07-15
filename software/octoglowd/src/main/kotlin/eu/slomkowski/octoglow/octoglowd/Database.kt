@@ -14,6 +14,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.Executors
 
 abstract class TimestampedTable(name: String) : Table(name) {
     val id = long("id").autoIncrement().primaryKey()
@@ -115,7 +116,7 @@ class DatabaseLayer(
         val sqliteNativeDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss.SSSSSS")
     }
 
-    private val threadContext = newSingleThreadContext("database")
+    private val threadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
     init {
         Database.connect("jdbc:sqlite:$databaseFile", "org.sqlite.JDBC")
