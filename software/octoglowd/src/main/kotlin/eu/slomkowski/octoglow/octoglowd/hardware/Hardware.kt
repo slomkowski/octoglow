@@ -24,7 +24,42 @@ class Hardware(
     ringAtStartup: Boolean
 ) : AutoCloseable {
 
-    companion object : KLogging()
+    enum class Errno(
+        val code: Int,
+        val message: String
+    ) {
+        EAGAIN(11, "Resource temporarily unavailable  (same code as EWOULDBLOCK)"),
+        EBADMSG(74, "Bad message"),
+        EBUSY(16, "Device or resource busy"),
+        EIN(22, "Invalid argument"),
+        EIO(5, "Input/output error"),
+        ENODEV(19, "No such device"),
+        ENOMEM(12, "Cannot allocate memory"),
+        ENXIO(6, "No such device or address"),
+        EOPNOTSUPP(95, "Operation not supported"),
+        EPROTO(71, "Protocol error"),
+        ESHUTDOWN(108, "Cannot send after transport endpoint shutdown"),
+        ETIMEDOUT(110, "Connection timed out")
+    }
+
+    companion object : KLogging() {
+        fun handleI2cException(baseException: Exception): Exception =
+            Regex("Native error while doing an I2C transaction : errno (\\d+)")
+                .matchEntire(baseException.message?.trim() ?: "")
+                ?.let { matchResult ->
+                    val errno = matchResult.groupValues[1].toInt()
+
+                    val knownErrno = Errno.values().firstOrNull { errno == it.code }
+
+                    IOException(
+                        "native I2C transaction error: " + when (knownErrno) {
+                            null -> "errno $errno"
+                            else -> "$knownErrno: ${knownErrno.message}"
+                        }, baseException
+                    )
+                } ?: baseException
+    }
+
 
     private val busMutex = Mutex()
 
@@ -72,12 +107,16 @@ class Hardware(
 
     suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = busMutex.withLock {
         withContext(Dispatchers.IO) {
-            bus.doTransaction(I2CTransaction(1).apply {
-                getMessage(0).apply {
-                    address = i2cAddress
-                    buffer = writeBuffer
-                }
-            })
+            try {
+                bus.doTransaction(I2CTransaction(1).apply {
+                    getMessage(0).apply {
+                        address = i2cAddress
+                        buffer = writeBuffer
+                    }
+                })
+            } catch (e: Exception) {
+                throw handleI2cException(e)
+            }
         }
     }
 
@@ -115,7 +154,7 @@ class Hardware(
                         continue
                     } else {
                         logger.error(e) { "Error in bus transaction ($tryNo/$numberOfTries)" }
-                        throw e
+                        throw handleI2cException(e)
                     }
                 }
             }
