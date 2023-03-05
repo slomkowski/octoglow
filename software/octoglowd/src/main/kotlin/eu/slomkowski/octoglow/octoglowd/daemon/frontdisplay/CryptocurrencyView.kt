@@ -26,7 +26,7 @@ class CryptocurrencyView(
 ) : FrontDisplayView(
     hardware,
     "Cryptocurrencies",
-    5.minutes,
+    10.minutes,
     15.seconds,
     13.seconds
 ) {

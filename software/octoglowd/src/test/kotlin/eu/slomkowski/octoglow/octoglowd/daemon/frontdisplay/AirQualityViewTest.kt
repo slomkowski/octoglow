@@ -10,7 +10,7 @@ internal class AirQualityViewTest {
 
     @Test
     fun testRetrieveAirQualityData() {
-        runBlocking { AirQualityView.retrieveAirQualityData(944) }.let {
+        runBlocking { AirQualityView.retrieveAirQualityData(10834) }.let {
             assertNotNull(it.stIndexLevel.levelName)
         }
     }
