@@ -1,8 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd
 
+import java.util.*
+
 sealed class HistoricalValueType {
     companion object {
-        private fun toSnakeCase(s: String) = Regex("([A-Z])").replace(s, "_$1").toUpperCase().trim('_')
+        private fun toSnakeCase(s: String) = Regex("([A-Z])").replace(s, "_$1").uppercase().trim('_')
     }
 
     open val databaseSymbol: String
@@ -28,7 +30,7 @@ data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
     }
 
     override val databaseSymbol: String
-        get() = "CRYPTOCURRENCY_$symbol".toUpperCase()
+        get() = "CRYPTOCURRENCY_$symbol".uppercase()
 }
 
 data class AirQuality(val stationId: Long) : HistoricalValueType() {
@@ -53,7 +55,7 @@ data class Stock(val symbol: String) : HistoricalValueType() {
     }
 
     override val databaseSymbol: String
-        get() = "STOCK_" + symbol.replace(NON_ALPHANUMERIC_REGEX, "_").toUpperCase()
+        get() = "STOCK_" + symbol.replace(NON_ALPHANUMERIC_REGEX, "_").uppercase()
 }
 
 enum class ChangeableSetting {

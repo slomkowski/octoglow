@@ -16,15 +16,16 @@ import kotlinx.datetime.TimeZone
 import mu.KLogging
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
+import org.apache.commons.lang3.StringUtils
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.minutes
-import kotlin.time.seconds
 
 @ExperimentalTime
 class CalendarView(
@@ -91,11 +92,11 @@ class CalendarView(
         val names = nameDays.find { it.month == day.monthNumber && it.day == day.dayOfMonth }?.names
 
         return listOfNotNull(
-            holiday?.description?.toUpperCase(),
+            holiday?.description?.uppercase(),
             names?.joinToString(",")
         )
             .joinToString("; ")
-            .let { it.capitalize() }
+            .let { StringUtils.capitalize(it) }
     }
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS

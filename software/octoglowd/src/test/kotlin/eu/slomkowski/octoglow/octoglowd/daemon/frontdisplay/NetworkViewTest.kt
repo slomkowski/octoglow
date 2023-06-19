@@ -12,10 +12,10 @@ import java.io.InputStreamReader
 import java.net.InetAddress
 import java.nio.charset.StandardCharsets
 import kotlin.test.assertFails
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.milliseconds
-import kotlin.time.nanoseconds
-import kotlin.time.seconds
+import kotlin.time.Duration.Companion.seconds
 
 @ExperimentalTime
 internal class NetworkViewTest {

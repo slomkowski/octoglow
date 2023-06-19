@@ -17,8 +17,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KLogging
 import kotlin.time.ExperimentalTime
-import kotlin.time.minutes
-import kotlin.time.seconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 @ExperimentalTime
 class NbpView(
@@ -165,8 +165,8 @@ class NbpView(
         hardware.frontDisplay.apply {
             setStaticText(
                 offset, when (cr?.isLatestFromToday) {
-                    true -> cr.code.toUpperCase()
-                    false -> cr.code.toLowerCase()
+                    true -> cr.code.uppercase()
+                    false -> cr.code.lowercase()
                     null -> "---"
                 }
             )

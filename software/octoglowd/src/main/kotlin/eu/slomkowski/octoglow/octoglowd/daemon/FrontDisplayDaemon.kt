@@ -54,8 +54,8 @@ class FrontDisplayDaemon(
         fun getMostSuitableViewInfo(views: Collection<ViewInfo>): ViewInfo {
             return checkNotNull(views.maxByOrNull {
                 val v1 = ((it.lastSuccessfulStatusUpdate ?: Instant.DISTANT_PAST) - (it.lastViewed
-                    ?: Instant.DISTANT_PAST)).inMilliseconds
-                val v2 = (now() - (it.lastViewed ?: Instant.DISTANT_PAST)).inMilliseconds
+                    ?: Instant.DISTANT_PAST)).inWholeMilliseconds
+                val v2 = (now() - (it.lastViewed ?: Instant.DISTANT_PAST)).inWholeMilliseconds
 
                 30 * v1 + 50 * v2
             })

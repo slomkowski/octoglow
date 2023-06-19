@@ -155,7 +155,7 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
 
         doWrite(
             1, when (hours < 10) {
-                true -> ' '.toInt()
+                true -> ' '.code
                 else -> 0x30 + hours / 10
             }, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots
         )

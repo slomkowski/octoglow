@@ -7,7 +7,7 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import mu.KLogging
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
+import kotlin.time.Duration.Companion.seconds
 
 enum class EyeDisplayMode {
     ANIMATION,
@@ -143,7 +143,7 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
 
         assert(duration > Duration.ZERO) { "duration has to be non-zero" }
         assert(duration < CYCLE_MAX_DURATION) { "duration can be max $CYCLE_MAX_DURATION" }
-        val seconds = duration.inSeconds.toInt()
+        val seconds = duration.inWholeSeconds.toInt()
 
         doWrite(3, 0xff and seconds, 0xff and (seconds shr 8))
     }

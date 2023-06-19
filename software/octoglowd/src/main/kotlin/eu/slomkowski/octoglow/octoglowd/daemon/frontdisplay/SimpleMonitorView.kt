@@ -21,7 +21,7 @@ import java.time.Duration
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
+import kotlin.time.Duration.Companion.seconds
 
 @ExperimentalTime
 class SimpleMonitorView(

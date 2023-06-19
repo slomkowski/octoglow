@@ -3,7 +3,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.time.ExperimentalTime
-import kotlin.time.minutes
+import kotlin.time.Duration.Companion.minutes
 
 @ExperimentalTime
 class GeigerViewTest {

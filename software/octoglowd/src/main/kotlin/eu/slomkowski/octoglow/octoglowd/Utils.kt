@@ -21,6 +21,7 @@ import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 
 const val DEGREE: Char = '\u00B0'
@@ -87,7 +88,7 @@ fun formatPressure(t: Double?): String = when (t) {
  */
 @ExperimentalTime
 fun getSegmentNumber(currentTime: kotlin.time.Duration, maxTime: kotlin.time.Duration): Int =
-    floor(20.0 * (currentTime.inMilliseconds / maxTime.inMilliseconds)).roundToInt().coerceIn(0, 19)
+    floor(20.0 * (currentTime.toDouble(DurationUnit.MILLISECONDS) / maxTime.toDouble(DurationUnit.MILLISECONDS))).roundToInt().coerceIn(0, 19)
 
 suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func: suspend (tryNo: Int) -> T): T {
     require(numberOfTries > 0)

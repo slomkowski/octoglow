@@ -14,7 +14,8 @@ import kotlinx.datetime.Instant
 import mu.KLogging
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 
 @ExperimentalTime
 class GeigerView(
@@ -33,7 +34,7 @@ class GeigerView(
 
         private const val GEIGER_TUBE_SENSITIVITY = 25.0
 
-        fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.inMinutes
+        fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.toDouble(DurationUnit.MINUTES)
 
         fun calculateUSVh(v: Int, duration: Duration): Double =
             calculateCPM(v, duration) / 60.0 * 10.0 / GEIGER_TUBE_SENSITIVITY

@@ -12,8 +12,8 @@ import kotlinx.datetime.Instant
 import mu.KLogging
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
-import kotlin.time.minutes
-import kotlin.time.seconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 @ExperimentalTime
 class WeatherSensorView(

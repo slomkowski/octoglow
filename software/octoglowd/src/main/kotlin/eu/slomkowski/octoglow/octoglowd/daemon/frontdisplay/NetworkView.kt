@@ -18,9 +18,9 @@ import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 import kotlin.math.roundToLong
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.nanoseconds
-import kotlin.time.seconds
+import kotlin.time.Duration.Companion.seconds
 
 @ExperimentalTime
 class NetworkView(
@@ -130,7 +130,7 @@ class NetworkView(
                 "-c", noPings.toString(),
                 "-i", "0.2",
                 "-I", iface,
-                "-w", timeout.inSeconds.toInt().toString(),
+                "-w", timeout.inWholeSeconds.toString(),
                 address
             )
 
@@ -141,7 +141,7 @@ class NetworkView(
                 output.append(process.inputStream.readToString())
             }
 
-            process.waitFor((timeout.inMilliseconds + 2000).roundToLong(), TimeUnit.MILLISECONDS)
+            process.waitFor(timeout.inWholeMilliseconds + 2000, TimeUnit.MILLISECONDS)
 
             check(output.isNotBlank()) {
                 val errorMsg = process.errorStream.readToString()
@@ -169,9 +169,9 @@ class NetworkView(
             return PingResult(packetsTransmitted, packetsReceived, rttMin, rttAvg, rttMax)
         }
 
-        fun formatPingRtt(d: Duration?): String = when (val ms = d?.inMilliseconds?.toInt()) {
+        fun formatPingRtt(d: Duration?): String = when (val ms = d?.inWholeMilliseconds) {
             null -> " -- ms"
-            0 -> " <1 ms"
+            0L -> " <1 ms"
             in 1..99 -> String.format(" %2d ms", ms)
             in 100..999 -> String.format(" %3dms", ms)
             else -> ">999ms"
@@ -248,7 +248,7 @@ class NetworkView(
 
         val pingTime = pingInfo.rttAvg
 
-        logger.info { "RTT to $address is ${pingTime.inMilliseconds} ms." }
+        logger.info { "RTT to $address is ${pingTime.inWholeMilliseconds} ms." }
 
         return pingTime
     }
