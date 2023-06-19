@@ -1,14 +1,20 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.HistoricalValueType
 import eu.slomkowski.octoglow.octoglowd.now
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
 import java.time.LocalDate
+import kotlin.random.Random
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.time.ExperimentalTime
@@ -53,6 +59,16 @@ internal class StockViewTest {
     @Test
     fun testCreateSingleStockReport() {
         val db = mockk<DatabaseLayer>()
+        val historicalValueType = slot<HistoricalValueType>()
+        val numberOfPastHours = slot<Int>()
+
+        every { db.getLastHistoricalValuesByHourAsync(any<kotlinx.datetime.Instant>(), capture(historicalValueType), capture(numberOfPastHours)) } answers {
+            val random = Random(historicalValueType.captured.databaseSymbol.hashCode())
+            GlobalScope.async {
+                (1..numberOfPastHours.captured).map { random.nextDouble(0.0, 100.0) }
+            }
+        }
+
         val stockView = StockView(mockk(), db, mockk())
 
         runBlocking {

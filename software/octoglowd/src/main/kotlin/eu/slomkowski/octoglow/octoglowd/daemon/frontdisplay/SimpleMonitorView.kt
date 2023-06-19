@@ -85,7 +85,7 @@ class SimpleMonitorView(
         }
     }
 
-    private var currentReport: CurrentReport? = null
+    internal var currentReport: CurrentReport? = null
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
         val (status, newReport) = try {
@@ -162,7 +162,7 @@ class SimpleMonitorView(
                         else -> {
                             val failedText = "${failedMonitors.size} FAILED"
                             fd.setStaticText(20, failedText)
-                            val scrollingText = StringUtils.abbreviate(failedMonitors.keys.joinToString(","), 150)
+                            val scrollingText = StringUtils.abbreviate(failedMonitors.keys.joinToString(","), Slot.SLOT0.capacity)
                             fd.setScrollingText(
                                 Slot.SLOT0,
                                 21 + failedText.length,

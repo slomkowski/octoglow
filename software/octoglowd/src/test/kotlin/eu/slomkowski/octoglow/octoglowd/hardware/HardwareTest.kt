@@ -14,16 +14,19 @@ import kotlin.time.ExperimentalTime
 @ExperimentalTime
 class HardwareTest {
 
-    companion object : KLogging()
+    companion object : KLogging() {
+        fun createRealHardware(): Hardware {
+            val config = Config { addSpec(ConfKey) }.from.map.kv(
+                mapOf("i2cBus" to testConfig[TestConfKey.i2cBus])
+            )
+            return Hardware(config)
+        }
+    }
 
     @Test
     fun testBrightness() {
-        val config = Config { addSpec(ConfKey) }.from.map.kv(
-            mapOf("i2cBus" to testConfig[TestConfKey.i2cBus])
-        )
-
         runBlocking {
-            Hardware(config).use { hardware ->
+            createRealHardware().use { hardware ->
                 hardware.frontDisplay.setStaticText(0, LoremIpsum.getInstance().getWords(20).take(39))
                 hardware.clockDisplay.setDisplay(12, 34, true, false)
 
