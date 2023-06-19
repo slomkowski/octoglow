@@ -12,9 +12,10 @@ constexpr uint8_t LOOP_NUMBER_OF_SPACES = 2;
 
 static uint16_t scrollingWaitCounter = 0;
 
-static uint8_t scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH];
-static uint8_t scrolTextBuffer1[scroll::SLOT1_MAX_LENGTH];
-static uint8_t scrolTextBuffer2[scroll::SLOT2_MAX_LENGTH];
+constexpr uint8_t SCROL_TEXT_BUFFER_TRAILING_OVERHEAD = 4;
+static uint8_t scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH + SCROL_TEXT_BUFFER_TRAILING_OVERHEAD];
+static uint8_t scrolTextBuffer1[scroll::SLOT1_MAX_LENGTH + SCROL_TEXT_BUFFER_TRAILING_OVERHEAD];
+static uint8_t scrolTextBuffer2[scroll::SLOT2_MAX_LENGTH + SCROL_TEXT_BUFFER_TRAILING_OVERHEAD];
 
 namespace octoglow::front_display::display {
     uint8_t _frameBuffer[NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER];

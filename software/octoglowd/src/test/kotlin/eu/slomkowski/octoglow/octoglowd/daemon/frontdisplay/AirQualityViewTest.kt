@@ -10,7 +10,9 @@ internal class AirQualityViewTest {
 
     @Test
     fun testRetrieveAirQualityData() {
-        runBlocking { AirQualityView.retrieveAirQualityData(10834) }.let {
+        // https://api.gios.gov.pl/pjp-api/rest/station/findAll - all stations
+
+        runBlocking { AirQualityView.retrieveAirQualityData(952) }.let {
             assertNotNull(it.stIndexLevel.levelName)
         }
     }
