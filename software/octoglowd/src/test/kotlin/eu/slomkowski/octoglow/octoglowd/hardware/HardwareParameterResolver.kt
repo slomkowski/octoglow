@@ -7,9 +7,8 @@ import mu.KLogging
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
 class HardwareParameterResolver : ParameterResolver {
 
     companion object : KLogging()
@@ -20,6 +19,6 @@ class HardwareParameterResolver : ParameterResolver {
 
     override fun resolveParameter(context: ParameterContext, extensionContext: ExtensionContext): Any {
         val bus = I2CBus(testConfig[TestConfKey.i2cBus])
-        return Hardware(bus, false)
+        return Hardware(bus)
     }
 }

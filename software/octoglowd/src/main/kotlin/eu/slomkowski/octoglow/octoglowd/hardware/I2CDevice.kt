@@ -3,9 +3,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.runBlocking
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
 abstract class I2CDevice(
     private val hardware: Hardware,
     private val i2cAddress: Int
@@ -15,9 +13,9 @@ abstract class I2CDevice(
         require(i2cAddress in 0..127)
     }
 
-    open suspend fun initDevice() {} //todo
+    open suspend fun initDevice() {}
 
-    open suspend fun closeDevice() {} //todo
+    open suspend fun closeDevice() {}
 
     final override fun close() {
         try {

@@ -2,16 +2,17 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.now
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import mu.KLogging
-import java.time.Duration
-import java.time.LocalDateTime
-import kotlin.time.ExperimentalTime
+import kotlin.time.Duration.Companion.milliseconds
 
-@ExperimentalTime
 class RealTimeClockDaemon(
     config: Config,
     private val hardware: Hardware
-) : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
+) : Daemon(config, hardware, logger, 500.milliseconds) {
 
     companion object : KLogging()
 
@@ -32,7 +33,7 @@ class RealTimeClockDaemon(
     private var previousDisplayContent: DisplayContent? = null
 
     override suspend fun pool() {
-        val newDisplayContent = DisplayContent.ofTimestamp(LocalDateTime.now())
+        val newDisplayContent = DisplayContent.ofTimestamp(now().toLocalDateTime(TimeZone.currentSystemDefault()))
 
         if (newDisplayContent != previousDisplayContent) {
             newDisplayContent.apply {

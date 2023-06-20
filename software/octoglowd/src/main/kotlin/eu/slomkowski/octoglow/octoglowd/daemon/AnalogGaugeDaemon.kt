@@ -14,17 +14,15 @@ import java.lang.management.ManagementFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.time.Duration
 import java.util.stream.Collectors
 import kotlin.math.roundToInt
-import kotlin.time.ExperimentalTime
+import kotlin.time.Duration.Companion.milliseconds
 
 
-@ExperimentalTime
 class AnalogGaugeDaemon(
     config: Config,
     private val hardware: Hardware
-) : Daemon(config, hardware, logger, Duration.ofMillis(700)) {
+) : Daemon(config, hardware, logger, 700.milliseconds) {
 
     data class WifiSignalInfo(
         val ifName: String,

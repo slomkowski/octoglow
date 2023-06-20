@@ -20,6 +20,7 @@
         <junit.version>5.9.3</junit.version>
         <konf.version>1.1.2</konf.version>
         <ktor.version>1.6.0</ktor.version>
+        <exposed.version>0.41.1</exposed.version>
 
         <sonar.language>kotlin</sonar.language>
         <sonar.sources>src/main/kotlin</sonar.sources>
@@ -63,14 +64,21 @@
 
         <dependency>
             <groupId>org.jetbrains.exposed</groupId>
-            <artifactId>exposed</artifactId>
-            <version>0.17.13</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>exposed-core</artifactId>
+            <version>${exposed.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-kotlin-datetime</artifactId>
+            <version>${exposed.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-jdbc</artifactId>
+            <version>${exposed.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>

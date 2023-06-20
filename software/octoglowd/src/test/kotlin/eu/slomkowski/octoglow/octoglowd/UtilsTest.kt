@@ -4,22 +4,14 @@ import kotlinx.coroutines.runBlocking
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
 import kotlin.test.assertFails
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 val poznanCoordinates = 52.395869 to 16.929220
 
-@ExperimentalTime
 class UtilsTest {
 
     companion object : KLogging()
@@ -91,35 +83,5 @@ class UtilsTest {
             assertEquals(19, getSegmentNumber(299.seconds, min5))
             assertEquals(19, getSegmentNumber(min5, min5))
         }
-    }
-
-    @Test
-    fun testIsSleeping() {
-        (LocalTime.of(22, 0) to java.time.Duration.ofHours(8)).let { (s, d) ->
-            assertTrue { isSleeping(s, d, LocalTime.of(23, 0)) }
-            assertFalse { isSleeping(s, d, LocalTime.of(12, 0)) }
-            assertTrue { isSleeping(s, d, LocalTime.of(3, 0)) }
-            assertFalse { isSleeping(s, d, LocalTime.of(21, 0)) }
-        }
-
-        (LocalTime.of(1, 20) to java.time.Duration.ofHours(7)).let { (s, d) ->
-            assertFalse { isSleeping(s, d, LocalTime.of(23, 0)) }
-            assertFalse { isSleeping(s, d, LocalTime.of(12, 0)) }
-            assertTrue { isSleeping(s, d, LocalTime.of(3, 0)) }
-            assertTrue { isSleeping(s, d, LocalTime.of(7, 0)) }
-            assertFalse { isSleeping(s, d, LocalTime.of(21, 0)) }
-        }
-    }
-
-    @Test
-    fun testToLocalDateTimeInSystemTimeZone() {
-        assertEquals(
-            LocalDateTime.of(2019, 11, 20, 13, 23, 3),
-            OffsetDateTime.of(2019, 11, 20, 16, 23, 3, 0, ZoneOffset.ofHours(4)).toLocalDateTimeInSystemTimeZone()
-        )
-        assertEquals(
-            LocalDateTime.of(2019, 7, 20, 14, 23, 3),
-            OffsetDateTime.of(2019, 7, 20, 16, 23, 3, 0, ZoneOffset.ofHours(4)).toLocalDateTimeInSystemTimeZone()
-        )
     }
 }

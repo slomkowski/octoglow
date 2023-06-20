@@ -15,13 +15,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import mu.KLogging
 import java.io.IOException
-import java.time.Duration
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
 class Hardware(
     private val bus: I2CBus,
-    ringAtStartup: Boolean
 ) : AutoCloseable {
 
     enum class Errno(
@@ -85,17 +81,13 @@ class Hardware(
                     clear()
                     setStaticText(0, "Initializing...")
                 }
-
-                if (ringAtStartup) {
-                    clockDisplay.ringBell(Duration.ofMillis(70))
-                }
             }
         } catch (e: Exception) {
             logger.error("Error during hardware initialization;", e)
         }
     }
 
-    constructor(config: Config) : this(I2CBus(config[ConfKey.i2cBus]), config[ConfKey.ringAtStartup])
+    constructor(config: Config) : this(I2CBus(config[ConfKey.i2cBus]))
 
     suspend fun setBrightness(brightness: Int) {
         listOf<HasBrightness>(clockDisplay, frontDisplay, geiger).forEach { it.setBrightness(brightness) }

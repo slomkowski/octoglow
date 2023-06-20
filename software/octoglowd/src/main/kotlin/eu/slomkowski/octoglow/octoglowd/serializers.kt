@@ -41,7 +41,7 @@ object AirQualityInstantSerializer : KSerializer<Instant> {
         PrimitiveSerialDescriptor("AirQualityInstantSerializer", PrimitiveKind.STRING)
 
     private val datetimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    private val timeZone = WARSAW_ZONE_ID.toKotlinTimeZone()
+    private val timeZone = WARSAW_ZONE_ID_jvm.toKotlinTimeZone()
 
     override fun deserialize(decoder: Decoder): Instant {
         val ldt = java.time.LocalDateTime.parse(decoder.decodeString(), datetimeFormatter).toKotlinLocalDateTime()

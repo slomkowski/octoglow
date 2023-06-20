@@ -14,9 +14,8 @@ import kotlinx.serialization.Serializable
 import mu.KLogging
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
 class AirQualityView(
     private val config: Config,
     private val database: DatabaseLayer,

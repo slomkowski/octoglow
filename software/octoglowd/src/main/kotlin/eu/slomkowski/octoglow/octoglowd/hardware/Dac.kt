@@ -1,14 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import kotlinx.coroutines.runBlocking
-import kotlin.time.ExperimentalTime
 
 enum class DacChannel(val number: Int) {
     C1(0b00),
     C2(0b01)
 }
 
-@ExperimentalTime
 class Dac(hardware: Hardware) : I2CDevice(hardware, 0x4f) {
 
     init {

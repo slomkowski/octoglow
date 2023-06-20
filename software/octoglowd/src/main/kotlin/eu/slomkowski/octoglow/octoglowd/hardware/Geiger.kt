@@ -6,7 +6,6 @@ import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
 import mu.KLogging
 import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.seconds
 
 enum class EyeDisplayMode {
@@ -21,7 +20,6 @@ enum class EyeInverterState {
     RUNNING
 }
 
-@ExperimentalTime
 data class GeigerCounterState(
     val hasNewCycleStarted: Boolean,
     val hasCycleEverCompleted: Boolean,
@@ -109,7 +107,6 @@ data class GeigerDeviceState(
     }
 }
 
-@ExperimentalTime
 class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
 
     companion object : KLogging() {

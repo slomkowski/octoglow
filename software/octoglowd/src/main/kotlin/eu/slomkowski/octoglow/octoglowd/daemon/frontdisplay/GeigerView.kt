@@ -13,11 +13,10 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import mu.KLogging
 import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
-@ExperimentalTime
+
 class GeigerView(
     private val database: DatabaseLayer,
     hardware: Hardware

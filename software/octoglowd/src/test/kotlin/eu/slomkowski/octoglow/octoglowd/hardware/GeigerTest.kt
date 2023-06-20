@@ -10,11 +10,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-@ExperimentalTime
+
 @ExtendWith(HardwareParameterResolver::class)
 class GeigerTest {
 

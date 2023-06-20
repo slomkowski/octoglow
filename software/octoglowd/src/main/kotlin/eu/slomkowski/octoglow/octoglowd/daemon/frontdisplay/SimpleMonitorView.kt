@@ -1,9 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.*
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.SimpleMonitorInstantSerializer
+import eu.slomkowski.octoglow.octoglowd.SimpleMonitorKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import eu.slomkowski.octoglow.octoglowd.httpClient
 import io.ktor.client.request.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -17,13 +20,11 @@ import mu.KLogging
 import org.apache.commons.lang3.StringUtils
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.time.Duration
 import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.seconds
 
-@ExperimentalTime
+
 class SimpleMonitorView(
     private val config: Config,
     private val database: DatabaseLayer,
@@ -94,22 +95,15 @@ class SimpleMonitorView(
                 config[SimpleMonitorKey.user], config[SimpleMonitorKey.password]
             )
 
-            if (json.monitors.filterValues { it.status == MonitorStatus.FAIL }.isNotEmpty()) {
-                logger.warn { "Some monitors are failed." }
-                launch {
-                    val shouldRing =
-                        database.getChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE).await()
-                    if (shouldRing != "false") {
-                        ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(100))
-                    } else {
-                        logger.warn { "Ringing on failure is disabled." }
-                    }
+            json.monitors.filterValues { it.status == MonitorStatus.FAIL }.let { failedMons ->
+                if (failedMons.isNotEmpty()) {
+                    logger.warn { "${failedMons.size} monitors are failed." }
                 }
             }
 
             UpdateStatus.FULL_SUCCESS to CurrentReport(now, json)
         } catch (e: Exception) {
-            logger.error(e) { "Failed to download status from Simplemonitor URL." }
+            logger.error(e) { "Failed to download status from SimpleMonitor URL." }
             UpdateStatus.FAILURE to CurrentReport(now, null)
         }
 
@@ -178,12 +172,4 @@ class SimpleMonitorView(
 
             Unit
         }
-
-    override fun getMenus(): List<Menu> = listOf(
-        BooleanChangeableSettingMenu(
-            database,
-            ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE,
-            "Ring on bad mon."
-        )
-    )
 }

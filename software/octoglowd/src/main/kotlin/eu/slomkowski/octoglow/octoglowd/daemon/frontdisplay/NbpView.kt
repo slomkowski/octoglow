@@ -16,11 +16,10 @@ import kotlinx.datetime.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KLogging
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-@ExperimentalTime
+
 class NbpView(
     private val config: Config,
     hardware: Hardware

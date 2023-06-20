@@ -14,9 +14,8 @@ import org.junit.jupiter.api.Test
 import java.time.LocalTime
 import java.util.*
 import kotlin.test.assertTrue
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
 internal class CalendarViewTest {
 
     companion object : KLogging()

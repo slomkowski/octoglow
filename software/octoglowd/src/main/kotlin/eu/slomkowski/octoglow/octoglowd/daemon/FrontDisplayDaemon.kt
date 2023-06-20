@@ -21,19 +21,19 @@ import org.softpark.stateful4k.extensions.createExecutor
 import org.softpark.stateful4k.extensions.event
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
-import kotlin.time.ExperimentalTime
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toKotlinDuration
 
 //todo wywalić refleksję?
 
-@ExperimentalTime
+
 class FrontDisplayDaemon(
     private val config: Config,
     private val coroutineContext: CoroutineContext,
     private val hardware: Hardware,
     frontDisplayViews: List<FrontDisplayView>,
     additionalMenus: List<Menu>
-) : Daemon(config, hardware, logger, java.time.Duration.ofMillis(100)) {
+) : Daemon(config, hardware, logger, 100.milliseconds) {
 
     companion object : KLogging() {
 
@@ -325,6 +325,7 @@ class FrontDisplayDaemon(
                         launchInBackground { drawExitMenu() }
                         State.Menu.Overview(exitMenu, exitMenu.options.first(), state.calledFrom)
                     }
+
                     else -> {
                         logger.info { "Switching to menu overview: $newMenu." }
                         State.Menu.Overview(newMenu, runBlocking(coroutineContext) {
@@ -348,6 +349,7 @@ class FrontDisplayDaemon(
                         logger.info { "Leaving menu." }
                         State.ViewCycle.Manual(state.calledFrom)
                     }
+
                     else -> {
                         logger.info { "Going to value setting of ${state.menu}." }
                         State.Menu.SettingOption(state.menu, runBlocking(coroutineContext) {
@@ -425,10 +427,12 @@ class FrontDisplayDaemon(
                 lastDialActivity = now
                 stateExecutorMutex.withLock { stateExecutor.fire(Event.ButtonPressed) }
             }
+
             buttonState.encoderDelta != 0 -> {
                 lastDialActivity = now
                 stateExecutorMutex.withLock { stateExecutor.fire(Event.EncoderDelta(buttonState.encoderDelta)) }
             }
+
             else -> {
                 // timeout
                 if (now - (lastDialActivity

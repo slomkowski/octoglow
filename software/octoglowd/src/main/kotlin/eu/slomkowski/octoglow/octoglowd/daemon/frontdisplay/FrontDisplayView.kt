@@ -7,12 +7,7 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import kotlinx.datetime.toKotlinInstant
 import mu.KLogging
-import java.time.ZonedDateTime
-import kotlin.time.ExperimentalTime
-import kotlin.time.toJavaDuration
-import kotlin.time.toKotlinDuration
 
 enum class UpdateStatus {
     NO_NEW_DATA,
@@ -26,7 +21,7 @@ enum class UpdateStatus {
  * status - values provided by the view, updatable usually once a minute or so.
  * instant - exact state of the processing on the device, updatable once every several seconds.
  */
-@ExperimentalTime
+
 abstract class FrontDisplayView(
     val hardware: Hardware,
     val name: String,
@@ -52,18 +47,7 @@ abstract class FrontDisplayView(
 
     override fun toString(): String = "'$name'"
 
-    @Deprecated("migrating to kotlinx date time")
-    protected suspend fun drawProgressBar(
-        reportTimestamp: ZonedDateTime?,
-        now: ZonedDateTime,
-        period: java.time.Duration = poolStatusEvery.toJavaDuration()
-    ) = drawProgressBar(
-        reportTimestamp?.toInstant()?.toKotlinInstant(),
-        now.toInstant().toKotlinInstant(),
-        period.toKotlinDuration()
-    )
 
-    @ExperimentalTime
     protected suspend fun drawProgressBar(
         reportTimestamp: Instant?,
         now: Instant,

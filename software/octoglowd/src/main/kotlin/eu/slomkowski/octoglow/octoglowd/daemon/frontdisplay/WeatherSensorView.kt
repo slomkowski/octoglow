@@ -11,11 +11,10 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import mu.KLogging
 import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-@ExperimentalTime
+
 class WeatherSensorView(
     private val config: Config,
     private val databaseLayer: DatabaseLayer,
@@ -262,12 +261,15 @@ class WeatherSensorView(
             statuses[UpdateStatus.FAILURE] == 2 -> {
                 UpdateStatus.FAILURE
             }
+
             statuses[UpdateStatus.NO_NEW_DATA] == 2 -> {
                 UpdateStatus.NO_NEW_DATA
             }
+
             statuses[UpdateStatus.FAILURE] ?: 0 > 0 -> {
                 UpdateStatus.PARTIAL_SUCCESS
             }
+
             else -> {
                 UpdateStatus.FULL_SUCCESS
             }

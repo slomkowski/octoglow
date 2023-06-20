@@ -4,8 +4,7 @@ import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import io.dvlopt.linux.i2c.I2CBuffer
 import kotlinx.coroutines.delay
 import mu.KLogging
-import java.time.Duration
-import kotlin.time.ExperimentalTime
+import kotlin.time.Duration
 
 data class RemoteSensorReport(
     val sensorId: Int,
@@ -111,7 +110,6 @@ data class RemoteSensorReport(
     }
 }
 
-@ExperimentalTime
 class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightness {
 
     companion object : KLogging() {
@@ -161,15 +159,15 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
         )
     }
 
+    @Deprecated("bell is removed from hardware")
     suspend fun ringBell(duration: Duration) {
-        require(!duration.isNegative)
-        require(!duration.isZero)
+        require(duration.isPositive())
 
-        logger.info { "Ringing for ${duration.toMillis()} ms." }
+        logger.info { "Ringing for ${duration.inWholeMilliseconds} ms." }
 
         try {
             doWrite(2, 0, 1)
-            delay(duration.toMillis())
+            delay(duration.inWholeMilliseconds)
         } finally {
             doWrite(2, 0, 0)
         }

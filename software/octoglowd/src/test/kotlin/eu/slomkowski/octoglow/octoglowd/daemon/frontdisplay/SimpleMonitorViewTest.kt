@@ -1,24 +1,18 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import eu.slomkowski.octoglow.octoglowd.SimpleMonitorKey
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.HardwareTest
-import eu.slomkowski.octoglow.octoglowd.jsonSerializer
-import eu.slomkowski.octoglow.octoglowd.readToString
-import eu.slomkowski.octoglow.octoglowd.testConfig
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.decodeFromString
 import mu.KLogging
 import org.apache.commons.lang3.RandomStringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
 class SimpleMonitorViewTest {
 
     companion object : KLogging()
@@ -81,7 +75,7 @@ class SimpleMonitorViewTest {
             view.currentReport = report
             runBlocking {
                 try {
-                    view.redrawDisplay(redrawStatic = true, redrawStatus = true, now = Clock.System.now())
+                    view.redrawDisplay(redrawStatic = true, redrawStatus = true, now = now())
                 } catch (e: Exception) {
                     logger.error(e) { "Exception during redraw." }
                 } finally {

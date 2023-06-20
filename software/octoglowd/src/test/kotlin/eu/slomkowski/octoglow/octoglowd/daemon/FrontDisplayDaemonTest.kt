@@ -14,10 +14,9 @@ import kotlinx.datetime.Instant
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.seconds
 
-@ExperimentalTime
+
 class FrontDisplayDaemonTest {
 
     companion object : KLogging()

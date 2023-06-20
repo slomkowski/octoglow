@@ -1,7 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd
 
-import java.util.*
-
 sealed class HistoricalValueType {
     companion object {
         private fun toSnakeCase(s: String) = Regex("([A-Z])").replace(s, "_$1").uppercase().trim('_')
@@ -60,5 +58,4 @@ data class Stock(val symbol: String) : HistoricalValueType() {
 
 enum class ChangeableSetting {
     BRIGHTNESS,
-    SIMPLEMONITOR_RING_ON_FAILURE
 }

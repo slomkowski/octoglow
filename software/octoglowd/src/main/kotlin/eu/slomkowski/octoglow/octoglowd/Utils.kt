@@ -9,24 +9,26 @@ import io.ktor.client.features.*
 import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.toKotlinInstant
+import kotlinx.datetime.*
+import kotlinx.datetime.TimeZone
 import mu.KLogger
 import org.shredzone.commons.suncalc.SunTimes
-import java.io.*
+import java.io.InputStream
 import java.nio.charset.StandardCharsets
-import java.time.*
+import java.time.ZoneId
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
 
 const val DEGREE: Char = '\u00B0'
 
-val WARSAW_ZONE_ID: ZoneId = ZoneId.of("Europe/Warsaw")
+@Deprecated("use kotlinx.datetime")
+val WARSAW_ZONE_ID_jvm: ZoneId = ZoneId.of("Europe/Warsaw")
+
+val WARSAW_ZONE_ID: TimeZone = TimeZone.of("Europe/Warsaw")
+
 
 val jsonSerializer = kotlinx.serialization.json.Json {
     prettyPrint = true
@@ -45,13 +47,6 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
-fun isSleeping(start: LocalTime, duration: Duration, now: LocalTime): Boolean {
-    val sleepTime = Duration.between(LocalTime.MIN, start)
-    val sleepRange = sleepTime..(sleepTime + duration)
-    val nowd = Duration.between(LocalTime.MIN, now)
-    return nowd in sleepRange || nowd.plusDays(1) in sleepRange
-}
-
 fun calculateSunriseAndSunset(latitude: Double, longitude: Double, ts: LocalDate): Pair<LocalTime, LocalTime> {
 
     val sunTimes = SunTimes.compute()
@@ -61,7 +56,7 @@ fun calculateSunriseAndSunset(latitude: Double, longitude: Double, ts: LocalDate
         .execute()
 
     val (sunrise, sunset) = listOf(sunTimes.rise, sunTimes.set).map {
-        checkNotNull(it?.toLocalDateTime()) { "cannot calculate sunrise/sunset for $ts." }.toLocalTime()
+        checkNotNull(it?.toLocalDateTime()?.toKotlinLocalDateTime()) { "cannot calculate sunrise/sunset for $ts." }.time
     }
     check(sunset > sunrise)
 
@@ -86,7 +81,6 @@ fun formatPressure(t: Double?): String = when (t) {
 /**
  * Used to calculate which segment to light of the upper progress bar on front display.
  */
-@ExperimentalTime
 fun getSegmentNumber(currentTime: kotlin.time.Duration, maxTime: kotlin.time.Duration): Int =
     floor(20.0 * (currentTime.toDouble(DurationUnit.MILLISECONDS) / maxTime.toDouble(DurationUnit.MILLISECONDS))).roundToInt().coerceIn(0, 19)
 
@@ -107,22 +101,6 @@ suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func:
     throw IllegalStateException() // cannot be ever called
 }
 
-@ExperimentalTime
-suspend fun ringBellIfNotSleeping(
-    config: Config,
-    logger: KLogger,
-    hardware: Hardware,
-    ringDuration: Duration
-) = when (isSleeping(config[SleepKey.startAt], config[SleepKey.duration], LocalTime.now())) {
-    false -> try {
-        hardware.clockDisplay.ringBell(ringDuration)
-    } catch (ringException: Exception) {
-        logger.error(ringException) { "Cannot ring a bell, perhaps I2C error;" }
-    }
-    true -> logger.warn { "Skipping ringing because it is sleep time." }
-}
-
-@ExperimentalTime
 suspend fun handleException(
     config: Config,
     logger: KLogger,
@@ -131,11 +109,6 @@ suspend fun handleException(
     e: Throwable
 ) {
     logger.error(e) { "Exception caught in $coroutineContext." }
-    if (config[ConfKey.ringAtError]) {
-        ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(150))
-    } else {
-        logger.error(e) { "Ringing at error disabled, only logging stack trace;" }
-    }
 }
 
 fun List<Int>.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {
@@ -143,13 +116,8 @@ fun List<Int>.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {
     this@toI2CBuffer.forEachIndexed { index, value -> this.set(index, value) }
 }
 
-fun Date.toLocalDateTime(): LocalDateTime = toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+fun Date.toLocalDateTime(): java.time.LocalDateTime = toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
 
-
-fun OffsetDateTime.toLocalDateTimeInSystemTimeZone(): LocalDateTime {
-    val offset = ZoneId.systemDefault().rules.getOffset(toInstant())
-    return withOffsetSameInstant(offset).toLocalDateTime()
-}
 
 fun I2CBuffer.toByteArray(): ByteArray = (0 until length).map { get(it).toByte() }.toByteArray()
 
@@ -167,4 +135,4 @@ fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UT
 
 fun kotlinx.datetime.LocalDateTime.toLocalDate() = LocalDate(year, month, dayOfMonth)
 
-fun now(): Instant = java.time.Instant.now().toKotlinInstant()
+fun now(): Instant = Clock.System.now()

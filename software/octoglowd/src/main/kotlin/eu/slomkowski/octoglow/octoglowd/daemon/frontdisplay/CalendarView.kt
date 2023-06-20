@@ -20,14 +20,12 @@ import org.apache.commons.lang3.StringUtils
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
 class CalendarView(
     private val config: Config,
     hardware: Hardware
@@ -115,11 +113,11 @@ class CalendarView(
                         config[GeoPosKey.longitude],
                         today
                     )
-                    check(sunrise < LocalTime.of(10, 0))
+                    check(sunrise < LocalTime(10, 0))
 
                     fd.setStaticText(0, formatDate(today))
-                    fd.setStaticText(16, sunrise.format(sunriseSunsetTimeFormatter))
-                    fd.setStaticText(35, sunset.format(sunriseSunsetTimeFormatter))
+                    fd.setStaticText(16, sunrise.toJavaLocalTime().format(sunriseSunsetTimeFormatter))
+                    fd.setStaticText(35, sunset.toJavaLocalTime().format(sunriseSunsetTimeFormatter))
                 }
 
                 launch { fd.setScrollingText(Slot.SLOT0, 20, 14, getInfoForDay(today).take(Slot.SLOT0.capacity)) }

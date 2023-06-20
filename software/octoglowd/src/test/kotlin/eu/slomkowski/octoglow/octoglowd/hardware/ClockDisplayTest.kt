@@ -9,11 +9,9 @@ import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import java.time.Duration
 import kotlin.test.*
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
 @ExtendWith(HardwareParameterResolver::class)
 class ClockDisplayTest {
 
@@ -104,18 +102,6 @@ class ClockDisplayTest {
                 setDisplay(3, 58, true, false)
                 delay(1000)
                 setDisplay(21, 2, false, true)
-            }
-        }
-    }
-
-    @Test
-    @Disabled("ringing is scary, so only done when explicitly needed")
-    fun testRingBell(hardware: Hardware) {
-        runBlocking {
-            ClockDisplay(hardware).apply {
-                ringBell(Duration.ofMillis(100))
-                delay(1000)
-                ringBell(Duration.ofMillis(500))
             }
         }
     }

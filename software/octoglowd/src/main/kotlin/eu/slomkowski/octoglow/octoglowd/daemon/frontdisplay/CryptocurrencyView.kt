@@ -12,13 +12,11 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import mu.KLogging
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-@ExperimentalTime
+
 class CryptocurrencyView(
     private val config: Config,
     private val database: DatabaseLayer,

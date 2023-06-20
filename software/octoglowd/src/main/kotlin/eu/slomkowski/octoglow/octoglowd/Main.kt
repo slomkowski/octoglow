@@ -12,9 +12,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
 fun main() {
 
     val config = Config {
