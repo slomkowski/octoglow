@@ -94,13 +94,13 @@ class FrontDisplayTest {
         runBlocking {
             FrontDisplay(hardware).apply {
 
-                repeat(100) {
+                repeat(1000) {
                     getButtonReport().apply {
                         if (encoderDelta != 0) {
                             logger.info { "Delta: $encoderDelta." }
                         }
                     }
-                    delay(100)
+                    delay(20)
                 }
             }
         }
