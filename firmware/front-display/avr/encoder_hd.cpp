@@ -44,24 +44,14 @@ void octoglow::front_display::encoder::pool() {
     }
 }
 
-/*
- * Code borrowed from https://www.circuitsathome.com/mcu/rotary-encoder-interrupt-service-routine-for-avr-micros/
- */
 ISR(PCINT2_vect) {
-    static uint8_t old_AB = 3;
-    static int8_t encval = 0;
-    static const int8_t enc_states[] PROGMEM = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
-    /**/
-    old_AB <<= 2;  //remember previous state
-    old_AB |= (PIN(ENC_PORT) & (_BV(ENC_A_PIN) | _BV(ENC_B_PIN)))
-            >> 1; // >> 1 shift is necessary because in original code the encoder was connected to 0 and 1 pins
-    encval += pgm_read_byte(&(enc_states[(old_AB & 0x0f)]));
-    /* post "Navigation forward/reverse" event */
-    if (encval > 3) {  //four steps forward
-        _currentEncoderSteps++;
-        encval = 0;
-    } else if (encval < -3) {  //four steps backwards
-        _currentEncoderSteps--;
-        encval = 0;
+    static uint8_t old = 0;
+    uint8_t current = 0b11 & ((PIN(ENC_PORT) & (_BV(ENC_A_PIN) | _BV(ENC_B_PIN))) >> 1);
+
+    if (old == 0b00) {
+        if (current == 0b10) { _currentEncoderSteps++; }
+        if (current == 0b01) { _currentEncoderSteps--; }
     }
+
+    old = current;
 }
