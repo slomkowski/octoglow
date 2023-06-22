@@ -161,4 +161,11 @@ class UtilsTest {
         assertEquals(LocalTime(12, 59, 0), LocalTime(12, 59, 29).roundToNearestMinute())
         assertEquals(LocalTime(13, 0, 0), LocalTime(12, 59, 56).roundToNearestMinute())
     }
+
+    @Test
+    fun testFormatSunriseSunset() {
+        assertEquals("13:45", LocalTime(13, 45, 52).formatJustHoursMinutes())
+        assertEquals(" 6:21", LocalTime(6, 21, 1).formatJustHoursMinutes())
+        assertEquals(" 7:02", LocalTime(7, 2, 1).formatJustHoursMinutes())
+    }
 }

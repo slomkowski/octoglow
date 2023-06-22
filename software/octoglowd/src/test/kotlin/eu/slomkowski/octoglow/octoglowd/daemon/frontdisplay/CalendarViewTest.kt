@@ -11,7 +11,6 @@ import kotlinx.datetime.plus
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.LocalTime
 import java.util.*
 import kotlin.test.assertTrue
 
@@ -54,11 +53,5 @@ internal class CalendarViewTest {
             val str = formatDate(LocalDate(2019, 2, 1).plus(DatePeriod(0, 0, noOfDays)))
             assertTrue("$str has length ${str.length}") { str.length <= 15 }
         }
-    }
-
-    @Test
-    fun testFormatSunriseSunset() {
-        assertEquals("13:45", CalendarView.sunriseSunsetTimeFormatter.format(LocalTime.of(13, 45, 52)))
-        assertEquals("6:21", CalendarView.sunriseSunsetTimeFormatter.format(LocalTime.of(6, 21, 1)))
     }
 }

@@ -9,7 +9,6 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
-import kotlinx.datetime.TimeZone
 import mu.KLogging
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
@@ -17,8 +16,6 @@ import org.apache.commons.lang3.StringUtils
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
-import java.time.format.DateTimeFormatter
-import java.util.*
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -57,14 +54,53 @@ class CalendarView(
                 }
             }
 
-        private val shortDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EE, d MMM", Locale.ENGLISH)
-        private val fullDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMM", Locale.ENGLISH)
-        val sunriseSunsetTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm")
+        private val shortDaysOfTheWeek = arrayOf(
+            "Mon",
+            "Tue",
+            "Wed",
+            "Thu",
+            "Fri",
+            "Sat",
+            "Sun"
+        )
+
+        private val shortMonthNames = arrayOf(
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec"
+        )
+
+        private val daysOfTheWeek = arrayOf(
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+        )
+
+        private fun formatDateShort(day: LocalDate): String {
+            return "${shortDaysOfTheWeek[day.dayOfWeek.ordinal]}, ${day.dayOfMonth} ${shortMonthNames[day.month.value - 1]}"
+        }
+
+        private fun formatDateLong(day: LocalDate): String {
+            return "${daysOfTheWeek[day.dayOfWeek.ordinal]} ${day.dayOfMonth} ${shortMonthNames[day.month.value - 1]}"
+        }
 
         fun formatDate(day: LocalDate): String {
-            val str = day.toJavaLocalDate().format(fullDateFormatter)
+            val str = formatDateLong(day)
             return when {
-                str.length > 15 -> day.toJavaLocalDate().format(shortDateFormatter)
+                str.length > 15 -> formatDateShort(day)
                 else -> str
             }
         }
@@ -113,8 +149,8 @@ class CalendarView(
                     check(sunrise < LocalTime(10, 0))
 
                     fd.setStaticText(0, formatDate(today))
-                    fd.setStaticText(16, sunrise.roundToNearestMinute().toJavaLocalTime().format(sunriseSunsetTimeFormatter))
-                    fd.setStaticText(35, sunset.roundToNearestMinute().toJavaLocalTime().format(sunriseSunsetTimeFormatter))
+                    fd.setStaticText(15, sunrise.roundToNearestMinute().formatJustHoursMinutes())
+                    fd.setStaticText(35, sunset.roundToNearestMinute().formatJustHoursMinutes())
                 }
 
                 launch { fd.setScrollingText(Slot.SLOT0, 20, 14, getInfoForDay(today).take(Slot.SLOT0.capacity)) }

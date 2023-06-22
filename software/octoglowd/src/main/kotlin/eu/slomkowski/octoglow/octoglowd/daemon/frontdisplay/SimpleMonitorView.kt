@@ -1,18 +1,14 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
-import eu.slomkowski.octoglow.octoglowd.SimpleMonitorInstantSerializer
-import eu.slomkowski.octoglow.octoglowd.SimpleMonitorKey
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
-import eu.slomkowski.octoglow.octoglowd.httpClient
 import io.ktor.client.request.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toJavaLocalDateTime
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -20,7 +16,6 @@ import mu.KLogging
 import org.apache.commons.lang3.StringUtils
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
@@ -129,8 +124,8 @@ class SimpleMonitorView(
 
                 launch {
                     val time = report?.data?.generated?.toLocalDateTime(TimeZone.currentSystemDefault())
-                        ?.toJavaLocalDateTime() //todo?
-                        ?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                        ?.toLocalTime()
+                        ?.formatJustHoursMinutes()
                         ?: "--:--"
                     fd.setStaticText(0, "*$time")
                 }

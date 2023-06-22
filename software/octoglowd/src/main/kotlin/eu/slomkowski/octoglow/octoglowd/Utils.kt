@@ -175,9 +175,6 @@ fun List<Int>.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {
     this@toI2CBuffer.forEachIndexed { index, value -> this.set(index, value) }
 }
 
-fun Date.toLocalDateTime(): java.time.LocalDateTime = toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
-
-
 fun I2CBuffer.toByteArray(): ByteArray = (0 until length).map { get(it).toByte() }.toByteArray()
 
 fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
@@ -192,6 +189,9 @@ fun I2CBuffer.toList(): List<Int> = (0 until this.length).map { this[it] }.toLis
 
 fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).readText()
 
-fun kotlinx.datetime.LocalDateTime.toLocalDate() = LocalDate(year, month, dayOfMonth)
+fun LocalDateTime.toLocalDate() = LocalDate(year, month, dayOfMonth)
+fun LocalDateTime.toLocalTime() = LocalTime(hour, minute, second, nanosecond)
 
 fun now(): Instant = Clock.System.now()
+
+fun LocalTime.formatJustHoursMinutes() = "${hour.toString().padStart(2, ' ')}:${minute.toString().padStart(2, '0')}"
