@@ -3,12 +3,9 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import com.uchuhimo.konf.Config
 import de.jollyday.HolidayManager
 import de.jollyday.ManagerParameters
-import eu.slomkowski.octoglow.octoglowd.ConfKey
-import eu.slomkowski.octoglow.octoglowd.GeoPosKey
-import eu.slomkowski.octoglow.octoglowd.calculateSunriseAndSunset
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
-import eu.slomkowski.octoglow.octoglowd.toLocalDate
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
@@ -116,8 +113,8 @@ class CalendarView(
                     check(sunrise < LocalTime(10, 0))
 
                     fd.setStaticText(0, formatDate(today))
-                    fd.setStaticText(16, sunrise.toJavaLocalTime().format(sunriseSunsetTimeFormatter))
-                    fd.setStaticText(35, sunset.toJavaLocalTime().format(sunriseSunsetTimeFormatter))
+                    fd.setStaticText(16, sunrise.roundToNearestMinute().toJavaLocalTime().format(sunriseSunsetTimeFormatter))
+                    fd.setStaticText(35, sunset.roundToNearestMinute().toJavaLocalTime().format(sunriseSunsetTimeFormatter))
                 }
 
                 launch { fd.setScrollingText(Slot.SLOT0, 20, 14, getInfoForDay(today).take(Slot.SLOT0.capacity)) }

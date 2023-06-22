@@ -12,15 +12,15 @@ import kotlinx.coroutines.delay
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import mu.KLogger
-import org.shredzone.commons.suncalc.SunTimes
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.*
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.floor
-import kotlin.math.roundToInt
+import kotlin.math.*
 import kotlin.time.DurationUnit
+
 
 const val DEGREE: Char = '\u00B0'
 
@@ -47,20 +47,79 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
-fun calculateSunriseAndSunset(latitude: Double, longitude: Double, ts: LocalDate): Pair<LocalTime, LocalTime> {
+fun LocalDate.toCalendar() = Calendar.getInstance().also {
+    val zonedDateTime: ZonedDateTime = this.toJavaLocalDate().atStartOfDay(ZoneId.systemDefault())
+    val instant = zonedDateTime.toInstant()
+    val date = Date.from(instant)
+    val calendar = Calendar.getInstance()
+    calendar.time = date
+}
 
-    val sunTimes = SunTimes.compute()
-        .at(latitude, longitude)
-        .on(ts.year, ts.monthNumber, ts.dayOfMonth)
-        .oneDay()
-        .execute()
+/**
+ * This is implementation of sunrise/sunset algorithm:
+ * https://web.archive.org/web/20161202180207/http://williams.best.vwh.net/sunrise_sunset_algorithm.htm
+ */
+fun calculateSunriseAndSunset(latitude: Double, longitude: Double, date: LocalDate): Pair<LocalTime, LocalTime> {
 
-    val (sunrise, sunset) = listOf(sunTimes.rise, sunTimes.set).map {
-        checkNotNull(it?.toLocalDateTime()?.toKotlinLocalDateTime()) { "cannot calculate sunrise/sunset for $ts." }.time
+    fun toLocalTime(ut2: Double): LocalTime =
+        Instant.fromEpochMilliseconds(date.toEpochDays() * 24L * 60 * 60 * 1000 + (1000.0 * ut2).roundToLong()).toLocalDateTime(TimeZone.currentSystemDefault()).time
+
+    fun containIn(v: Double, m: Double) = v - floor(v / m) * m
+
+    fun asinDeg(v: Double) = asin(v) * 180.0 / PI
+    fun sinDeg(deg: Double) = sin(deg * PI / 180.0)
+    fun cosDeg(deg: Double) = cos(deg * PI / 180.0)
+    fun acosDeg(v: Double) = acos(v) * 180.0 / PI
+    fun tanDeg(deg: Double) = tan(deg * PI / 180.0)
+    fun atanDeg(v: Double) = atan(v) * 180.0 / PI
+
+    fun calc(calculateSunrise: Boolean): Double {
+        val lngHour = longitude / 15.0
+        val t = when (calculateSunrise) {
+            true -> date.dayOfYear + ((6.0 - lngHour) / 24.0)
+            false -> date.dayOfYear + ((18.0 - lngHour) / 24.0)
+        }
+
+        val meanAnomaly = (0.9856 * t) - 3.289
+        val trueLongitude = containIn(meanAnomaly + (1.916 * sinDeg(meanAnomaly)) + (0.020 * sinDeg(2 * meanAnomaly)) + 282.634, 360.0)
+
+        var rightAscension = containIn(atanDeg(0.91764 * tanDeg(trueLongitude)), 360.0)
+
+        val trueLongitudeQuadrant = (floor(trueLongitude / 90)) * 90.0
+        val rightAscensionQuadrant = (floor(rightAscension / 90)) * 90.0
+        rightAscension = (rightAscension + (trueLongitudeQuadrant - rightAscensionQuadrant)) / 15.0
+
+        val sinDec = 0.39782 * sinDeg(trueLongitude)
+        val cosDec = cosDeg(asinDeg(sinDec))
+
+        val cosHourAngle = (cosDeg(90.833) - (sinDec * sinDeg(latitude))) / (cosDec * cosDeg(latitude))
+
+        val hourAngle = when (calculateSunrise) {
+            true -> 360.0 - acosDeg(cosHourAngle)
+            false -> acosDeg(cosHourAngle)
+        } / 15.0
+
+        val localMeanTime = hourAngle + rightAscension - (0.06571 * t) - 6.622
+
+        val universalMeanTime = localMeanTime - lngHour
+
+        return containIn(universalMeanTime, 24.0) * 3600.0
     }
-    check(sunset > sunrise)
 
-    return sunrise to sunset
+    return toLocalTime(calc(true)) to toLocalTime(calc(false))
+}
+
+fun LocalTime.roundToNearestMinute(): LocalTime {
+    val div = 60_000
+    val base = (floor(this.toMillisecondOfDay().toDouble() / div) * div).roundToInt()
+
+    return LocalTime.fromMillisecondOfDay(
+        if ((this.toMillisecondOfDay() % div) < div / 2) {
+            base
+        } else {
+            base + div
+        }
+    )
 }
 
 fun formatHumidity(h: Double?): String = when (h) {

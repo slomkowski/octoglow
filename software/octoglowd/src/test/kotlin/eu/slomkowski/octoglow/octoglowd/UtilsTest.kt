@@ -1,9 +1,14 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import mu.KLogging
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import kotlin.math.abs
 import kotlin.test.assertFails
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -83,5 +88,77 @@ class UtilsTest {
             assertEquals(19, getSegmentNumber(299.seconds, min5))
             assertEquals(19, getSegmentNumber(min5, min5))
         }
+    }
+
+    fun LocalTime.assertThatDiffersLessThan(other: LocalTime, diff: Duration) {
+        assertThat(abs(this.toMillisecondOfDay() - other.toMillisecondOfDay()).toLong()).isLessThan(diff.inWholeMilliseconds)
+    }
+
+    @Test
+    fun testCalculateSunriseAndSunset() {
+        listOf(
+            Triple(
+                LocalDate(2023, 6, 22),
+                LocalTime(4, 30, 8),
+                LocalTime(21, 18, 46)
+            ),
+            Triple(
+                LocalDate(2021, 1, 1),
+                LocalTime(8, 2, 23),
+                LocalTime(15, 49, 56)
+            ),
+            Triple(
+                LocalDate(2021, 6, 1),
+                LocalTime(4, 36, 18),
+                LocalTime(21, 5, 2)
+            ),
+            Triple(
+                LocalDate(2021, 12, 1),
+                LocalTime(7, 40, 3),
+                LocalTime(15, 42, 46)
+            ),
+            Triple(
+                LocalDate(2023, 3, 10),
+                LocalTime(6, 19, 11),
+                LocalTime(17, 47, 21)
+            ),
+            Triple(
+                LocalDate(2023, 7, 15),
+                LocalTime(4, 47, 57),
+                LocalTime(21, 8, 6)
+            ),
+            Triple(
+                LocalDate(2023, 9, 10),
+                LocalTime(6, 17, 44),
+                LocalTime(19, 20, 13)
+            ),
+        ).forEach { (date, expectedSunrise, expectedSunset) ->
+            val (sunrise, sunset) = calculateSunriseAndSunset(
+                poznanCoordinates.first,
+                poznanCoordinates.second,
+                date
+            )
+
+            logger.info { "$date: sunrise: $sunrise, sunset: $sunset" }
+
+            assertTrue(sunrise < sunset)
+
+            sunrise.assertThatDiffersLessThan(expectedSunrise, 1.minutes)
+            sunset.assertThatDiffersLessThan(expectedSunset, 1.minutes)
+        }
+    }
+
+    @Test
+    fun testRoundToNearestMinute() {
+        assertEquals(LocalTime(12, 0, 0), LocalTime(12, 0, 0).roundToNearestMinute())
+        assertEquals(LocalTime(12, 1, 0), LocalTime(12, 0, 30).roundToNearestMinute())
+        assertEquals(LocalTime(12, 1, 0), LocalTime(12, 0, 59).roundToNearestMinute())
+        assertEquals(LocalTime(12, 0, 0), LocalTime(12, 0, 1).roundToNearestMinute())
+        assertEquals(LocalTime(12, 0, 0), LocalTime(12, 0, 29).roundToNearestMinute())
+        assertEquals(LocalTime(12, 24, 0), LocalTime(12, 23, 31).roundToNearestMinute())
+        assertEquals(LocalTime(12, 46, 0), LocalTime(12, 45, 31).roundToNearestMinute())
+        assertEquals(LocalTime(12, 35, 0), LocalTime(12, 34, 31).roundToNearestMinute())
+        assertEquals(LocalTime(12, 59, 0), LocalTime(12, 59, 29).roundToNearestMinute())
+        assertEquals(LocalTime(13, 0, 0), LocalTime(12, 59, 56).roundToNearestMinute())
     }
 }
