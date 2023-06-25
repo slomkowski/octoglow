@@ -28,6 +28,7 @@ fun main() {
         addSpec(RemoteSensorsKey)
     }.from.yaml.file("config.yml")
 
+
     val hardware = Hardware(config)
 
     Runtime.getRuntime().addShutdownHook(Thread {
@@ -66,6 +67,6 @@ fun main() {
     )
 
     runBlocking {
-        controllers.forEach { GlobalScope.launch { it.createJob() } }
+        controllers.forEach { launch { it.createJob() } }
     }
 }

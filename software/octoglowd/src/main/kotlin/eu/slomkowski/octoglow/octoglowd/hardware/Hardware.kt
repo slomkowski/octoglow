@@ -7,14 +7,13 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import io.dvlopt.linux.i2c.I2CFunctionality
 import io.dvlopt.linux.i2c.I2CTransaction
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import mu.KLogging
 import java.io.IOException
+import java.util.concurrent.Executors
 
 class Hardware(
     private val bus: I2CBus,
@@ -38,6 +37,8 @@ class Hardware(
         ETIMEDOUT(110, "Connection timed out")
     }
 
+    private val threadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+
     companion object : KLogging() {
         fun handleI2cException(baseException: Exception): Exception =
             Regex("Native error while doing an I2C transaction : errno (\\d+)")
@@ -55,9 +56,6 @@ class Hardware(
                     )
                 } ?: baseException
     }
-
-
-    private val busMutex = Mutex()
 
     val clockDisplay = ClockDisplay(this)
 
@@ -97,18 +95,16 @@ class Hardware(
         allDevices.forEach { it.close() }
     }
 
-    suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = busMutex.withLock {
-        withContext(Dispatchers.IO) {
-            try {
-                bus.doTransaction(I2CTransaction(1).apply {
-                    getMessage(0).apply {
-                        address = i2cAddress
-                        buffer = writeBuffer
-                    }
-                })
-            } catch (e: Exception) {
-                throw handleI2cException(e)
-            }
+    suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = withContext(threadContext) {
+        try {
+            bus.doTransaction(I2CTransaction(1).apply {
+                getMessage(0).apply {
+                    address = i2cAddress
+                    buffer = writeBuffer
+                }
+            })
+        } catch (e: Exception) {
+            throw handleI2cException(e)
         }
     }
 
@@ -122,15 +118,13 @@ class Hardware(
 
         val readBuffer = I2CBuffer(bytesToRead)
 
-        withContext(Dispatchers.IO) {
+        withContext(threadContext) {
             for (tryNo in 1..numberOfTries) {
                 try {
-                    busMutex.withLock {
-                        bus.selectSlave(i2cAddress)
-                        bus.write(writeBuffer)
-                        delay(1)
-                        bus.read(readBuffer)
-                    }
+                    bus.selectSlave(i2cAddress)
+                    bus.write(writeBuffer)
+                    Thread.sleep(1)
+                    bus.read(readBuffer)
 
                     break
                 } catch (e: IOException) {
