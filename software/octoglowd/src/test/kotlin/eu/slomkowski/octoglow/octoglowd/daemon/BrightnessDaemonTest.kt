@@ -1,6 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import com.uchuhimo.konf.Config
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon.Companion.isSleeping
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -10,14 +10,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toJavaLocalTime
 import mu.KLogging
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.toJavaDuration
 
 
 class BrightnessDaemonTest {
@@ -32,16 +30,14 @@ class BrightnessDaemonTest {
         coEvery { databaseMock.getChangeableSettingAsync(ChangeableSetting.BRIGHTNESS) } returns CompletableDeferred("AUTO")
         coEvery { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, any()) } returns Job()
 
-        val bd = BrightnessDaemon(Config {
-            addSpec(SleepKey)
-            addSpec(GeoPosKey)
-            set(SleepKey.startAt, LocalTime(0, 45).toJavaLocalTime())
-            set(SleepKey.duration, 9.hours.toJavaDuration())
-            poznanCoordinates.let { (lat, lng) ->
-                set(GeoPosKey.latitude, lat)
-                set(GeoPosKey.longitude, lng)
-            }
-        }, databaseMock, hardwareMock)
+        val bd = BrightnessDaemon(
+            defaultTestConfig.copy(
+                sleep = ConfSleep(
+                    LocalTime(0, 45),
+                    9.hours
+                )
+            ), databaseMock, hardwareMock
+        )
 
         assertEquals(
             3,

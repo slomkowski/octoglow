@@ -24,6 +24,8 @@
                     <exclude>org/sqlite/native/Windows/**</exclude>
                     <exclude>org/sqlite/native/FreeBSD/**</exclude>
                     <exclude>org/sqlite/native/Mac/**</exclude>
+                    <exclude>org/sqlite/native/Linux-Android/**</exclude>
+                    <exclude>org/sqlite/native/Linux-Musl/**</exclude>
                     <exclude>org/sqlite/native/Linux/aarch64/**</exclude>
                     <exclude>org/sqlite/native/Linux/android-arm/**</exclude>
                     <exclude>org/sqlite/native/Linux/arm/**</exclude>

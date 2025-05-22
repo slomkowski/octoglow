@@ -1,7 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd
 
-import com.uchuhimo.konf.Config
-import com.uchuhimo.konf.source.yaml
 import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
@@ -12,22 +10,11 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Paths
 
 fun main() {
 
-    val config = Config {
-        addSpec(ConfKey)
-        addSpec(CryptocurrenciesKey)
-        addSpec(GeoPosKey)
-        addSpec(SleepKey)
-        addSpec(NetworkViewKey)
-        addSpec(NbpKey)
-//        addSpec(StocksKey)
-        addSpec(SimpleMonitorKey)
-        addSpec(AirQualityKey)
-        addSpec(RemoteSensorsKey)
-    }.from.yaml.file("config.yml")
-
+    val config = Config.parse(Paths.get("config.json"))
 
     val hardware = Hardware(config)
 
@@ -35,7 +22,7 @@ fun main() {
         hardware.close() //todo maybe find cleaner way?
     })
 
-    val database = DatabaseLayer(config[ConfKey.databaseFile], CoroutineExceptionHandler { context, throwable ->
+    val database = DatabaseLayer(config.databaseFile, CoroutineExceptionHandler { context, throwable ->
         runBlocking {
             handleException(config, DatabaseLayer.logger, hardware, context, throwable)
         }

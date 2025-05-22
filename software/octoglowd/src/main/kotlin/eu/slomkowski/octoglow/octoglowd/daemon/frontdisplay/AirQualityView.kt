@@ -1,9 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -108,7 +109,7 @@ class AirQualityView(
             logger.debug("Downloading currency rates for station {}.", stationId)
             val url = "http://api.gios.gov.pl/pjp-api/rest/aqindex/getIndex/$stationId"
 
-            val resp: AirQualityDto = httpClient.get(url)
+            val resp: AirQualityDto = httpClient.get(url).body()
 
             check(resp.stIndexStatus) { "no air quality index for station ${resp.id}" }
             checkNotNull(resp.stIndexLevel.level) { "no air quality index for station ${resp.id}" }
@@ -118,7 +119,7 @@ class AirQualityView(
         }
     }
 
-    private suspend fun createStationReport(now: Instant, station: AirStationKey) = try {
+    private suspend fun createStationReport(now: Instant, station: ConfSingleAirStation) = try {
         val dto = retrieveAirQualityData(station.id)
         val dbKey = AirQuality(station.id)
         val value = dto.stIndexLevel.id.toDouble()
@@ -137,8 +138,8 @@ class AirQualityView(
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
-        val rep1 = async { createStationReport(now, config[AirQualityKey.station1]) }
-        val rep2 = async { createStationReport(now, config[AirQualityKey.station2]) }
+        val rep1 = async { createStationReport(now, config.airQuality.station1) }
+        val rep2 = async { createStationReport(now, config.airQuality.station2) }
 
         val newRep = CurrentReport(rep1.await(), rep2.await())
 

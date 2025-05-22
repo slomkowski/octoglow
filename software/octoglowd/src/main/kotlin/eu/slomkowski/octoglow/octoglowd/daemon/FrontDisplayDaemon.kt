@@ -1,7 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
+
+import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.MenuOption
@@ -22,7 +22,6 @@ import org.softpark.stateful4k.extensions.event
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.toKotlinDuration
 
 //todo wywalić refleksję?
 
@@ -436,7 +435,7 @@ class FrontDisplayDaemon(
             else -> {
                 // timeout
                 if (now - (lastDialActivity
-                        ?: Instant.DISTANT_PAST) > config[ConfKey.viewAutomaticCycleTimeout].toKotlinDuration()
+                        ?: Instant.DISTANT_PAST) > config.viewAutomaticCycleTimeout
                 ) {
                     stateExecutorMutex.withLock {
                         stateExecutor.fire(Event.Timeout(now))

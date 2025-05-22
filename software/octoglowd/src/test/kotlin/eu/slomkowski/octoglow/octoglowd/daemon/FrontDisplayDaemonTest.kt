@@ -1,10 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
+
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon.Companion.updateViewIndex
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonReport
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -49,10 +49,6 @@ class FrontDisplayDaemonTest {
 
     @Test
     fun testStateMachineSwitchView() {
-        val config = Config {
-            addSpec(ConfKey)
-        }
-
         runBlocking {
             val hardware = mockk<Hardware>()
 
@@ -69,7 +65,7 @@ class FrontDisplayDaemonTest {
             coEvery { v1.redrawDisplay(true, true, any()) } just Runs
             coEvery { v2.redrawDisplay(true, true, any()) } just Runs
 
-            val d = FrontDisplayDaemon(config, coroutineContext, hardware, listOf(v1, v2), emptyList())
+            val d = FrontDisplayDaemon(defaultTestConfig, coroutineContext, hardware, listOf(v1, v2), emptyList())
 
             d.pool()
 

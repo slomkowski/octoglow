@@ -47,7 +47,6 @@ abstract class FrontDisplayView(
 
     override fun toString(): String = "'$name'"
 
-
     protected suspend fun drawProgressBar(
         reportTimestamp: Instant?,
         now: Instant,

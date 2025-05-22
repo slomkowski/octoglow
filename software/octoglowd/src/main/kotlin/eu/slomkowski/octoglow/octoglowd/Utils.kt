@@ -1,13 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd
 
-import com.uchuhimo.konf.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
-import io.ktor.client.features.*
-import io.ktor.client.features.json.*
-import io.ktor.client.features.json.serializer.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.delay
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
@@ -42,8 +41,8 @@ val httpClient = HttpClient(CIO) {
         socketTimeoutMillis = 15_000
     }
 
-    install(JsonFeature) {
-        serializer = KotlinxSerializer(jsonSerializer)
+    install(ContentNegotiation) {
+        json(jsonSerializer)
     }
 }
 
@@ -161,7 +160,7 @@ suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func:
 }
 
 suspend fun handleException(
-    config: Config,
+    config: eu.slomkowski.octoglow.octoglowd.Config,
     logger: KLogger,
     hardware: Hardware,
     coroutineContext: CoroutineContext,

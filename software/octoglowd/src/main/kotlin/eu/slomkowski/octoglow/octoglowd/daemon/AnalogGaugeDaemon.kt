@@ -1,7 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.sun.management.OperatingSystemMXBean
-import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.Config
+
 import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.Dispatchers

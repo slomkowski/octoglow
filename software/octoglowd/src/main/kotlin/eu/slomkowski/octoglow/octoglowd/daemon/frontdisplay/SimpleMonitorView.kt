@@ -1,9 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -14,7 +15,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KLogging
 import org.apache.commons.lang3.StringUtils
-import java.net.URL
+import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
@@ -65,18 +66,18 @@ class SimpleMonitorView(
 
     companion object : KLogging() {
 
-
-        suspend fun getLatestSimpleMonitorJson(url: URL, user: String?, password: String?): SimpleMonitorJson {
+        suspend fun getLatestSimpleMonitorJson(url: URI, user: String?, password: String?): SimpleMonitorJson {
 
             logger.info { "Downloading SimpleMonitor status from $url." }
 
             return if (user != null && password != null) {
                 val auth = Base64.getEncoder().encodeToString("$user:$password".toByteArray(StandardCharsets.UTF_8))
-                httpClient.get(url.toString()) {
+                httpClient.get {
+                    url(url.toString())
                     header("Authorization", "Basic $auth")
-                }
+                }.body()
             } else {
-                httpClient.get(url.toString())
+                httpClient.get(url.toString()).body()
             }
         }
     }
@@ -86,8 +87,8 @@ class SimpleMonitorView(
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
         val (status, newReport) = try {
             val json = getLatestSimpleMonitorJson(
-                config[SimpleMonitorKey.url],
-                config[SimpleMonitorKey.user], config[SimpleMonitorKey.password]
+                config.simplemonitor.url,
+                config.simplemonitor.user, config.simplemonitor.password
             )
 
             json.monitors.filterValues { it.status == MonitorStatus.FAIL }.let { failedMons ->

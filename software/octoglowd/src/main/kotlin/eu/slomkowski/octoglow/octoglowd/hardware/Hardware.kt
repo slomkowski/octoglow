@@ -1,14 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
+import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import io.dvlopt.linux.i2c.I2CFunctionality
 import io.dvlopt.linux.i2c.I2CTransaction
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mu.KLogging
@@ -85,7 +83,7 @@ class Hardware(
         }
     }
 
-    constructor(config: Config) : this(I2CBus(config[ConfKey.i2cBus]))
+    constructor(config: Config) : this(I2CBus(config.i2cBus))
 
     suspend fun setBrightness(brightness: Int) {
         listOf<HasBrightness>(clockDisplay, frontDisplay, geiger).forEach { it.setBrightness(brightness) }

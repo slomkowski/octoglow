@@ -1,15 +1,17 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import com.uchuhimo.konf.Config
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.*
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import mu.KLogging
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toKotlinDuration
 
 
 class BrightnessDaemon(
@@ -88,15 +90,15 @@ class BrightnessDaemon(
 
     fun calculateBrightnessFraction(ts: Instant): Int {
 
-        val sleepStart = config[SleepKey.startAt].toKotlinLocalTime()
-        val sleepDuration = config[SleepKey.duration].toKotlinDuration()
+        val sleepStart = config.sleep.startAt
+        val sleepDuration = config.sleep.duration
 
         val localDateTime = ts.toLocalDateTime(TimeZone.currentSystemDefault())
 
         //todo should check if geo is within timezone
         val (sunrise, sunset) = calculateSunriseAndSunset(
-            config[GeoPosKey.latitude],
-            config[GeoPosKey.longitude],
+            config.geoPosition.latitude,
+            config.geoPosition.longitude,
             localDateTime.date
         )
         logger.debug { "On ${localDateTime.date} sun is up from $sunrise to $sunset." }

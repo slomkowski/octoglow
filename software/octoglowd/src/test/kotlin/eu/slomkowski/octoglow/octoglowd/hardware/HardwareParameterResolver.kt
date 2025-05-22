@@ -1,6 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.TestConfKey
 import eu.slomkowski.octoglow.octoglowd.testConfig
 import io.dvlopt.linux.i2c.I2CBus
 import mu.KLogging
@@ -18,7 +17,7 @@ class HardwareParameterResolver : ParameterResolver {
     }
 
     override fun resolveParameter(context: ParameterContext, extensionContext: ExtensionContext): Any {
-        val bus = I2CBus(testConfig[TestConfKey.i2cBus])
+        val bus = I2CBus(testConfig.i2cBus)
         return Hardware(bus)
     }
 }

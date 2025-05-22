@@ -7,6 +7,8 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import java.net.URI
+import java.util.*
 
 object LocalDateSerializer : KSerializer<LocalDate> {
 
@@ -79,6 +81,36 @@ object InstantSerializer : KSerializer<Instant> {
     override fun deserialize(decoder: Decoder): Instant = Instant.parse(decoder.decodeString())
 
     override fun serialize(encoder: Encoder, value: Instant) {
+        encoder.encodeString(value.toString()) // toString? format?
+    }
+}
+
+object UriSerializer : KSerializer<URI> {
+
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("URI", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): URI = URI(decoder.decodeString())
+
+    override fun serialize(encoder: Encoder, value: URI) {
+        encoder.encodeString(value.normalize().toString())
+    }
+}
+
+object LocaleSerializer : KSerializer<Locale> {
+
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Locale", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): Locale {
+        val str = decoder.decodeString()
+        val s = str.trim().split('_', limit = 2)
+        return when (s.size) {
+            1 -> Locale(s[0])
+            2 -> Locale(s[0], s[1])
+            else -> throw IllegalArgumentException("Cannot parse locale from $str")
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: Locale) {
         encoder.encodeString(value.toString()) // toString? format?
     }
 }

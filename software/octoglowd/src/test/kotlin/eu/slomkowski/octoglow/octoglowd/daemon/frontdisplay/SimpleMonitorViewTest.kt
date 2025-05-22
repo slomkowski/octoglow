@@ -1,7 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.HardwareTest
+import eu.slomkowski.octoglow.octoglowd.jsonSerializer
+import eu.slomkowski.octoglow.octoglowd.now
+import eu.slomkowski.octoglow.octoglowd.readToString
+import eu.slomkowski.octoglow.octoglowd.testConfig
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -31,9 +34,9 @@ class SimpleMonitorViewTest {
 
     @Test
     fun testGetLatestSimpleMonitorJson() {
-        val url = testConfig[SimpleMonitorKey.url]
-        val user = testConfig[SimpleMonitorKey.user]
-        val password = testConfig[SimpleMonitorKey.password]
+        val url = testConfig.simplemonitor.url
+        val user = testConfig.simplemonitor.user
+        val password = testConfig.simplemonitor.password
 
         logger.info { "SimpleMonitor access data user: $user, password: $password." }
 

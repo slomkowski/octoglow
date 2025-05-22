@@ -1,9 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import com.uchuhimo.konf.RequiredItem
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -38,9 +38,10 @@ class CryptocurrencyView(
             val url = "$COINPAPRIKA_API_BASE/coins/$coinId/ohlcv/today"
             logger.debug { "Downloading OHLC info from $url" }
 
-            return httpClient.get<List<OhlcDto>>(url) {
+            return httpClient.get {
+                url(url)
                 header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101")
-            }.single()
+            }.body<List<OhlcDto>>().single()
         }
 
         fun formatDollars(amount: Double?): String {
@@ -100,16 +101,16 @@ class CryptocurrencyView(
 
     data class CurrentReport(
         val timestamp: Instant,
-        val coins: Map<RequiredItem<String>, CoinReport>
+        val coins: Map<String, CoinReport>
     )
 
     private val availableCoins: Set<CoinInfoDto> = fillAvailableCryptocurrencies()
     private var currentReport: CurrentReport? = null
 
-    private val coinKeys = listOf(CryptocurrenciesKey.coin1, CryptocurrenciesKey.coin2, CryptocurrenciesKey.coin3)
+    private val coinKeys = config.cryptocurrencies.let { listOf(it.coin1, it.coin2, it.coin3) }
 
     init {
-        coinKeys.forEach { findCoinId(config[it]) }
+        coinKeys.forEach { findCoinId(it) }
     }
 
     private suspend fun drawCurrencyInfo(cr: CoinReport?, offset: Int, diffChartStep: Double) {
@@ -130,11 +131,12 @@ class CryptocurrencyView(
             val report = currentReport
 
             if (redrawStatus) {
-                val diffChartStep = config[CryptocurrenciesKey.diffChartFraction]
+                val c = config.cryptocurrencies
+                val diffChartStep = c.diffChartFraction
                 logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
-                launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin1), 0, diffChartStep) }
-                launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin2), 7, diffChartStep) }
-                launch { drawCurrencyInfo(report?.coins?.get(CryptocurrenciesKey.coin3), 14, diffChartStep) }
+                launch { drawCurrencyInfo(report?.coins?.get(c.coin1), 0, diffChartStep) }
+                launch { drawCurrencyInfo(report?.coins?.get(c.coin2), 7, diffChartStep) }
+                launch { drawCurrencyInfo(report?.coins?.get(c.coin3), 14, diffChartStep) }
             }
 
             drawProgressBar(report?.timestamp, now)
@@ -149,9 +151,8 @@ class CryptocurrencyView(
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
-        val newReport = CurrentReport(now, coinKeys.map { coinKey ->
+        val newReport = CurrentReport(now, coinKeys.map { symbol ->
             async {
-                val symbol = config[coinKey]
                 val coinId = findCoinId(symbol)
                 try {
                     val ohlc = getLatestOhlc(coinId)
@@ -161,7 +162,7 @@ class CryptocurrencyView(
                     database.insertHistoricalValueAsync(ohlc.timeClose, dbKey, value)
                     val history =
                         database.getLastHistoricalValuesByHourAsync(now, dbKey, HISTORIC_VALUES_LENGTH).await()
-                    coinKey to CoinReport(symbol, value, history)
+                    symbol to CoinReport(symbol, value, history)
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to update status on $symbol." }
                     null

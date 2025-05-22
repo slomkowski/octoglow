@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import eu.slomkowski.octoglow.octoglowd.ConfKey
-import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.readToString
 import mu.KLogging
 import org.junit.Assert.assertEquals
@@ -22,14 +21,11 @@ internal class NetworkViewTest {
 
     @Test
     fun testPingAddress() {
-        val config = com.uchuhimo.konf.Config {
-            addSpec(ConfKey)
-            addSpec(NetworkViewKey)
-        }
+        val pingBinary = defaultTestConfig.networkInfo.pingBinary
 
         val active = checkNotNull(NetworkView.getActiveInterfaceInfo())
 
-        NetworkView.pingAddressAndGetRtt(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", 5.seconds, 4)
+        NetworkView.pingAddressAndGetRtt(pingBinary, active.name, "1.1.1.1", 5.seconds, 4)
             .apply {
                 assertNotNull(this)
                 logger.info { "Ping stats: $this" }
@@ -37,7 +33,7 @@ internal class NetworkViewTest {
 
         assertFails {
             NetworkView.pingAddressAndGetRtt(
-                config[NetworkViewKey.pingBinary],
+                pingBinary,
                 active.name,
                 "254.254.254.254",
                 3.seconds,

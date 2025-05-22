@@ -1,7 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
+
+import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.readToString
 import kotlinx.coroutines.*
@@ -83,7 +83,8 @@ class NetworkView(
             getDefaultRouteEntry(parseProcNetRouteFile(reader))
                 ?.let { it to NetworkInterface.getByName(it.dev) }
                 ?.let { (re, iface) ->
-                    InterfaceInfo(iface.name,
+                    InterfaceInfo(
+                        iface.name,
                         iface.inetAddresses.toList().first { it is Inet4Address } as Inet4Address,
                         re.gateway as Inet4Address,
                         !iface.isEthernet())
@@ -197,7 +198,7 @@ class NetworkView(
 
             val remotePingTime = async {
                 try {
-                    val remoteAddress = config[NetworkViewKey.pingAddress]
+                    val remoteAddress = config.networkInfo.pingAddress
                     pingAddressAndGetRtt(remoteAddress, iface)
                 } catch (e: Exception) {
                     logger.error(e) { "Error during remote ping ping." }
@@ -237,7 +238,7 @@ class NetworkView(
 
         val pingInfo = withContext(Dispatchers.IO) {
             pingAddressAndGetRtt(
-                config[NetworkViewKey.pingBinary],
+                config.networkInfo.pingBinary,
                 interfaceInfo.name,
                 address,
                 4.seconds,

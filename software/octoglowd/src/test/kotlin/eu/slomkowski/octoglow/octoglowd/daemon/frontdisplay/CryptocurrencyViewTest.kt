@@ -1,8 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
+
+import eu.slomkowski.octoglow.octoglowd.ConfCryptocurrencies
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.now
 import io.mockk.*
@@ -43,12 +44,8 @@ class CryptocurrencyViewTest {
 
     @Test
     fun testView() {
-        val config = Config {
-            addSpec(CryptocurrenciesKey)
-            set(CryptocurrenciesKey.coin1, "BTC")
-            set(CryptocurrenciesKey.coin2, "ETH")
-            set(CryptocurrenciesKey.coin3, "EOS")
-        }
+        val config = defaultTestConfig.copy(cryptocurrencies = ConfCryptocurrencies(coin1 = "BTC", coin2 = "ETH", coin3 = "EOS"))
+
         val db = mockk<DatabaseLayer>()
         val hardware = mockk<Hardware>()
 

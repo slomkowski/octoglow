@@ -1,9 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
-import eu.slomkowski.octoglow.octoglowd.GeoPosKey
+
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.CalendarView.Companion.formatDate
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import io.mockk.mockk
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -11,7 +10,6 @@ import kotlinx.datetime.plus
 import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.util.*
 import kotlin.test.assertTrue
 
 
@@ -21,13 +19,7 @@ internal class CalendarViewTest {
 
     @Test
     fun testGetDayDescriptionText() {
-        val config = Config {
-            addSpec(ConfKey)
-            addSpec(GeoPosKey)
-            set(ConfKey.locale, Locale("pl", "PL"))
-        }
-
-        val cv = CalendarView(config, mockk())
+        val cv = CalendarView(defaultTestConfig, mockk())
 
         fun assertOk(text: String, year: Int, month: Int, day: Int) {
             val d = LocalDate(year, month, day)

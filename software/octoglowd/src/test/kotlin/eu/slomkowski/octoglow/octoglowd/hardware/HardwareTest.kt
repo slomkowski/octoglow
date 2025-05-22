@@ -1,9 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import com.thedeanda.lorem.LoremIpsum
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
-import eu.slomkowski.octoglow.octoglowd.TestConfKey
+
 import eu.slomkowski.octoglow.octoglowd.testConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -15,9 +13,7 @@ class HardwareTest {
 
     companion object : KLogging() {
         fun createRealHardware(): Hardware {
-            val config = Config { addSpec(ConfKey) }.from.map.kv(
-                mapOf("i2cBus" to testConfig[TestConfKey.i2cBus])
-            )
+            val config = testConfig
             return Hardware(config)
         }
     }

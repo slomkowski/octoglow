@@ -1,12 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import com.uchuhimo.konf.RequiredItem
+
+import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.LocalDateSerializer
-import eu.slomkowski.octoglow.octoglowd.NbpKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.httpClient
 import eu.slomkowski.octoglow.octoglowd.toLocalDate
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -70,7 +70,7 @@ class NbpView(
 
     data class CurrentReport(
         val timestamp: Instant,
-        val currencies: Map<RequiredItem<String>, SingleCurrencyReport>
+        val currencies: Map<String, SingleCurrencyReport>
     )
 
     @Serializable
@@ -96,7 +96,7 @@ class NbpView(
             logger.debug { "Downloading currency rates for $currencyCode." }
             val url = "$NBP_API_BASE/exchangerates/rates/a/$currencyCode/last/$howMany"
 
-            val resp: CurrencyDto = httpClient.get(url)
+            val resp: CurrencyDto = httpClient.get(url).body()
 
             return resp.rates
         }
@@ -106,7 +106,7 @@ class NbpView(
             logger.debug { "Downloading gold price." }
             val url = "$NBP_API_BASE/cenyzlota/last/$howMany"
 
-            val resp: List<GoldPrice> = httpClient.get(url)
+            val resp: List<GoldPrice> = httpClient.get(url).body()
 
             return resp.apply {
                 check(isNotEmpty())
@@ -150,11 +150,8 @@ class NbpView(
         }
     }
 
-    private val currencyKeys = listOf(NbpKey.currency1, NbpKey.currency2, NbpKey.currency3).apply {
-        forEach {
-            val code = config[it]
-            check(code.length == 3) { "invalid currency code $code" }
-        }
+    private val currencyKeys = listOf(config.nbp.currency1, config.nbp.currency2, config.nbp.currency3).onEach {
+        check(it.length == 3) { "invalid currency code $it" }
     }
 
     private var currentReport: CurrentReport? = null
@@ -183,11 +180,11 @@ class NbpView(
             val report = currentReport
 
             if (redrawStatus) {
-                val diffChartStep = config[NbpKey.diffChartFraction]
+                val diffChartStep = config.nbp.diffChartFraction
                 logger.debug { "Refreshing NBP screen, diff chart step: $diffChartStep." }
-                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency1), 0, diffChartStep) }
-                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency2), 7, diffChartStep) }
-                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency3), 14, diffChartStep) }
+                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency1), 0, diffChartStep) }
+                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency2), 7, diffChartStep) }
+                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency3), 14, diffChartStep) }
             }
 
             drawProgressBar(report?.timestamp, now)
@@ -202,11 +199,10 @@ class NbpView(
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
-        val newReport = CurrentReport(now, currencyKeys.map { currencyKey ->
+        val newReport = CurrentReport(now, currencyKeys.map { code ->
             async {
-                val code = config[currencyKey]
                 try {
-                    currencyKey to getCurrencyReport(
+                    code to getCurrencyReport(
                         code,
                         now.toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
                     )

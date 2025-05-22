@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import com.uchuhimo.konf.RequiredItem
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport
@@ -39,7 +38,7 @@ class WeatherSensorView(
 
     init {
         require(MINIMAL_DURATION_BETWEEN_MEASUREMENTS < MAXIMAL_DURATION_BETWEEN_MEASUREMENTS)
-        require(config[RemoteSensorsKey.indoorChannelId] != config[RemoteSensorsKey.outdoorChannelId]) { "indoor and outdoor sensors cannot have identical IDs" }
+        require(config.remoteSensors.indoorChannelId != config.remoteSensors.outdoorChannelId) { "indoor and outdoor sensors cannot have identical IDs" }
     }
 
     data class RemoteReport(
@@ -145,7 +144,7 @@ class WeatherSensorView(
     private suspend fun poolRemoteSensor(
         now: Instant,
         receivedReport: RemoteSensorReport?,
-        channelIdConfigKey: RequiredItem<Int>,
+        channelId: Int,
         previousReport: Pair<Instant, RemoteReport>?,
         temperatureDbKey: HistoricalValueType,
         humidityDbKey: HistoricalValueType,
@@ -156,7 +155,7 @@ class WeatherSensorView(
             return@coroutineScope UpdateStatus.NO_NEW_DATA to null
         }
 
-        if (config[channelIdConfigKey] != receivedReport.sensorId) {
+        if (channelId != receivedReport.sensorId) {
             return@coroutineScope UpdateStatus.NO_NEW_DATA to null
         }
 
@@ -164,7 +163,7 @@ class WeatherSensorView(
         if (now - (previousReport?.first ?: Instant.DISTANT_PAST) < MINIMAL_DURATION_BETWEEN_MEASUREMENTS) {
             logger.debug(
                 "Values for remote sensor (channel {}) saved at {}, skipping.",
-                config[channelIdConfigKey],
+                channelId,
                 previousReport?.first
             )
             return@coroutineScope UpdateStatus.NO_NEW_DATA to null
@@ -226,7 +225,7 @@ class WeatherSensorView(
         val newIndoorReport = poolRemoteSensor(
             now,
             remoteSensorReport,
-            RemoteSensorsKey.indoorChannelId,
+            config.remoteSensors.indoorChannelId,
             oldReport?.indoorSensor,
             IndoorTemperature,
             IndoorHumidity,
@@ -236,7 +235,7 @@ class WeatherSensorView(
         val newOutdoorReport = poolRemoteSensor(
             now,
             remoteSensorReport,
-            RemoteSensorsKey.outdoorChannelId,
+            config.remoteSensors.outdoorChannelId,
             oldReport?.outdoorSensor,
             OutdoorTemperature,
             OutdoorHumidity,
@@ -266,7 +265,7 @@ class WeatherSensorView(
                 UpdateStatus.NO_NEW_DATA
             }
 
-            statuses[UpdateStatus.FAILURE] ?: 0 > 0 -> {
+            (statuses[UpdateStatus.FAILURE] ?: 0) > 0 -> {
                 UpdateStatus.PARTIAL_SUCCESS
             }
 
