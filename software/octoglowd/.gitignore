@@ -9,6 +9,12 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
+build
+.gradle
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
 *.iml
 .idea
 

@@ -41,6 +41,7 @@ class CryptocurrencyViewTest {
         assertEquals("$232.3", CryptocurrencyView.formatDollars(232.29094))
         assertEquals("$3072", CryptocurrencyView.formatDollars(3072.23))
         assertEquals("$10345", CryptocurrencyView.formatDollars(10345.23323))
+        assertEquals("$101k", CryptocurrencyView.formatDollars(100525.4321))
         assertEquals("$-----", CryptocurrencyView.formatDollars(null))
     }
 

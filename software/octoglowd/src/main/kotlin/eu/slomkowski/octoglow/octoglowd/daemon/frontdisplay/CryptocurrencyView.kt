@@ -42,13 +42,14 @@ class CryptocurrencyView(
 
             return httpClient.get {
                 url(url)
-                header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101")
+                header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0")
             }.body<List<OhlcDto>>().single()
         }
 
         fun formatDollars(amount: Double?): String {
             return when (amount) {
                 null -> "$-----"
+                in 100_000.0..1_000_000.0 -> String.format("$%3.0fk", amount / 1000.0)
                 in 1000.0..100_000.0 -> String.format("$%4.0f", amount)
                 in 100.0..1000.0 -> String.format("$%5.1f", amount)
                 in 10.0..100.0 -> String.format("$%5.2f", amount)
