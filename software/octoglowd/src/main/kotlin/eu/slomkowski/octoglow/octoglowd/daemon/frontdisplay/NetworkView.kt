@@ -4,9 +4,9 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.readToString
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.Instant
-import mu.KLogging
 import java.io.BufferedReader
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -71,7 +71,8 @@ class NetworkView(
 
     private var currentReport: CurrentReport? = null
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
         private val PROC_NET_WIRELESS_PATH: Path = Paths.get("/proc/net/wireless")
         private val PROC_NET_ROUTE_PATH: Path = Paths.get("/proc/net/route")

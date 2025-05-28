@@ -6,6 +6,7 @@ import eu.slomkowski.octoglow.octoglowd.LocalDateSerializer
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.httpClient
 import eu.slomkowski.octoglow.octoglowd.toLocalDate
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.async
@@ -15,7 +16,6 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import mu.KLogging
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -83,7 +83,9 @@ class NbpView(
         override val price: Double
     ) : DatedPrice
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val OUNCE = 31.1034768 // grams
 
         private const val HISTORIC_VALUES_LENGTH = 14

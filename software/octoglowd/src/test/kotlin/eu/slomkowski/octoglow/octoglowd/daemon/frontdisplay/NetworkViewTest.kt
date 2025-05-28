@@ -2,7 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.readToString
-import mu.KLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -17,7 +17,9 @@ import kotlin.time.Duration.Companion.seconds
 
 
 internal class NetworkViewTest {
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testPingAddress() {

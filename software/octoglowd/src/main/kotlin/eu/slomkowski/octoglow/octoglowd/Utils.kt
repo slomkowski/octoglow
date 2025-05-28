@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd
 
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.dvlopt.linux.i2c.I2CBuffer
+import io.github.oshai.kotlinlogging.KLogger
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
@@ -10,7 +11,6 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.delay
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
-import mu.KLogger
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.time.ZoneId

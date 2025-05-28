@@ -4,8 +4,8 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.handleException
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KLogger
 import kotlinx.coroutines.*
-import mu.KLogger
 import kotlin.time.Duration
 
 /**

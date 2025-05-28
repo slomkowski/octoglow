@@ -6,9 +6,9 @@ import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.now
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -17,7 +17,9 @@ import kotlin.test.assertEquals
 
 class CryptocurrencyViewTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testCoinpaprikaMethods() {

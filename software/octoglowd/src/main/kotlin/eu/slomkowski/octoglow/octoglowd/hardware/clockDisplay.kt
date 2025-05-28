@@ -2,8 +2,8 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import io.dvlopt.linux.i2c.I2CBuffer
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
-import mu.KLogging
 import kotlin.time.Duration
 
 data class RemoteSensorReport(
@@ -14,7 +14,9 @@ data class RemoteSensorReport(
     val alreadyReadFlag: Boolean,
     val manualTx: Boolean
 ) {
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val VALID_MEASUREMENT_FLAG = 1 shl 1
         private const val ALREADY_READ_FLAG = 1 shl 2
 
@@ -112,7 +114,9 @@ data class RemoteSensorReport(
 
 class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightness {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
     }

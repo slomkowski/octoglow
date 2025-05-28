@@ -1,5 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
@@ -7,7 +8,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toInstant
-import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
@@ -19,7 +19,9 @@ import kotlin.time.Duration.Companion.minutes
 
 class DatabaseTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     private fun <T : Any> createTestDbContext(func: (DatabaseLayer) -> T): T {
         val dbFile = Files.createTempFile("unit-test-", ".db")

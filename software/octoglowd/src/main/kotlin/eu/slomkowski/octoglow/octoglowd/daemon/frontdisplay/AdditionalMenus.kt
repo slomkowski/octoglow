@@ -1,11 +1,13 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
-import mu.KLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 
 class BrightnessMenu(private val brightnessDaemon: BrightnessDaemon) : Menu("Brightness") {
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private val optAuto = MenuOption("AUTO")
         private val optsHard = (1..5).map { MenuOption(it.toString()) }
     }

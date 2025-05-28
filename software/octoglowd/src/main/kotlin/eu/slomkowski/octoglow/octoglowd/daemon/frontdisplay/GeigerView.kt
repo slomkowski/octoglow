@@ -7,11 +7,11 @@ import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.EyeInverterState
 import eu.slomkowski.octoglow.octoglowd.hardware.GeigerDeviceState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import mu.KLogging
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
@@ -28,7 +28,9 @@ class GeigerView(
     11.seconds
 ) {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val HISTORIC_VALUES_LENGTH = 4 * 5 - 1
 
         private const val GEIGER_TUBE_SENSITIVITY = 25.0

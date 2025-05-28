@@ -8,10 +8,10 @@ import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonReport
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
-import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.seconds
@@ -19,7 +19,9 @@ import kotlin.time.Duration.Companion.seconds
 
 class FrontDisplayDaemonTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     class TestView(name: String) : FrontDisplayView(
         mockk(),

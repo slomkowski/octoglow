@@ -1,9 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import mu.KLogging
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -19,7 +19,9 @@ val poznanCoordinates = 52.395869 to 16.929220
 
 class UtilsTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testTrySeveralTimes() {

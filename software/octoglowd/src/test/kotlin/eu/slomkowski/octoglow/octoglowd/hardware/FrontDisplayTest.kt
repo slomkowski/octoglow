@@ -1,9 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import com.thedeanda.lorem.LoremIpsum
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -14,7 +14,9 @@ import kotlin.test.assertEquals
 @ExtendWith(HardwareParameterResolver::class)
 class FrontDisplayTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testSetUpperBar(hardware: Hardware) {

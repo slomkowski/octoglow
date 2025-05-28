@@ -1,17 +1,18 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import com.thedeanda.lorem.LoremIpsum
-
 import eu.slomkowski.octoglow.octoglowd.testConfig
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.jupiter.api.Test
 
 
 class HardwareTest {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         fun createRealHardware(): Hardware {
             val config = testConfig
             return Hardware(config)

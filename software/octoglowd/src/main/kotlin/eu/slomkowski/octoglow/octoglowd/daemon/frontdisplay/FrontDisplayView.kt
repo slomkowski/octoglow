@@ -4,10 +4,10 @@ import eu.slomkowski.octoglow.octoglowd.ChangeableSetting
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import mu.KLogging
 
 enum class UpdateStatus {
     NO_NEW_DATA,
@@ -92,7 +92,9 @@ class BooleanChangeableSettingMenu(
     private val key: ChangeableSetting,
     text: String
 ) : Menu(text) {
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private val optOn = MenuOption("ON")
         private val optOff = MenuOption("OFF")
     }

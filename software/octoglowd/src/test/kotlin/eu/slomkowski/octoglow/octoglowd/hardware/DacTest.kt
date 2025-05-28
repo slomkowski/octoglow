@@ -1,15 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 
 @ExtendWith(HardwareParameterResolver::class)
 class DacTest {
-
-    companion object : KLogging()
 
     @Test
     fun testOut2Max(hardware: Hardware) {

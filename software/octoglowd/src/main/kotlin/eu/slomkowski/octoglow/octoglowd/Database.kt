@@ -1,11 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd
 
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import mu.KLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -48,7 +48,9 @@ class DatabaseLayer(
     databaseFile: Path,
     private val coroutineExceptionHandler: CoroutineExceptionHandler
 ) {
-    companion object : KLogging() {
+    companion object {
+        val logger = KotlinLogging.logger {}
+
         private const val caseColumnName = "bucket_no"
 
         fun createAveragedByTimeInterval(

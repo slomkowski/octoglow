@@ -11,11 +11,11 @@ import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.FrontDisplay
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.now
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
-import mu.KLogging
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -27,7 +27,8 @@ class FrontDisplayDaemon(
     additionalMenus: List<Menu>
 ) : Daemon(config, hardware, logger, 20.milliseconds) {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0 until size)
@@ -383,10 +384,13 @@ class FrontDisplayDaemon(
 
             onTransition {
                 val validTransition = it as? StateMachine.Transition.Valid ?: return@onTransition
-                when (val se = validTransition.sideEffect!!) {
+                when (val se = validTransition.sideEffect) {
                     is SideEffect.ViewInfoRedrawAll -> se.info.redrawAll()
                     is SideEffect.ViewInfoRedrawStatus -> se.info.redrawStatus()
                     is SideEffect.ViewInfoRedrawInstant -> se.info.redrawInstant()
+                    null -> {
+                        // no side effect
+                    }
                 }
             }
         }

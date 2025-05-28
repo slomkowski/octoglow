@@ -4,11 +4,11 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import mu.KLogging
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -26,7 +26,9 @@ class WeatherSensorView(
     12.seconds
 ) {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         const val HISTORIC_VALUES_LENGTH = 11
         const val TEMPERATURE_CHART_UNIT = 1.0
         const val HUMIDITY_CHART_UNIT = 5.0

@@ -4,6 +4,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.async
@@ -12,7 +13,6 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import mu.KLogging
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -99,7 +99,8 @@ class AirQualityView(
 
     private var currentReport: CurrentReport? = null
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
         private const val HISTORIC_VALUES_LENGTH = 14
 

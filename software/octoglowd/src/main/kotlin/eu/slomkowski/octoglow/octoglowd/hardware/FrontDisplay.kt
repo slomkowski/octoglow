@@ -2,8 +2,8 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.set
 import io.dvlopt.linux.i2c.I2CBuffer
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
@@ -32,7 +32,9 @@ data class ButtonReport(
 
 class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightness {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         // we assume last value as pivot
         private const val MAX_VALUES_IN_CHART = 5 * 20
     }

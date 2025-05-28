@@ -6,6 +6,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -13,6 +14,9 @@ import kotlinx.coroutines.runBlocking
 import java.nio.file.Paths
 
 fun main() {
+    val logger = KotlinLogging.logger {}
+
+    logger.info { "Starting Octoglow daemon..." }
 
     val config = Config.parse(Paths.get("config.json"))
 

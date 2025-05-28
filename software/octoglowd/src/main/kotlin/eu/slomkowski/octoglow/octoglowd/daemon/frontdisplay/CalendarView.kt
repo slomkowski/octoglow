@@ -6,10 +6,10 @@ import eu.slomkowski.octoglow.octoglowd.calendar.determineHolidayNamesForDay
 import eu.slomkowski.octoglow.octoglowd.calendar.determineNamedaysFor
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
-import mu.KLogging
 import org.apache.commons.lang3.StringUtils
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -25,7 +25,8 @@ class CalendarView(
     1.minutes,
     20.seconds
 ) {
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
         private val shortDaysOfTheWeek = arrayOf(
             "Mon",

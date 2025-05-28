@@ -1,8 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
-import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -11,7 +11,9 @@ import kotlin.test.assertFalse
 
 
 class NbpViewTest {
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testDownloadExchangeRates() {

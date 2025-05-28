@@ -4,6 +4,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.coroutineScope
@@ -13,7 +14,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import mu.KLogging
 import org.apache.commons.lang3.StringUtils
 import java.net.URI
 import java.nio.charset.StandardCharsets
@@ -64,7 +64,8 @@ class SimpleMonitorView(
         val data: SimpleMonitorJson?
     )
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
         suspend fun getLatestSimpleMonitorJson(url: URI, user: String?, password: String?): SimpleMonitorJson {
 

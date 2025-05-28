@@ -6,10 +6,10 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import io.dvlopt.linux.i2c.I2CFunctionality
 import io.dvlopt.linux.i2c.I2CTransaction
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import mu.KLogging
 import java.io.IOException
 import java.util.concurrent.Executors
 
@@ -37,7 +37,9 @@ class Hardware(
 
     private val threadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         fun handleI2cException(baseException: Exception): Exception =
             Regex("Native error while doing an I2C transaction : errno (\\d+)")
                 .matchEntire(baseException.message?.trim() ?: "")
@@ -65,6 +67,8 @@ class Hardware(
 
     private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac)
 
+    private val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
+
     init {
         require(bus.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
         require(bus.functionalities.can(I2CFunctionality.READ_BYTE)) { "I2C requires read byte support" }
@@ -79,14 +83,14 @@ class Hardware(
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error during hardware initialization;", e)
+            logger.error(e) { "Error during hardware initialization;" }
         }
     }
 
     constructor(config: Config) : this(I2CBus(config.i2cBus))
 
     suspend fun setBrightness(brightness: Int) {
-        listOf<HasBrightness>(clockDisplay, frontDisplay, geiger).forEach { it.setBrightness(brightness) }
+        brightnessDevices.forEach { it.setBrightness(brightness) }
     }
 
     override fun close() {

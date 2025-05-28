@@ -4,13 +4,13 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon.Companion.isSleeping
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
-import mu.KLogging
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -19,7 +19,9 @@ import kotlin.time.Duration.Companion.hours
 
 
 class BrightnessDaemonTest {
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testCalculateBrightnessFraction() {

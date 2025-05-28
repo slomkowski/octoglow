@@ -4,7 +4,7 @@ import eu.slomkowski.octoglow.octoglowd.contentToString
 import eu.slomkowski.octoglow.octoglowd.toList
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
-import mu.KLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -109,7 +109,9 @@ data class GeigerDeviceState(
 
 class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private val CYCLE_MAX_DURATION: Duration = 0xffff.seconds
 
         private const val I2C_READ_TRIES = 5

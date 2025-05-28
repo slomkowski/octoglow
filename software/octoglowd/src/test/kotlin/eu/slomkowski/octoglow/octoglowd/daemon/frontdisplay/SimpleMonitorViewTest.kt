@@ -5,11 +5,11 @@ import eu.slomkowski.octoglow.octoglowd.jsonSerializer
 import eu.slomkowski.octoglow.octoglowd.now
 import eu.slomkowski.octoglow.octoglowd.readToString
 import eu.slomkowski.octoglow.octoglowd.testConfig
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
-import mu.KLogging
 import org.apache.commons.lang3.RandomStringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -18,7 +18,9 @@ import org.junit.jupiter.api.Test
 
 class SimpleMonitorViewTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testDeserialization() {

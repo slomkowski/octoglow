@@ -9,14 +9,12 @@ import eu.slomkowski.octoglow.octoglowd.now
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 
 @ExtendWith(HardwareParameterResolver::class)
 class WeatherSensorViewTest {
-    companion object : KLogging()
 
     @Test
     fun testRedrawDisplay(hardware: Hardware) {

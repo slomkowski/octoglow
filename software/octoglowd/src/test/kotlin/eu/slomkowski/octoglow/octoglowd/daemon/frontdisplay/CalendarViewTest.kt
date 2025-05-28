@@ -3,11 +3,11 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.CalendarView.Companion.formatDate
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.mockk
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
-import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
@@ -15,7 +15,9 @@ import kotlin.test.assertTrue
 
 internal class CalendarViewTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testGetDayDescriptionText() {

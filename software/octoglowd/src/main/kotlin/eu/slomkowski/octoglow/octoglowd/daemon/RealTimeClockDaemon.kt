@@ -4,10 +4,10 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.now
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import mu.KLogging
 import kotlin.time.Duration.Companion.milliseconds
 
 class RealTimeClockDaemon(
@@ -15,7 +15,9 @@ class RealTimeClockDaemon(
     private val hardware: Hardware
 ) : Daemon(config, hardware, logger, 500.milliseconds) {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     data class DisplayContent(
         val hour: Int,

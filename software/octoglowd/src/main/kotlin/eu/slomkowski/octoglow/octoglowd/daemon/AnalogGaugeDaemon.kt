@@ -2,14 +2,13 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.sun.management.OperatingSystemMXBean
 import eu.slomkowski.octoglow.octoglowd.Config
-
 import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import mu.KLogging
 import java.io.BufferedReader
 import java.lang.management.ManagementFactory
 import java.nio.file.Files
@@ -32,7 +31,8 @@ class AnalogGaugeDaemon(
         val noiseLevel: Double
     )
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
         private val CPU_CHANNEL = DacChannel.C2
         private val WIFI_CHANNEL = DacChannel.C1
 
