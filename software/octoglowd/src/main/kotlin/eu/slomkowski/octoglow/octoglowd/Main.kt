@@ -41,7 +41,8 @@ fun main() {
 //            StockView(config, database, hardware),
         SimpleMonitorView(config, database, hardware),
         AirQualityView(config, database, hardware),
-        NetworkView(config, hardware)
+        NetworkView(config, hardware),
+        JvmMemoryView(config, hardware),
     )
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)

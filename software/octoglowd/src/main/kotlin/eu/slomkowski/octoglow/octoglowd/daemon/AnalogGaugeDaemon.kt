@@ -54,7 +54,7 @@ class AnalogGaugeDaemon(
     private val operatingSystemMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
 
     override suspend fun pool() = coroutineScope {
-        launch { setValue(CPU_CHANNEL, operatingSystemMXBean.systemCpuLoad) }
+        launch { setValue(CPU_CHANNEL, operatingSystemMXBean.cpuLoad) }
 
         val wifiInterfaces = withContext(Dispatchers.IO) {
             Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
