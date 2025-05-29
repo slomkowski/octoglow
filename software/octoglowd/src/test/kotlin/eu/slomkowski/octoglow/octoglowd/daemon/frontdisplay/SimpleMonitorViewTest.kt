@@ -13,6 +13,7 @@ import kotlinx.datetime.Instant
 import org.apache.commons.lang3.RandomStringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
 
@@ -55,6 +56,7 @@ class SimpleMonitorViewTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testLongFailedMonitors() {
         val report = SimpleMonitorView.CurrentReport(
             Instant.parse("2023-06-19T20:39:18.387530Z"),

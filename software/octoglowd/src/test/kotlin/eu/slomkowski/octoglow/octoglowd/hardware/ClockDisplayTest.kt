@@ -7,6 +7,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.*
@@ -31,6 +32,7 @@ class ClockDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testGetOutdoorWeatherReport(hardware: Hardware) {
         runBlocking {
             ClockDisplay(hardware).apply {
@@ -85,6 +87,7 @@ class ClockDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
             ClockDisplay(hardware).apply {
@@ -98,6 +101,7 @@ class ClockDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetDisplay(hardware: Hardware) {
         runBlocking {
             ClockDisplay(hardware).apply {
@@ -109,6 +113,7 @@ class ClockDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("persistent displaying new reports")
     fun testConstantReportsReceiving(hardware: Hardware) {
         runBlocking {

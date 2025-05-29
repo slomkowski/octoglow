@@ -5,6 +5,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.system.measureTimeMillis
@@ -19,6 +20,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetUpperBar(hardware: Hardware) {
         runBlocking {
             val frontDisplay = FrontDisplay(hardware)
@@ -48,6 +50,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetStaticText(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {
@@ -64,6 +67,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetScrollingText(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {
@@ -77,6 +81,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).use { frontDisplay ->
@@ -91,6 +96,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("only to test correct dial behavior")
     fun testGetButtonReport2(hardware: Hardware) {
         runBlocking {
@@ -109,6 +115,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testGetButtonReport(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {
@@ -124,6 +131,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testCharts(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {

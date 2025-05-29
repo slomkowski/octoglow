@@ -6,6 +6,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertEquals
@@ -68,6 +69,7 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
             Geiger(hardware).use { geiger ->
@@ -83,6 +85,7 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testGetCounterState(hardware: Hardware) {
         runBlocking {
             val geiger = Geiger(hardware)
@@ -98,6 +101,7 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testGetDeviceState(hardware: Hardware) {
         runBlocking {
             val geiger = Geiger(hardware)
@@ -113,12 +117,14 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("method used to enable eye manually")
     fun enableEye(hardware: Hardware) {
         setEye(hardware, true)
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("method used to disable eye manually")
     fun disableEye(hardware: Hardware) {
         setEye(hardware, false)
@@ -130,6 +136,7 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("this test should be run only by hand, because of heating cycle")
     fun testEye(hardware: Hardware) {
         runBlocking {

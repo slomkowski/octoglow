@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version libs.versions.kotlin
     kotlin("plugin.serialization") version libs.versions.kotlin
+    id("app.cash.sqldelight") version libs.versions.app.cash.sqldelight
     application
     id("com.gradleup.shadow") version libs.versions.shadow.plugin
 }
@@ -24,7 +25,7 @@ repositories {
 
 dependencies {
     implementation(libs.org.jetbrains.kotlin.kotlin.stdlib.jdk8)
-    implementation(libs.org.jetbrains.kotlin.kotlin.reflect)
+//    implementation(libs.org.jetbrains.kotlin.kotlin.reflect)
 
     implementation(libs.org.jetbrains.kotlinx.kotlinx.coroutines.core)
     implementation(libs.org.jetbrains.kotlinx.kotlinx.datetime.jvm)
@@ -36,19 +37,17 @@ dependencies {
 
     runtimeOnly(libs.ch.qos.logback.logback.classic)
 
-    implementation(libs.org.jetbrains.exposed.exposed.core)
-    implementation(libs.org.jetbrains.exposed.exposed.kotlin.datetime)
-    runtimeOnly(libs.org.jetbrains.exposed.exposed.jdbc)
-
     implementation(libs.org.apache.commons.commons.lang3)
-
-    implementation(libs.org.xerial.sqlite.jdbc)
 
     implementation(libs.io.ktor.ktor.client.cio.jvm)
     implementation(libs.io.ktor.ktor.client.content.negotiation.jvm)
     implementation(libs.io.ktor.ktor.serialization.kotlinx.json.jvm)
 
+    implementation(libs.app.cash.sqldelight.sqlite.driver)
+
     testImplementation(libs.org.jetbrains.kotlin.kotlin.test.junit)
+    testRuntimeOnly(libs.org.junit.platform.junit.platform.launcher)
+    testImplementation(libs.org.junit.jupiter.junit.jupiter)
     testImplementation(libs.org.junit.jupiter.junit.jupiter.api)
     testImplementation(libs.org.junit.jupiter.junit.jupiter.engine)
     testImplementation(libs.org.junit.jupiter.junit.jupiter.params)
@@ -58,33 +57,37 @@ dependencies {
     testImplementation(libs.de.jollyday.jollyday)
 }
 
+sqldelight {
+    databases {
+        create("Database2") {
+            packageName.set("eu.slomkowski.octoglow.octoglowd.db")
+        }
+    }
+}
+
 // todo call tests
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("hardware")
+    }
 }
 
 tasks.shadowJar {
     archiveVersion = ""
-    minimize {
-        exclude(dependency("ch.qos.logback:logback-classic"))
-        exclude(dependency("io.github.oshai:kotlin-logging-jvm"))
-
-        exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
-
-        exclude(dependency("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm"))
-
-        exclude(dependency("org.jetbrains.kotlinx:kotlinx-datetime-jvm"))
-
-        exclude(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-core"))
-
-        exclude(dependency("org.xerial:sqlite-jdbc"))
-        exclude(dependency("org.jetbrains.exposed:exposed-jdbc"))
-
-        exclude(dependency("org.jetbrains.exposed:exposed-core"))
-        exclude(dependency("org.jetbrains.exposed:exposed-kotlin-datetime"))
-
-        exclude(dependency("io.ktor:ktor-client-cio-jvm"))
-        exclude(dependency("io.ktor:ktor-client-content-negotiation-jvm"))
-        exclude(dependency("io.ktor:ktor-serialization-kotlinx-json-jvm"))
-    }
+//    minimize {
+//        exclude(dependency("ch.qos.logback:logback-classic"))
+//        exclude(dependency("io.github.oshai:kotlin-logging-jvm"))
+//
+//        exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
+//
+//        exclude(dependency("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm"))
+//
+//        exclude(dependency("org.jetbrains.kotlinx:kotlinx-datetime-jvm"))
+//
+//        exclude(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-core"))
+//
+//        exclude(dependency("io.ktor:ktor-client-cio-jvm"))
+//        exclude(dependency("io.ktor:ktor-client-content-negotiation-jvm"))
+//        exclude(dependency("io.ktor:ktor-serialization-kotlinx-json-jvm"))
+//    }
 }

@@ -19,7 +19,7 @@ gradle-app.setting
 *.iml
 .idea
 
-*db
+*.db
 .attach_*
 
 config.yml

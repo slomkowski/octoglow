@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.1.21"
 shadow-plugin = "8.3.6"
-org-jetbrains-exposed = "0.44.1"
+app-cash-sqldelight = "2.1.0"
 
 ch-qos-logback-logback-classic = "1.5.18"
 com-thedeanda-lorem = "2.2"
@@ -15,8 +15,8 @@ org-assertj-assertj-core = "3.27.3"
 org-jetbrains-kotlinx-kotlinx-coroutines-core = "1.10.2"
 org-jetbrains-kotlinx-kotlinx-datetime-jvm = "0.6.2"
 org-jetbrains-kotlinx-kotlinx-serialization-json-jvm = "1.8.1"
+org-junit-platform-junit-platform-launcher = "1.12.2"
 org-junit-jupiter-junit = "5.12.2"
-org-xerial-sqlite-jdbc = "3.49.1.0"
 
 [libraries]
 ch-qos-logback-logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "ch-qos-logback-logback-classic" }
@@ -30,16 +30,14 @@ io-ktor-ktor-serialization-kotlinx-json-jvm = { module = "io.ktor:ktor-serializa
 io-mockk-mockk-jvm = { module = "io.mockk:mockk-jvm", version.ref = "io-mockk" }
 org-apache-commons-commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "org-apache-commons-commons-lang3" }
 org-assertj-assertj-core = { module = "org.assertj:assertj-core", version.ref = "org-assertj-assertj-core" }
-org-jetbrains-exposed-exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "org-jetbrains-exposed" }
-org-jetbrains-exposed-exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "org-jetbrains-exposed" }
-org-jetbrains-exposed-exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "org-jetbrains-exposed" }
-org-jetbrains-kotlin-kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 org-jetbrains-kotlin-kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
 org-jetbrains-kotlin-kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 org-jetbrains-kotlinx-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "org-jetbrains-kotlinx-kotlinx-coroutines-core" }
 org-jetbrains-kotlinx-kotlinx-datetime-jvm = { module = "org.jetbrains.kotlinx:kotlinx-datetime-jvm", version.ref = "org-jetbrains-kotlinx-kotlinx-datetime-jvm" }
 org-jetbrains-kotlinx-kotlinx-serialization-json-jvm = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm", version.ref = "org-jetbrains-kotlinx-kotlinx-serialization-json-jvm" }
+org-junit-platform-junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "org-junit-platform-junit-platform-launcher" }
+org-junit-jupiter-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "org-junit-jupiter-junit" }
 org-junit-jupiter-junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "org-junit-jupiter-junit" }
 org-junit-jupiter-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "org-junit-jupiter-junit" }
 org-junit-jupiter-junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "org-junit-jupiter-junit" }
-org-xerial-sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "org-xerial-sqlite-jdbc" }
+app-cash-sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "app-cash-sqldelight" }

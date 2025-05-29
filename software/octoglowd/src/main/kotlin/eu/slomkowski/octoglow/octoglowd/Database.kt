@@ -1,47 +1,25 @@
 package eu.slomkowski.octoglow.octoglowd
 
 
+import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import eu.slomkowski.octoglow.octoglowd.db.Database2
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
-import org.jetbrains.exposed.sql.transactions.TransactionManager
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.nio.file.Path
-import java.sql.Connection
-import java.sql.ResultSet
+import java.util.*
 import java.util.concurrent.Executors
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
-abstract class TimestampedTable(name: String) : Table(name) {
-    val id = long("id").autoIncrement()
-    val timestamp = timestamp("created")
-
-    override val primaryKey = PrimaryKey(id)
-}
 
 // "yyyy-MM-dd HH:mm:ss.SSS",
 fun Instant.fmt(): String {
     val d = this.toLocalDateTime(TimeZone.currentSystemDefault())
-    return String.format("'%04d-%02d-%02d %02d:%02d:%02d.%03d'", d.year, d.monthNumber, d.dayOfMonth, d.hour, d.minute, d.second, d.nanosecond / 1000000)
-}
-
-object HistoricalValues : TimestampedTable("historical_values") {
-    val key = varchar("key", 50)
-    val value = double("value")
-
-    init {
-        index(true, timestamp, key)
-    }
-}
-
-object ChangeableSettings : TimestampedTable("changeable_settings") {
-    val key = varchar("key", 50).uniqueIndex()
-    val value = varchar("value", 500).nullable()
+    return String.format("%04d-%02d-%02d %02d:%02d:%02d.%03d", d.year, d.monthNumber, d.dayOfMonth, d.hour, d.minute, d.second, d.nanosecond / 1000000)
 }
 
 class DatabaseLayer(
@@ -51,7 +29,8 @@ class DatabaseLayer(
     companion object {
         val logger = KotlinLogging.logger {}
 
-        private const val caseColumnName = "bucket_no"
+        const val HISTORICAL_VALUES_TABLE_NAME = "historical_values"
+        private const val CASE_COLUMN_NAME = "bucket_no"
 
         fun createAveragedByTimeInterval(
             tableName: String,
@@ -82,10 +61,10 @@ class DatabaseLayer(
 
             val rangeLimitExpr = timeRanges
                 .flatMap { it.toList() }
-                .let { "$timestampCol BETWEEN ${it.minOrNull()?.fmt()} AND ${it.maxOrNull()?.fmt()}" }
+                .let { "$timestampCol BETWEEN '${it.minOrNull()?.fmt()}' AND '${it.maxOrNull()?.fmt()}'" }
 
             val caseExpr = timeRanges.mapIndexed { idx, (lower, upper) ->
-                "WHEN $timestampCol BETWEEN ${lower.fmt()} AND ${upper.fmt()} THEN $idx"
+                "WHEN $timestampCol BETWEEN '${lower.fmt()}' AND '${upper.fmt()}' THEN $idx"
             }.joinToString(
                 prefix = "CASE\n",
                 separator = "\n",
@@ -103,7 +82,7 @@ class DatabaseLayer(
             } ?: ""
 
             return """SELECT
-                |$caseExpr AS $caseColumnName,
+                |$caseExpr AS $CASE_COLUMN_NAME,
                 |$fieldExpression
                 |FROM $tableName
                 |WHERE $rangeLimitExpr$skipMostRecentRowExpr$discriminatorRowExpr
@@ -126,74 +105,51 @@ class DatabaseLayer(
 
     private val threadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
-    init {
-        Database.connect("jdbc:sqlite:$databaseFile", "org.sqlite.JDBC")
-        TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
+    private val driver: SqlDriver
 
-        transaction {
-            SchemaUtils.create(HistoricalValues, ChangeableSettings)
-        }
+    private val database2: Database2
+
+    init {
+        val jdbcString = "jdbc:sqlite:$databaseFile"
+        driver = JdbcSqliteDriver(jdbcString, Properties(), Database2.Schema)
+        database2 = Database2(driver)
     }
 
     fun getChangeableSettingAsync(key: ChangeableSetting): Deferred<String?> = CoroutineScope(threadContext).async {
-        transaction {
-            val row = ChangeableSettings.select { ChangeableSettings.key eq key.name }.singleOrNull()
-            row?.get(ChangeableSettings.value)
+        database2.transactionWithResult {
+            val row = database2.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
+            row?.value_
         }
     }
 
     fun setChangeableSettingAsync(key: ChangeableSetting, value: String?): Job {
         logger.info { "Saving $key as $value." }
         return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
-            transaction {
-                val existingRow = ChangeableSettings.select { ChangeableSettings.key eq key.name }.singleOrNull()
+            database2.transaction {
+                val existingRow = database2.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
 
                 if (existingRow != null) {
-                    ChangeableSettings.update({ ChangeableSettings.key eq key.name }) {
-                        it[timestamp] = now()
-                        it[this.value] = value
-                    }
+                    logger.debug { "Updating existing setting $key." }
+                    database2.changeableSettingsQueries.updateSetting(value, now().fmt(), key.name)
                 } else {
-                    ChangeableSettings.insert {
-                        it[this.key] = key.name
-                        it[timestamp] = now()
-                        it[this.value] = value
-                    }
+                    logger.debug { "Inserting new setting $key." }
+                    database2.changeableSettingsQueries.insertSetting(value, now().fmt(), key.name)
                 }
-                Unit
             }
         }
     }
 
     fun insertHistoricalValueAsync(ts: Instant, key: HistoricalValueType, value: Double): Job {
         return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
-            transaction {
-                if (HistoricalValues.select { (HistoricalValues.timestamp eq ts) and (HistoricalValues.key eq key.databaseSymbol) }
-                        .empty()) {
-                    logger.debug("Inserting data to DB: {} = {}", key, value)
-                    HistoricalValues.insert {
-                        it[timestamp] = ts
-                        it[this.key] = key.databaseSymbol
-                        it[this.value] = value
-                    }
+            database2.transaction {
+                if (database2.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
+                    logger.debug { "Inserting data to DB: $key = $value." }
+                    database2.historicalValuesQueries.insertHistoricalValue(ts.fmt(), key.databaseSymbol, value)
                 } else {
-                    logger.debug("Value with timestamp {} is already in DB.", ts)
+                    logger.debug { "Value with timestamp $ts is already in DB." }
                 }
             }
         }
-    }
-
-    /**
-     * Code from https://github.com/JetBrains/Exposed/wiki/FAQ#q-is-it-possible-to-use-native-sql--sql-as-a-string
-     */
-    private fun <T : Any> String.execAndMap(transform: (ResultSet) -> T): List<T> {
-        val result = arrayListOf<T>()
-        TransactionManager.current().exec(this) { rs ->
-            while (rs.next()) {
-                result += transform(rs)
-            }
-        }
-        return result
     }
 
     fun getLastHistoricalValuesByHourAsync(
@@ -202,14 +158,27 @@ class DatabaseLayer(
         numberOfPastHours: Int
     ): Deferred<List<Double?>> {
         val query = createAveragedByTimeInterval(
-            HistoricalValues.tableName,
+            HISTORICAL_VALUES_TABLE_NAME,
             listOf("value"), currentTime, 1.hours, numberOfPastHours, true, "key" to key.databaseSymbol
         )
 
+        // todo rewrite to fully use async and await
         return CoroutineScope(threadContext).async {
-            groupByBucketNo(transaction {
-                query.execAndMap { it.getInt(caseColumnName) to it.getDouble("value") }
-            }, numberOfPastHours)
+            val result = database2.transactionWithResult {
+                driver.executeQuery(null, query, mapper = {
+                    val result = mutableListOf<Pair<Int, Double>>()
+
+                    while (it.next().value) {
+                        val bucketNo = it.getLong(0)!!
+                        val value = it.getDouble(1)!!
+                        result.add(bucketNo.toInt() to value)
+                    }
+
+                    app.cash.sqldelight.db.QueryResult.Value(result)
+                }, 0)
+            }.value
+
+            groupByBucketNo(result, numberOfPastHours)
         }
     }
 }

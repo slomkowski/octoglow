@@ -5,6 +5,7 @@ import eu.slomkowski.octoglow.octoglowd.testConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
 
@@ -20,6 +21,7 @@ class HardwareTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testBrightness() {
         runBlocking {
             createRealHardware().use { hardware ->
