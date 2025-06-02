@@ -17,9 +17,12 @@ org-jetbrains-kotlinx-kotlinx-datetime-jvm = "0.6.2"
 org-jetbrains-kotlinx-kotlinx-serialization-json-jvm = "1.8.1"
 org-junit-platform-junit-platform-launcher = "1.12.2"
 org-junit-jupiter-junit = "5.12.2"
+tinylog = "2.7.0"
 
 [libraries]
-ch-qos-logback-logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "ch-qos-logback-logback-classic" }
+org-tinylog-tinylog-api-kotlin = { module = "org.tinylog:tinylog-api-kotlin", version.ref = "tinylog" }
+org-tinylog-tinylog-impl = { module = "org.tinylog:tinylog-impl", version.ref = "tinylog" }
+org-tinylog-tinylog-slf4j = { module = "org.tinylog:slf4j-tinylog", version.ref = "tinylog" }
 com-thedeanda-lorem = { module = "com.thedeanda:lorem", version.ref = "com-thedeanda-lorem" }
 de-jollyday-jollyday = { module = "de.jollyday:jollyday", version.ref = "de-jollyday-jollyday" }
 io-dvlopt-linux-i2c = { module = "io.dvlopt:linux-i2c", version.ref = "io-dvlopt-linux-i2c" }

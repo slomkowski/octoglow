@@ -3,7 +3,7 @@ package eu.slomkowski.octoglow.octoglowd
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import eu.slomkowski.octoglow.octoglowd.db.Database2
+import eu.slomkowski.octoglow.octoglowd.db.SqlDelightDatabase
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.Instant
@@ -25,7 +25,7 @@ fun Instant.fmt(): String {
 class DatabaseLayer(
     databaseFile: Path,
     private val coroutineExceptionHandler: CoroutineExceptionHandler
-) {
+) : AutoCloseable {
     companion object {
         val logger = KotlinLogging.logger {}
 
@@ -107,17 +107,22 @@ class DatabaseLayer(
 
     private val driver: SqlDriver
 
-    private val database2: Database2
+    private val database: SqlDelightDatabase
 
     init {
         val jdbcString = "jdbc:sqlite:$databaseFile"
-        driver = JdbcSqliteDriver(jdbcString, Properties(), Database2.Schema)
-        database2 = Database2(driver)
+
+        driver = JdbcSqliteDriver(jdbcString, Properties(), SqlDelightDatabase.Schema)
+        database = SqlDelightDatabase(driver)
+    }
+
+    override fun close() {
+        driver.close()
     }
 
     fun getChangeableSettingAsync(key: ChangeableSetting): Deferred<String?> = CoroutineScope(threadContext).async {
-        database2.transactionWithResult {
-            val row = database2.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
+        database.transactionWithResult {
+            val row = database.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
             row?.value_
         }
     }
@@ -125,15 +130,15 @@ class DatabaseLayer(
     fun setChangeableSettingAsync(key: ChangeableSetting, value: String?): Job {
         logger.info { "Saving $key as $value." }
         return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
-            database2.transaction {
-                val existingRow = database2.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
+            database.transaction {
+                val existingRow = database.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
 
                 if (existingRow != null) {
                     logger.debug { "Updating existing setting $key." }
-                    database2.changeableSettingsQueries.updateSetting(value, now().fmt(), key.name)
+                    database.changeableSettingsQueries.updateSetting(value, now().fmt(), key.name)
                 } else {
                     logger.debug { "Inserting new setting $key." }
-                    database2.changeableSettingsQueries.insertSetting(value, now().fmt(), key.name)
+                    database.changeableSettingsQueries.insertSetting(value, now().fmt(), key.name)
                 }
             }
         }
@@ -141,10 +146,10 @@ class DatabaseLayer(
 
     fun insertHistoricalValueAsync(ts: Instant, key: HistoricalValueType, value: Double): Job {
         return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
-            database2.transaction {
-                if (database2.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
+            database.transaction {
+                if (database.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
                     logger.debug { "Inserting data to DB: $key = $value." }
-                    database2.historicalValuesQueries.insertHistoricalValue(ts.fmt(), key.databaseSymbol, value)
+                    database.historicalValuesQueries.insertHistoricalValue(ts.fmt(), key.databaseSymbol, value)
                 } else {
                     logger.debug { "Value with timestamp $ts is already in DB." }
                 }
@@ -164,7 +169,7 @@ class DatabaseLayer(
 
         // todo rewrite to fully use async and await
         return CoroutineScope(threadContext).async {
-            val result = database2.transactionWithResult {
+            val result = database.transactionWithResult {
                 driver.executeQuery(null, query, mapper = {
                     val result = mutableListOf<Pair<Int, Double>>()
 

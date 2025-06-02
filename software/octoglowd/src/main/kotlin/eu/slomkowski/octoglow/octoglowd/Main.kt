@@ -38,7 +38,6 @@ fun main() {
         GeigerView(database, hardware),
         CryptocurrencyView(config, database, hardware),
         NbpView(config, hardware),
-//            StockView(config, database, hardware),
         SimpleMonitorView(config, database, hardware),
         AirQualityView(config, database, hardware),
         NetworkView(config, hardware),

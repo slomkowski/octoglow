@@ -23,9 +23,6 @@ import kotlin.time.DurationUnit
 
 const val DEGREE: Char = '\u00B0'
 
-@Deprecated("use kotlinx.datetime")
-val WARSAW_ZONE_ID_jvm: ZoneId = ZoneId.of("Europe/Warsaw")
-
 val WARSAW_ZONE_ID: TimeZone = TimeZone.of("Europe/Warsaw")
 
 

@@ -35,7 +35,9 @@ dependencies {
 
     implementation(libs.io.github.oshai.kotlin.logging.jvm)
 
-    runtimeOnly(libs.ch.qos.logback.logback.classic)
+    implementation(libs.org.tinylog.tinylog.api.kotlin)
+    implementation(libs.org.tinylog.tinylog.impl)
+    implementation(libs.org.tinylog.tinylog.slf4j)
 
     implementation(libs.org.apache.commons.commons.lang3)
 
@@ -59,7 +61,7 @@ dependencies {
 
 sqldelight {
     databases {
-        create("Database2") {
+        create("SqlDelightDatabase") {
             packageName.set("eu.slomkowski.octoglow.octoglowd.db")
         }
     }
@@ -74,6 +76,45 @@ tasks.test {
 
 tasks.shadowJar {
     archiveVersion = ""
+
+    exclude("**/*.kotlin_module")
+    exclude("**/*.kotlin_metadata")
+    exclude("META-INF/maven")
+    exclude("META-INF/*.map")
+    exclude("META-INF/*.js")
+    exclude("META-INF/LICENSE*")
+    exclude("META-INF/*.txt")
+
+    //  exclude ("META-INF/**")
+
+
+    exclude("org/sqlite/native/Windows/**")
+    exclude("org/sqlite/native/FreeBSD/**")
+    exclude("org/sqlite/native/Mac/**")
+    exclude("org/sqlite/native/Linux-Android/**")
+    exclude("org/sqlite/native/Linux-Musl/**")
+    exclude("org/sqlite/native/Linux/aarch64/**")
+    exclude("org/sqlite/native/Linux/android-arm/**")
+    exclude("org/sqlite/native/Linux/arm/**")
+    exclude("org/sqlite/native/Linux/armv6/**")
+    exclude("org/sqlite/native/Linux/ppc64/**")
+    exclude("org/sqlite/native/Linux/x86/**")
+    exclude("org/sqlite/native/Linux/riscv64/**")
+
+    exclude("com/sun/jna/aix*/**")
+    exclude("com/sun/jna/darwin/**")
+    exclude("com/sun/jna/freebsd*/**")
+    exclude("com/sun/jna/openbsd*/**")
+    exclude("com/sun/jna/sunos*/**")
+    exclude("com/sun/jna/win32*/**")
+    exclude("com/sun/jna/linux-aarch64/**")
+    exclude("com/sun/jna/linux-armel/**")
+    exclude("com/sun/jna/linux-mips64el/**")
+    exclude("com/sun/jna/linux-ppc*/**")
+    exclude("com/sun/jna/linux-s390x/**")
+    exclude("com/sun/jna/linux-x86/**")
+
+
 //    minimize {
 //        exclude(dependency("ch.qos.logback:logback-classic"))
 //        exclude(dependency("io.github.oshai:kotlin-logging-jvm"))
