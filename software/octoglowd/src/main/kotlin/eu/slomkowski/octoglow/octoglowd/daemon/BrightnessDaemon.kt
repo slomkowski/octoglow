@@ -12,13 +12,15 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class BrightnessDaemon(
     private val config: Config,
     private val database: DatabaseLayer,
-    private val hardware: Hardware
-) : Daemon(config, hardware, logger, 30.seconds) {
+    private val hardware: Hardware,
+) : Daemon(logger, 30.seconds) {
 
     data class BrightnessMode(
         val isDay: Boolean,
@@ -30,10 +32,10 @@ class BrightnessDaemon(
         private val logger = KotlinLogging.logger {}
 
         private val brightnessModes = setOf(
-            BrightnessMode(true, false, 5),
-            BrightnessMode(true, true, 4),
-            BrightnessMode(false, false, 3),
-            BrightnessMode(false, true, 1)
+            BrightnessMode(isDay = true, isSleeping = false, brightness = 5),
+            BrightnessMode(isDay = true, isSleeping = true, brightness = 4),
+            BrightnessMode(isDay = false, isSleeping = false, brightness = 3),
+            BrightnessMode(isDay = false, isSleeping = true, brightness = 1),
         )
 
         fun calculateFromData(
@@ -66,6 +68,7 @@ class BrightnessDaemon(
         }
     }
 
+    @Volatile
     var forced: Int? = null
         private set
 
@@ -100,7 +103,7 @@ class BrightnessDaemon(
         val (sunrise, sunset) = calculateSunriseAndSunset(
             config.geoPosition.latitude,
             config.geoPosition.longitude,
-            localDateTime.date
+            localDateTime.date,
         )
         logger.debug { "On ${localDateTime.date} sun is up from $sunrise to $sunset." }
 

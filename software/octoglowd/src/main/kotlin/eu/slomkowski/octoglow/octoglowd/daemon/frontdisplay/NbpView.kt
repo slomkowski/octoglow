@@ -18,8 +18,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class NbpView(
     private val config: Config,
     hardware: Hardware
@@ -90,7 +92,7 @@ class NbpView(
 
         private const val HISTORIC_VALUES_LENGTH = 14
 
-        private const val NBP_API_BASE = "http://api.nbp.pl/api/"
+        private const val NBP_API_BASE = "https://api.nbp.pl/api/"
 
         suspend fun getCurrencyRates(currencyCode: String, howMany: Int): List<RateDto> {
             require(currencyCode.isNotBlank())
@@ -142,7 +144,7 @@ class NbpView(
         fun formatZloty(amount: Double?): String {
             return when (amount) {
                 null -> "----zł"
-                in 10_000.0..100_000.0 -> String.format("%5.0f", amount)
+                in 10_000.0..100_000.0 -> String.format("%2.1fzł", amount / 1000.0).replace('.', 'k')
                 in 1000.0..10_000.0 -> String.format("%4.0fzł", amount)
                 in 100.0..1000.0 -> String.format("%3.0f zł", amount)
                 in 10.0..100.0 -> String.format("%4.1fzł", amount)

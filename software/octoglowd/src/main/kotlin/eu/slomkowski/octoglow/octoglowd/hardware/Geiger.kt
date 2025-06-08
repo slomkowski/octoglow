@@ -7,6 +7,7 @@ import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 enum class EyeDisplayMode {
     ANIMATION,
@@ -26,7 +27,7 @@ data class GeigerCounterState(
     val numOfCountsInCurrentCycle: Int,
     val numOfCountsInPreviousCycle: Int,
     val currentCycleProgress: Duration,
-    val cycleLength: Duration
+    val cycleLength: Duration,
 ) {
     companion object {
         private val invalidBufferContent = listOf(255, 255, 255, 255, 255, 255, 255, 255)
@@ -68,7 +69,7 @@ data class GeigerDeviceState(
     val eyeState: EyeInverterState,
     val eyeAnimationState: EyeDisplayMode,
     val eyeVoltage: Double,
-    val eyePwmValue: Int
+    val eyePwmValue: Int,
 ) {
     companion object {
         private val invalidBufferContent = listOf(255, 255, 255, 255, 255, 255, 255)
@@ -93,8 +94,8 @@ data class GeigerDeviceState(
             return GeigerDeviceState(
                 GEIGER_ADC_SCALING_FACTOR * ((buff[1] shl 8) + buff[0]).toDouble(),
                 buff[2],
-                EyeInverterState.values()[buff[3]],
-                EyeDisplayMode.values()[buff[4]],
+                EyeInverterState.entries[buff[3]],
+                EyeDisplayMode.entries[buff[4]],
                 EYE_ADC_SCALING_FACTOR * ((buff[6] shl 8) + buff[5]).toDouble(),
                 buff[7]
             )
@@ -107,7 +108,8 @@ data class GeigerDeviceState(
     }
 }
 
-class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
+@OptIn(ExperimentalTime::class)
+class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightness {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -126,13 +128,13 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12), HasBrightness {
         doWrite(7, brightness)
     }
 
-    suspend fun getDeviceState(): GeigerDeviceState = trySeveralTimes(I2C_READ_TRIES, logger) {
+    suspend fun getDeviceState(): GeigerDeviceState = trySeveralTimes(I2C_READ_TRIES, logger,"getDeviceState()") {
         val readBuffer = doTransaction(listOf(1), GeigerDeviceState.SIZE_IN_BYTES)
         logger.trace { "Device state buffer: ${readBuffer.contentToString()}." }
         GeigerDeviceState.parse(readBuffer)
     }
 
-    suspend fun getCounterState(): GeigerCounterState = trySeveralTimes(I2C_READ_TRIES, logger) {
+    suspend fun getCounterState(): GeigerCounterState = trySeveralTimes(I2C_READ_TRIES, logger,"getCounterState()") {
         val readBuffer = doTransaction(listOf(2), GeigerCounterState.SIZE_IN_BYTES)
         logger.trace { "Counter state buffer: ${readBuffer.contentToString()}." }
         GeigerCounterState.parse(readBuffer)

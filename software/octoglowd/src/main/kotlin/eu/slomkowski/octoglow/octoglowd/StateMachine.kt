@@ -1,5 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicReference
 
 /*
@@ -14,8 +16,10 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
     val state: STATE
         get() = stateRef.get()
 
-    fun transition(event: EVENT): Transition<STATE, EVENT, SIDE_EFFECT> {
-        val transition = synchronized(this) {
+    private val stateMutex = Mutex()
+
+    suspend fun transition(event: EVENT): Transition<STATE, EVENT, SIDE_EFFECT> {
+        val transition = stateMutex.withLock {
             val fromState = stateRef.get()
             val transition = fromState.getTransition(event)
             if (transition is Transition.Valid) {
@@ -41,7 +45,7 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
         return create(graph.copy(initialState = state), init)
     }
 
-    private fun STATE.getTransition(event: EVENT): Transition<STATE, EVENT, SIDE_EFFECT> {
+    private suspend fun STATE.getTransition(event: EVENT): Transition<STATE, EVENT, SIDE_EFFECT> {
         for ((eventMatcher, createTransitionTo) in getDefinition().transitions) {
             if (eventMatcher.matches(event)) {
                 val (toState, sideEffect) = createTransitionTo(this, event)
@@ -64,7 +68,7 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
         getDefinition().onExitListeners.forEach { it(this, cause) }
     }
 
-    private fun Transition<STATE, EVENT, SIDE_EFFECT>.notifyOnTransition() {
+    private suspend fun Transition<STATE, EVENT, SIDE_EFFECT>.notifyOnTransition() {
         graph.onTransitionListeners.forEach { it(this) }
     }
 
@@ -89,13 +93,13 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
     data class Graph<STATE : Any, EVENT : Any, SIDE_EFFECT : Any>(
         val initialState: STATE,
         val stateDefinitions: Map<Matcher<STATE, STATE>, State<STATE, EVENT, SIDE_EFFECT>>,
-        val onTransitionListeners: List<(Transition<STATE, EVENT, SIDE_EFFECT>) -> Unit>
+        val onTransitionListeners: List<suspend (Transition<STATE, EVENT, SIDE_EFFECT>) -> Unit>
     ) {
 
         class State<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> internal constructor() {
             val onEnterListeners = mutableListOf<(STATE, EVENT) -> Unit>()
             val onExitListeners = mutableListOf<(STATE, EVENT) -> Unit>()
-            val transitions = linkedMapOf<Matcher<EVENT, EVENT>, (STATE, EVENT) -> TransitionTo<STATE, SIDE_EFFECT>>()
+            val transitions = linkedMapOf<Matcher<EVENT, EVENT>, suspend (STATE, EVENT) -> TransitionTo<STATE, SIDE_EFFECT>>()
 
             data class TransitionTo<out STATE : Any, out SIDE_EFFECT : Any> internal constructor(
                 val toState: STATE,
@@ -152,7 +156,7 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
             state(Matcher.eq<STATE, S>(state), init)
         }
 
-        fun onTransition(listener: (Transition<STATE, EVENT, SIDE_EFFECT>) -> Unit) {
+        fun onTransition(listener: suspend (Transition<STATE, EVENT, SIDE_EFFECT>) -> Unit) {
             onTransitionListeners.add(listener)
         }
 
@@ -170,7 +174,7 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
 
             fun <E : EVENT> on(
                 eventMatcher: Matcher<EVENT, E>,
-                createTransitionTo: S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
+                createTransitionTo: suspend S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
             ) {
                 stateDefinition.transitions[eventMatcher] = { state, event ->
                     @Suppress("UNCHECKED_CAST")
@@ -179,14 +183,14 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
             }
 
             inline fun <reified E : EVENT> on(
-                noinline createTransitionTo: S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
+                noinline createTransitionTo: suspend S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
             ) {
                 return on(any(), createTransitionTo)
             }
 
             inline fun <reified E : EVENT> on(
                 event: E,
-                noinline createTransitionTo: S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
+                noinline createTransitionTo: suspend S.(E) -> Graph.State.TransitionTo<STATE, SIDE_EFFECT>
             ) {
                 return on(eq(event), createTransitionTo)
             }

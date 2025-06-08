@@ -13,8 +13,10 @@ import kotlinx.datetime.*
 import org.apache.commons.lang3.StringUtils
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class CalendarView(
     private val config: Config,
     hardware: Hardware

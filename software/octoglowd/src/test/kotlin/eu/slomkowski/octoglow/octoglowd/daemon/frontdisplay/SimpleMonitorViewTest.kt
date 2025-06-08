@@ -15,8 +15,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class SimpleMonitorViewTest {
 
     companion object {
@@ -78,7 +80,7 @@ class SimpleMonitorViewTest {
             )
         )
         HardwareTest.createRealHardware().use { hardware ->
-            val view = SimpleMonitorView(testConfig, mockk(), hardware)
+            val view = SimpleMonitorView(testConfig, hardware)
             view.currentReport = report
             runBlocking {
                 try {

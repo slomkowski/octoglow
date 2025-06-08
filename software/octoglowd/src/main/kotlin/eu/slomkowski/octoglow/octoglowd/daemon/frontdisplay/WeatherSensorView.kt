@@ -12,8 +12,10 @@ import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class WeatherSensorView(
     private val config: Config,
     private val databaseLayer: DatabaseLayer,
@@ -23,9 +25,8 @@ class WeatherSensorView(
     "Weather sensor view",
     5.seconds,
     2.seconds,
-    12.seconds
+    12.seconds,
 ) {
-
     companion object {
         private val logger = KotlinLogging.logger {}
 
@@ -72,7 +73,6 @@ class WeatherSensorView(
             if (redrawStatic) {
                 launch {
                     fd.setStaticText(9, "in:")
-//                    fd.setStaticText(10, "out:")
                 }
             }
 
@@ -163,11 +163,9 @@ class WeatherSensorView(
 
         // don't update report if it is younger than MINIMAL_DURATION_BETWEEN_MEASUREMENTS
         if (now - (previousReport?.first ?: Instant.DISTANT_PAST) < MINIMAL_DURATION_BETWEEN_MEASUREMENTS) {
-            logger.debug(
-                "Values for remote sensor (channel {}) saved at {}, skipping.",
-                channelId,
-                previousReport?.first
-            )
+            logger.debug {
+                "Values for remote sensor (channel $channelId) saved at ${previousReport?.first}, skipping."
+            }
             return@coroutineScope UpdateStatus.NO_NEW_DATA to null
         }
 
@@ -216,7 +214,7 @@ class WeatherSensorView(
                 UpdateStatus.FAILURE -> null
                 UpdateStatus.FULL_SUCCESS -> now to checkNotNull(newRep) { "status is $newStatus, but $newRep is null" }
                 UpdateStatus.NO_NEW_DATA -> oldRep?.takeIf { (prevTimestamp, _) -> now - prevTimestamp < MAXIMAL_DURATION_BETWEEN_MEASUREMENTS }
-                else -> throw IllegalStateException("status $newStatus not supported")
+                else -> error("status $newStatus not supported")
             }
         }
 

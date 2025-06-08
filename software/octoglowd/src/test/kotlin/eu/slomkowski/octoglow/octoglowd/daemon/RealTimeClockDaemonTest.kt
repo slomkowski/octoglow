@@ -6,14 +6,16 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDateTime
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class RealTimeClockDaemonTest {
 
     @Test
     fun testBasic() {
         val hardware = mockk<Hardware>()
-        val d = RealTimeClockDaemon(mockk(), hardware)
+        val d = RealTimeClockDaemon( hardware)
 
         coEvery { hardware.clockDisplay.setDisplay(any(), any(), any(), any()) } just Runs
 

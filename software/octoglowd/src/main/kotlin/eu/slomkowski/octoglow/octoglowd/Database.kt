@@ -11,7 +11,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.nio.file.Path
 import java.util.*
-import java.util.concurrent.Executors
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
@@ -24,10 +23,9 @@ fun Instant.fmt(): String {
 
 class DatabaseLayer(
     databaseFile: Path,
-    private val coroutineExceptionHandler: CoroutineExceptionHandler
 ) : AutoCloseable {
     companion object {
-        val logger = KotlinLogging.logger {}
+        private val logger = KotlinLogging.logger {}
 
         const val HISTORICAL_VALUES_TABLE_NAME = "historical_values"
         private const val CASE_COLUMN_NAME = "bucket_no"
@@ -103,7 +101,8 @@ class DatabaseLayer(
         }
     }
 
-    private val threadContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val threadContext = newSingleThreadContext("Database")
+    private val workerScope = CoroutineScope(SupervisorJob() + threadContext)
 
     private val driver: SqlDriver
 
@@ -117,10 +116,12 @@ class DatabaseLayer(
     }
 
     override fun close() {
+        workerScope.cancel()
+        threadContext.close()
         driver.close()
     }
 
-    fun getChangeableSettingAsync(key: ChangeableSetting): Deferred<String?> = CoroutineScope(threadContext).async {
+    fun getChangeableSettingAsync(key: ChangeableSetting): Deferred<String?> = workerScope.async {
         database.transactionWithResult {
             val row = database.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
             row?.value_
@@ -128,8 +129,9 @@ class DatabaseLayer(
     }
 
     fun setChangeableSettingAsync(key: ChangeableSetting, value: String?): Job {
-        logger.info { "Saving $key as $value." }
-        return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
+        return workerScope.launch {
+            logger.info { "Saving $key as $value." }
+
             database.transaction {
                 val existingRow = database.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
 
@@ -145,7 +147,7 @@ class DatabaseLayer(
     }
 
     fun insertHistoricalValueAsync(ts: Instant, key: HistoricalValueType, value: Double): Job {
-        return CoroutineScope(threadContext).launch(coroutineExceptionHandler) {
+        return workerScope.launch {
             database.transaction {
                 if (database.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
                     logger.debug { "Inserting data to DB: $key = $value." }
@@ -167,8 +169,7 @@ class DatabaseLayer(
             listOf("value"), currentTime, 1.hours, numberOfPastHours, true, "key" to key.databaseSymbol
         )
 
-        // todo rewrite to fully use async and await
-        return CoroutineScope(threadContext).async {
+        return workerScope.async {
             val result = database.transactionWithResult {
                 driver.executeQuery(null, query, mapper = {
                     val result = mutableListOf<Pair<Int, Double>>()

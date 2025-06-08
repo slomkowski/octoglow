@@ -13,8 +13,10 @@ import org.junit.jupiter.api.Test
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class AnalogGaugeDaemonTest {
 
     companion object {
@@ -26,7 +28,7 @@ class AnalogGaugeDaemonTest {
     @Test
     fun testBasic() {
         val hardware = mockk<Hardware>()
-        val d = AnalogGaugeDaemon(mockk(), hardware)
+        val d = AnalogGaugeDaemon( hardware)
 
         val dacValueSlot = slot<Int>()
         coEvery { hardware.dac.setValue(any(), capture(dacValueSlot)) } answers {

@@ -7,12 +7,11 @@ import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import java.nio.file.Paths
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 fun main() {
     val logger = KotlinLogging.logger {}
 
@@ -20,16 +19,20 @@ fun main() {
 
     val config = Config.parse(Paths.get("config.json"))
 
+    val workerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     val hardware = Hardware(config)
+    val database = DatabaseLayer(config.databaseFile)
+    val closeable = listOf(database, hardware)
 
     Runtime.getRuntime().addShutdownHook(Thread {
-        hardware.close() //todo maybe find cleaner way?
-    })
-
-    val database = DatabaseLayer(config.databaseFile, CoroutineExceptionHandler { context, throwable ->
+        logger.info { "Shutting down. Calling workers to stop." }
+        workerScope.cancel()
         runBlocking {
-            handleException(config, DatabaseLayer.logger, hardware, context, throwable)
+            workerScope.coroutineContext[Job]?.join()
         }
+        closeable.forEach { it.close() }
+        logger.info { "Shut down." }
     })
 
     val frontDisplayViews = listOf(
@@ -38,10 +41,10 @@ fun main() {
         GeigerView(database, hardware),
         CryptocurrencyView(config, database, hardware),
         NbpView(config, hardware),
-        SimpleMonitorView(config, database, hardware),
+        SimpleMonitorView(config, hardware),
         AirQualityView(config, database, hardware),
         NetworkView(config, hardware),
-        JvmMemoryView(config, hardware),
+        JvmMemoryView(hardware),
     )
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)
@@ -50,14 +53,16 @@ fun main() {
         BrightnessMenu(brightnessDaemon)
     )
 
-    val controllers = listOf(
-        AnalogGaugeDaemon(config, hardware),
-        RealTimeClockDaemon(config, hardware),
+    val demons = listOf(
+        AnalogGaugeDaemon(hardware),
+        RealTimeClockDaemon(hardware),
         brightnessDaemon,
-        FrontDisplayDaemon(config, GlobalScope.coroutineContext, hardware, frontDisplayViews, menus)
+        FrontDisplayDaemon(config, workerScope, hardware, frontDisplayViews, menus)
     )
 
     runBlocking {
-        controllers.forEach { launch { it.createJob() } }
+        demons.forEach { workerScope.launch { it.createJob() } }
+
+        awaitCancellation()
     }
 }

@@ -16,8 +16,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class BrightnessDaemonTest {
     companion object {
         private val logger = KotlinLogging.logger {}

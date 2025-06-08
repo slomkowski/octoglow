@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 
-import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.now
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -9,11 +8,12 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class RealTimeClockDaemon(
-    config: Config,
-    private val hardware: Hardware
-) : Daemon(config, hardware, logger, 500.milliseconds) {
+    private val hardware: Hardware,
+) : Daemon(logger, 200.milliseconds) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -23,7 +23,7 @@ class RealTimeClockDaemon(
         val hour: Int,
         val minute: Int,
         val upperDot: Boolean,
-        val lowerDot: Boolean
+        val lowerDot: Boolean,
     ) {
         companion object {
             fun ofTimestamp(dt: LocalDateTime): DisplayContent = when (dt.second % 2) {
@@ -33,6 +33,7 @@ class RealTimeClockDaemon(
         }
     }
 
+    @Volatile
     private var previousDisplayContent: DisplayContent? = null
 
     override suspend fun pool() {

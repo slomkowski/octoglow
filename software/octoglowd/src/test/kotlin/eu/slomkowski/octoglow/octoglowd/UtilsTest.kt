@@ -27,20 +27,20 @@ class UtilsTest {
     fun testTrySeveralTimes() {
         assertFails {
             runBlocking {
-                trySeveralTimes<Unit>(5, logger) {
+                trySeveralTimes<Unit>(5, logger, "test") {
                     throw IllegalStateException("always fail")
                 }
             }
         }
 
         runBlocking {
-            trySeveralTimes(5, logger) {
+            trySeveralTimes(5, logger, "always run OK") {
                 logger.info { "always run OK" }
             }
         }
 
         runBlocking {
-            trySeveralTimes(5, logger) { tryNumber ->
+            trySeveralTimes(5, logger, "last attempt doesn't fail") { tryNumber ->
                 if (tryNumber < 5) {
                     throw IllegalStateException("only last attempt doesn't fail")
                 }

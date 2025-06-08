@@ -3,8 +3,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.delay
-import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 
 data class RemoteSensorReport(
     val sensorId: Int,
@@ -12,7 +11,7 @@ data class RemoteSensorReport(
     val humidity: Double,
     val batteryIsWeak: Boolean,
     val alreadyReadFlag: Boolean,
-    val manualTx: Boolean
+    val manualTx: Boolean,
 ) {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -87,9 +86,9 @@ data class RemoteSensorReport(
             }
 
             if (!alreadyRead) {
-                logger.debug {
+                logger.trace {
                     String.format(
-                        "ch=%d,temp=%2.1f,hum=%2.0f%%,wb=%b,tx=%b,raw=%s",
+                        "ch=%d,temp=%2.1f,hum=%2.0f%%,wb=%b,tx=%b,raw=%s.",
                         sensorId,
                         temperature,
                         humidity,
@@ -112,7 +111,8 @@ data class RemoteSensorReport(
     }
 }
 
-class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightness {
+@OptIn(ExperimentalTime::class)
+class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasBrightness {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -161,19 +161,5 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
                 else -> 0x30 + hours / 10
             }, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots
         )
-    }
-
-    @Deprecated("bell is removed from hardware")
-    suspend fun ringBell(duration: Duration) {
-        require(duration.isPositive())
-
-        logger.info { "Ringing for ${duration.inWholeMilliseconds} ms." }
-
-        try {
-            doWrite(2, 0, 1)
-            delay(duration.inWholeMilliseconds)
-        } finally {
-            doWrite(2, 0, 0)
-        }
     }
 }

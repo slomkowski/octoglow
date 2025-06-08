@@ -14,11 +14,12 @@ import java.lang.management.ThreadMXBean
 import kotlin.math.min
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class JvmMemoryView(
-    private val config: Config,
-    hardware: Hardware
+    hardware: Hardware,
 ) : FrontDisplayView(
     hardware,
     "JVM Memory",
@@ -41,6 +42,7 @@ class JvmMemoryView(
         private val logger = KotlinLogging.logger {}
     }
 
+    @Volatile
     private var currentReport: CurrentReport? = null
 
     private fun updateJvmStatus(): UpdateStatus {

@@ -1,6 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd
 
-import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KLogger
 import io.ktor.client.*
@@ -16,7 +15,6 @@ import java.nio.charset.StandardCharsets
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
-import kotlin.coroutines.CoroutineContext
 import kotlin.math.*
 import kotlin.time.DurationUnit
 
@@ -139,31 +137,28 @@ fun formatPressure(t: Double?): String = when (t) {
 fun getSegmentNumber(currentTime: kotlin.time.Duration, maxTime: kotlin.time.Duration): Int =
     floor(20.0 * (currentTime.toDouble(DurationUnit.MILLISECONDS) / maxTime.toDouble(DurationUnit.MILLISECONDS))).roundToInt().coerceIn(0, 19)
 
-suspend fun <T : Any> trySeveralTimes(numberOfTries: Int, logger: KLogger, func: suspend (tryNo: Int) -> T): T {
+suspend fun <T : Any> trySeveralTimes(
+    numberOfTries: Int,
+    logger: KLogger,
+    funcDescription: String,
+    func: suspend (tryNo: Int) -> T
+): T {
     require(numberOfTries > 0)
+    require(funcDescription.isNotEmpty())
+
     (1..numberOfTries).forEach { tryNo ->
         try {
             return func(tryNo)
         } catch (e: Exception) {
             if (tryNo == numberOfTries) {
-                throw Exception("number of tries $numberOfTries exhausted, error: $e", e)
+                throw Exception("number of tries $numberOfTries exhausted: ${e.message}", e)
             } else {
                 delay(70)
-                logger.warn { "Operation $func failed with $e (try $tryNo/$numberOfTries)." }
+                logger.warn { "Operation '$funcDescription' failed with '${e.message}' (try $tryNo/$numberOfTries)." }
             }
         }
     }
-    throw IllegalStateException() // cannot be ever called
-}
-
-suspend fun handleException(
-    config: eu.slomkowski.octoglow.octoglowd.Config,
-    logger: KLogger,
-    hardware: Hardware,
-    coroutineContext: CoroutineContext,
-    e: Throwable
-) {
-    logger.error(e) { "Exception caught in $coroutineContext." }
+    error("cannot be ever called")
 }
 
 fun List<Int>.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {

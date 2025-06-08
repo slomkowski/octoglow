@@ -50,7 +50,7 @@ class SerializersTest {
             assertThat(UriSerializer.deserialize(decoderMock)).isEqualTo(uri)
         }
 
-        assertValid("http://example.org", URI("http://example.org"))
+        assertValid("https://example.org", URI("https://example.org"))
     }
 
     @Test
@@ -64,6 +64,6 @@ class SerializersTest {
             assertThat(strSlot.captured).isEqualTo(str)
         }
 
-        assertValid("http://example.org", URI("http://example.org"))
+        assertValid("https://example.org", URI("https://example.org"))
     }
 }

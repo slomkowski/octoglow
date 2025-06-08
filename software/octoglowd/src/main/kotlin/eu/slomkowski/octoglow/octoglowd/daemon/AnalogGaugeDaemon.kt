@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.sun.management.OperatingSystemMXBean
-import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -17,18 +16,19 @@ import java.nio.file.Paths
 import java.util.stream.Collectors
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class AnalogGaugeDaemon(
-    config: Config,
-    private val hardware: Hardware
-) : Daemon(config, hardware, logger, 700.milliseconds) {
+    private val hardware: Hardware,
+) : Daemon(logger, 700.milliseconds) {
 
     data class WifiSignalInfo(
         val ifName: String,
         val linkQuality: Double, // in percent
         val signalStrength: Double, // in dBm
-        val noiseLevel: Double
+        val noiseLevel: Double,
     )
 
     companion object {
@@ -56,9 +56,7 @@ class AnalogGaugeDaemon(
     override suspend fun pool() = coroutineScope {
         launch { setValue(CPU_CHANNEL, operatingSystemMXBean.cpuLoad) }
 
-        val wifiInterfaces = withContext(Dispatchers.IO) {
-            Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
-        }
+        val wifiInterfaces = gatherWiFiInterfaces()
 
         check(wifiInterfaces.size <= 1) { "more than one active Wi-Fi interface found" }
 
@@ -75,6 +73,10 @@ class AnalogGaugeDaemon(
         }
 
         Unit
+    }
+
+    private suspend fun gatherWiFiInterfaces(): List<WifiSignalInfo> = withContext(Dispatchers.IO) {
+        Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
     }
 
     private suspend fun setValue(channel: DacChannel, v: Double) =

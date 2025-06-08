@@ -19,11 +19,11 @@ import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
-
+@OptIn(ExperimentalTime::class)
 class SimpleMonitorView(
     private val config: Config,
-    private val database: DatabaseLayer,
     hardware: Hardware
 ) : FrontDisplayView(
     hardware,

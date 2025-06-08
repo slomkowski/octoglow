@@ -15,12 +15,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class CryptocurrencyView(
     private val config: Config,
     private val database: DatabaseLayer,
-    hardware: Hardware
+    hardware: Hardware,
 ) : FrontDisplayView(
     hardware,
     "Cryptocurrencies",

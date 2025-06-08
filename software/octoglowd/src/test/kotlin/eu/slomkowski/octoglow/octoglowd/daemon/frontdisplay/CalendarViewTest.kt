@@ -11,8 +11,10 @@ import kotlinx.datetime.plus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 internal class CalendarViewTest {
 
     companion object {

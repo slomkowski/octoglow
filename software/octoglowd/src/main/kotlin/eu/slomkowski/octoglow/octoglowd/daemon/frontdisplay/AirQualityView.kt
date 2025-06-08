@@ -15,12 +15,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class AirQualityView(
     private val config: Config,
     private val database: DatabaseLayer,
-    hardware: Hardware
+    hardware: Hardware,
 ) : FrontDisplayView(
     hardware,
     "Air quality from powietrze.gios.gov.pl",
@@ -108,7 +110,7 @@ class AirQualityView(
             require(stationId > 0)
 
             logger.debug("Downloading currency rates for station {}.", stationId)
-            val url = "http://api.gios.gov.pl/pjp-api/rest/aqindex/getIndex/$stationId"
+            val url = "https://api.gios.gov.pl/pjp-api/rest/aqindex/getIndex/$stationId"
 
             val resp: AirQualityDto = httpClient.get(url).body()
 

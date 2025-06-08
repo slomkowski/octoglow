@@ -15,11 +15,13 @@ import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class GeigerView(
     private val database: DatabaseLayer,
-    hardware: Hardware
+    hardware: Hardware,
 ) : FrontDisplayView(
     hardware,
     "Geiger counter",

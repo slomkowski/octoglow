@@ -10,13 +10,16 @@ import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class FrontDisplayDaemonTest {
 
     companion object {
@@ -52,29 +55,31 @@ class FrontDisplayDaemonTest {
     @Test
     fun testStateMachineSwitchView() {
         runBlocking {
-            val hardware = mockk<Hardware>()
+            coroutineScope {
+                val hardware = mockk<Hardware>()
 
-            coEvery { hardware.frontDisplay.clear() } just Runs
+                coEvery { hardware.frontDisplay.clear() } just Runs
 
-            coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
+                coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
 
-            val v1 = mockk<FrontDisplayView>()
-            val v2 = mockk<FrontDisplayView>()
+                val v1 = mockk<FrontDisplayView>()
+                val v2 = mockk<FrontDisplayView>()
 
-            coEvery { v1.getMenus() } returns listOf()
-            coEvery { v2.getMenus() } returns listOf()
+                coEvery { v1.getMenus() } returns listOf()
+                coEvery { v2.getMenus() } returns listOf()
 
-            coEvery { v1.redrawDisplay(true, true, any()) } just Runs
-            coEvery { v2.redrawDisplay(true, true, any()) } just Runs
+                coEvery { v1.redrawDisplay(true, true, any()) } just Runs
+                coEvery { v2.redrawDisplay(true, true, any()) } just Runs
 
-            val d = FrontDisplayDaemon(defaultTestConfig, coroutineContext, hardware, listOf(v1, v2), emptyList())
+                val d = FrontDisplayDaemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList())
 
-            d.pool()
+                d.pool()
 
-            d.pool()
+                d.pool()
 
-            coVerify { v1.redrawDisplay(true, true, any()) }
-            coVerify { v2.redrawDisplay(true, true, any()) }
+                coVerify { v1.redrawDisplay(true, true, any()) }
+                coVerify { v2.redrawDisplay(true, true, any()) }
+            }
         }
     }
 

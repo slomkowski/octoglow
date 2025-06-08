@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -25,15 +24,10 @@ class DatabaseTest {
 
     private fun <T : Any> createTestDbContext(func: (DatabaseLayer) -> T): T {
         val dbFile = Files.createTempFile("unit-test-", ".db")
-        try {
-            val db = DatabaseLayer(dbFile, CoroutineExceptionHandler { coroutineContext, throwable ->
-                logger.error(throwable) { "Error within the coroutine $coroutineContext." }
-            })
+        DatabaseLayer(dbFile).use { db ->
             assertNotNull(db)
             logger.debug { "Opened DB file $dbFile" }
             return func(db)
-        } finally {
-            //  Files.deleteIfExists(dbFile)
         }
     }
 

@@ -20,8 +20,9 @@ import kotlin.math.roundToLong
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
-
+@OptIn(ExperimentalTime::class)
 class NetworkView(
     private val config: Config,
     hardware: Hardware

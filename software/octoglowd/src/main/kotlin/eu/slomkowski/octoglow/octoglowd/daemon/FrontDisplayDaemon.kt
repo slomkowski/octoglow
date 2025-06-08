@@ -16,16 +16,17 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
-import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class FrontDisplayDaemon(
     private val config: Config,
-    private val coroutineContext: CoroutineContext,
+    private val workerScope: CoroutineScope,
     private val hardware: Hardware,
     frontDisplayViews: List<FrontDisplayView>,
-    additionalMenus: List<Menu>
-) : Daemon(config, hardware, logger, 20.milliseconds) {
+    additionalMenus: List<Menu>,
+) : Daemon(logger, 20.milliseconds) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -56,21 +57,24 @@ class FrontDisplayDaemon(
     }
 
     data class ViewInfo(
-        private val coroutineContext: CoroutineContext,
-        private val exceptionHandler: CoroutineExceptionHandler,
+        private val workerScope: CoroutineScope,
         private val frontDisplay: FrontDisplay,
-        val view: FrontDisplayView
+        val view: FrontDisplayView,
     ) {
 
+        @Volatile
         var lastViewed: Instant? = null
             private set
 
+        @Volatile
         var lastSuccessfulStatusUpdate: Instant? = null
             private set
 
+        @Volatile
         var lastStatusPool: Instant? = null
             private set
 
+        @Volatile
         var lastInstantPool: Instant? = null
             private set
 
@@ -91,25 +95,23 @@ class FrontDisplayDaemon(
             lastSuccessfulStatusUpdate = now()
         }
 
-        fun redrawAll() {
+        suspend fun redrawAll() {
             lastViewed = now()
             logger.debug { "Redrawing $view." }
-            CoroutineScope(coroutineContext).launch(exceptionHandler) {
-                frontDisplay.clear()
-                view.redrawDisplay(true, true, now())
-            }
+            frontDisplay.clear()
+            view.redrawDisplay(true, true, now())
         }
 
         fun redrawStatus() {
             lastViewed = now()
-            CoroutineScope(coroutineContext).launch(exceptionHandler) {
+            workerScope.launch {
                 logger.debug { "Updating state of active $view." }
                 view.redrawDisplay(false, true, now())
             }
         }
 
         fun redrawInstant() {
-            CoroutineScope(coroutineContext).launch(exceptionHandler) {
+            workerScope.launch {
                 logger.debug { "Updating instant of $view." }
                 view.redrawDisplay(false, false, now())
             }
@@ -117,7 +119,7 @@ class FrontDisplayDaemon(
     }
 
     private val views =
-        frontDisplayViews.map { ViewInfo(coroutineContext, exceptionHandler, hardware.frontDisplay, it) }
+        frontDisplayViews.map { ViewInfo(workerScope, hardware.frontDisplay, it) }
 
     private val allMenus = additionalMenus.plus(views.flatMap { it.menus }).plus(exitMenu)
 
@@ -129,12 +131,12 @@ class FrontDisplayDaemon(
     init {
         require(frontDisplayViews.isNotEmpty())
 
-        runBlocking(coroutineContext) {
+        runBlocking {
             hardware.frontDisplay.clear()
             hardware.frontDisplay.getButtonReport() // resets any remaining button state
         }
 
-        stateExecutor = createStateMachineExecutor(coroutineContext)
+        stateExecutor = createStateMachineExecutor()
     }
 
     private fun getNeighbourView(info: ViewInfo, number: Int): ViewInfo = when (number) {
@@ -157,7 +159,7 @@ class FrontDisplayDaemon(
         fd.clear()
 
         val line1 = "< " + exitMenu.text.padEnd(16) + " >"
-        launch(exceptionHandler) { fd.setStaticText(0, line1) }
+        launch { fd.setStaticText(0, line1) }
     }
 
     private suspend fun drawMenuOverview(menu: Menu, current: MenuOption) = coroutineScope {
@@ -167,7 +169,7 @@ class FrontDisplayDaemon(
 
         val line1 = "< " + menu.text.padEnd(16) + " >"
         val line2 = "  Current: " + current.text
-        launch(exceptionHandler) {
+        launch {
             fd.setStaticText(0, line1)
             fd.setStaticText(20, line2)
         }
@@ -180,11 +182,11 @@ class FrontDisplayDaemon(
             fd.clear()
 
             val line1 = "  " + menu.text.padEnd(16)
-            launch(exceptionHandler) { fd.setStaticText(0, line1) }
+            launch { fd.setStaticText(0, line1) }
         }
 
         val line2 = "< " + selected.text.padEnd(16) + " >"
-        launch(exceptionHandler) { fd.setStaticText(20, line2) }
+        launch { fd.setStaticText(20, line2) }
     }
 
     abstract class State {
@@ -237,18 +239,15 @@ class FrontDisplayDaemon(
         data class ViewInfoRedrawInstant(val info: ViewInfo) : SideEffect()
     }
 
-    private inline fun <reified S : State.ViewCycle> StateMachine.GraphBuilder<State, Event, SideEffect>.StateDefinitionBuilder<S>.createCommonViewCycleActions(
-        coroutineContext: CoroutineContext
-    ) {
+    private inline fun <reified S : State.ViewCycle> StateMachine.GraphBuilder<State, Event, SideEffect>.StateDefinitionBuilder<S>.createCommonViewCycleActions() {
         on<Event.ButtonPressed> {
             val menu = info.menus.firstOrNull() ?: allMenus.first()
 
-            transitionTo(State.Menu.Overview(menu, runBlocking(coroutineContext) {
-                logger.info { "Going to menu overview: $menu." }
-                val current = menu.loadCurrentOption()
-                drawMenuOverview(menu, current)
-                current
-            }, info))
+            logger.info { "Going to menu overview: $menu." }
+            val current = menu.loadCurrentOption()
+            drawMenuOverview(menu, current)
+
+            transitionTo(State.Menu.Overview(menu, current, info))
         }
 
         on<Event.StatusUpdate> { event ->
@@ -286,16 +285,16 @@ class FrontDisplayDaemon(
         }
     }
 
-    private fun createStateMachineExecutor(coroutineContext: CoroutineContext): StateMachine<State, Event, SideEffect> {
+    private fun createStateMachineExecutor(): StateMachine<State, Event, SideEffect> {
 
         fun launchInBackground(lambda: suspend () -> Unit) =
-            CoroutineScope(coroutineContext).launch(exceptionHandler) { lambda() }
+            workerScope.launch { lambda() }
 
         return StateMachine.create<State, Event, SideEffect> {
             initialState(State.ViewCycle.Auto(views.first()))
 
             state<State.ViewCycle.Manual> {
-                createCommonViewCycleActions(coroutineContext)
+                createCommonViewCycleActions()
 
                 on<Event.Timeout> {
                     logger.info { "Switching to auto mode because of the timeout." }
@@ -304,7 +303,7 @@ class FrontDisplayDaemon(
             }
 
             state<State.ViewCycle.Auto> {
-                createCommonViewCycleActions(coroutineContext)
+                createCommonViewCycleActions()
 
                 on<Event.Timeout> { event ->
                     if (event.now - (info.lastViewed ?: event.now) >= info.view.preferredDisplayTime) {
@@ -330,11 +329,10 @@ class FrontDisplayDaemon(
 
                         else -> {
                             logger.info { "Switching to menu overview: $newMenu." }
-                            transitionTo(State.Menu.Overview(newMenu, runBlocking(coroutineContext) {
-                                val current = newMenu.loadCurrentOption()
-                                drawMenuOverview(newMenu, current)
-                                current
-                            }, calledFrom))
+                            val current = newMenu.loadCurrentOption()
+                            drawMenuOverview(newMenu, current)
+
+                            transitionTo(State.Menu.Overview(newMenu, current, calledFrom))
                         }
                     }
                 }
@@ -348,11 +346,10 @@ class FrontDisplayDaemon(
 
                         else -> {
                             logger.info { "Going to value setting of ${menu}." }
-                            transitionTo(State.Menu.SettingOption(menu, runBlocking(coroutineContext) {
-                                val current = menu.loadCurrentOption()
-                                drawMenuSettingOption(menu, current, true)
-                                current
-                            }, calledFrom))
+                            val current = menu.loadCurrentOption()
+                            drawMenuSettingOption(menu, current, true)
+
+                            transitionTo(State.Menu.SettingOption(menu, current, calledFrom))
                         }
                     }
                 }
@@ -401,7 +398,7 @@ class FrontDisplayDaemon(
             if ((info.lastStatusPool ?: Instant.DISTANT_PAST) + info.view.poolStatusEvery < now) {
                 info.bumpLastStatusAndInstant()
 
-                CoroutineScope(coroutineContext).launch(exceptionHandler) {
+                workerScope.launch {
                     val status = info.view.poolStatusData(now())
                     if (status != UpdateStatus.NO_NEW_DATA) {
                         info.bumpLastSuccessfulStatusUpdate()
@@ -414,7 +411,7 @@ class FrontDisplayDaemon(
                 info.bumpLastInstant()
 
                 if (stateExecutorMutex.withLock { (stateExecutor.state as? State.ViewCycle)?.info } == info) {
-                    CoroutineScope(coroutineContext).launch(exceptionHandler) {
+                    workerScope.launch {
                         val status = info.view.poolInstantData(now())
                         if (status != UpdateStatus.NO_NEW_DATA) {
                             stateExecutorMutex.withLock {

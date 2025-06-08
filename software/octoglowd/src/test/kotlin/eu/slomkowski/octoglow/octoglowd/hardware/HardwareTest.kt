@@ -7,8 +7,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import kotlin.time.ExperimentalTime
 
 
+@OptIn(ExperimentalTime::class)
 class HardwareTest {
 
     companion object {
@@ -26,7 +28,7 @@ class HardwareTest {
         runBlocking {
             createRealHardware().use { hardware ->
                 hardware.frontDisplay.setStaticText(0, LoremIpsum.getInstance().getWords(20).take(39))
-                hardware.clockDisplay.setDisplay(12, 34, true, false)
+                hardware.clockDisplay.setDisplay(12, 34, upperDot = true, lowerDot = false)
 
                 for (b in (0..5)) {
                     logger.info { "Setting brightness to $b." }

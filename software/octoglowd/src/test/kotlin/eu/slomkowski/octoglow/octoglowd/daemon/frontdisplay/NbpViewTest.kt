@@ -102,7 +102,7 @@ class NbpViewTest {
         assertEquals("76.0zł", NbpView.formatZloty(76.0))
         assertEquals("232 zł", NbpView.formatZloty(232.29094))
         assertEquals("3072zł", NbpView.formatZloty(3072.23))
-        assertEquals("10345", NbpView.formatZloty(10345.23323))
+        assertEquals("10k3zł", NbpView.formatZloty(10345.23323))
         assertEquals("----zł", NbpView.formatZloty(null))
     }
 }

@@ -116,11 +116,6 @@ tasks.shadowJar {
 
 
 //    minimize {
-//        exclude(dependency("ch.qos.logback:logback-classic"))
-//        exclude(dependency("io.github.oshai:kotlin-logging-jvm"))
-//
-//        exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
-//
 //        exclude(dependency("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm"))
 //
 //        exclude(dependency("org.jetbrains.kotlinx:kotlinx-datetime-jvm"))
