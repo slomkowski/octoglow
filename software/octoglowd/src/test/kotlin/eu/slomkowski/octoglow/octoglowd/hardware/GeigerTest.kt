@@ -74,15 +74,15 @@ class GeigerTest {
     @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
-            Geiger(hardware).use { geiger ->
-                for (i in 0..5) {
-                    logger.info { "Setting brightness to $i." }
-                    geiger.setBrightness(i)
-                    delay(10_000)
-                }
-
-                geiger.setBrightness(3)
+            val geiger = Geiger(hardware)
+            for (i in 0..5) {
+                logger.info { "Setting brightness to $i." }
+                geiger.setBrightness(i)
+                delay(10_000)
             }
+
+            geiger.setBrightness(3)
+            geiger.closeDevice()
         }
     }
 

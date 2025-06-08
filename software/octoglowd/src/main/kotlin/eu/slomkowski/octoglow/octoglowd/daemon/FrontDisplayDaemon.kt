@@ -12,7 +12,10 @@ import eu.slomkowski.octoglow.octoglowd.hardware.FrontDisplay
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.now
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
@@ -126,6 +129,7 @@ class FrontDisplayDaemon(
     private val stateExecutorMutex = Mutex()
     private val stateExecutor: StateMachine<State, Event, SideEffect>
 
+    @Volatile
     private var lastDialActivity: Instant? = null
 
     init {

@@ -57,6 +57,8 @@ dependencies {
     testImplementation(libs.org.assertj.assertj.core)
     testImplementation(libs.io.mockk.mockk.jvm)
     testImplementation(libs.de.jollyday.jollyday)
+    testImplementation(libs.javax.xml.bind.jaxb.api)
+    testImplementation(libs.org.glassfish.jaxb.jaxb.runtime)
 }
 
 sqldelight {

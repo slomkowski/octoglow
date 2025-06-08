@@ -83,6 +83,7 @@ class SimpleMonitorView(
         }
     }
 
+    @Volatile
     internal var currentReport: CurrentReport? = null
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {

@@ -110,6 +110,8 @@ class CryptocurrencyView(
     )
 
     private val availableCoins: Set<CoinInfoDto> = fillAvailableCryptocurrencies()
+
+    @Volatile
     private var currentReport: CurrentReport? = null
 
     private val coinKeys = config.cryptocurrencies.let { listOf(it.coin1, it.coin2, it.coin3) }

@@ -107,7 +107,15 @@ class Hardware(
     }
 
     override fun close() {
-        allDevices.forEach { it.close() }
+        runBlocking {
+            for (device in allDevices) {
+                try {
+                    device.closeDevice()
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to close device $this." }
+                }
+            }
+        }
     }
 
     suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = withContext(Dispatchers.IO) {

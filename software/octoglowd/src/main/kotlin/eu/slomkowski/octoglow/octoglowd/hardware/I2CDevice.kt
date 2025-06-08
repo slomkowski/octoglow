@@ -3,30 +3,22 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KLogger
-import kotlinx.coroutines.runBlocking
 import kotlin.time.ExperimentalTime
 
-abstract class I2CDevice @OptIn(ExperimentalTime::class) constructor(
+@OptIn(ExperimentalTime::class)
+abstract class I2CDevice(
     private val hardware: Hardware,
     private val i2cAddress: Int,
     private val logger: KLogger,
-) : AutoCloseable {
+) {
 
     init {
         require(i2cAddress in 0..127)
     }
 
-    open suspend fun initDevice() {}
+    abstract suspend fun initDevice()
 
-    open suspend fun closeDevice() {}
-
-    final override fun close() {
-        try {
-            runBlocking { closeDevice() }
-        } catch (e: Exception) {
-            logger.error(e) { "Failed to close device $this." }
-        }
-    }
+    abstract suspend fun closeDevice()
 
     suspend fun doWrite(vararg bytes: Int) {
         val buff = I2CBuffer(bytes.size)

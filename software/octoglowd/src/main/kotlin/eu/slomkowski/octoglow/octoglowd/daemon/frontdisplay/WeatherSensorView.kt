@@ -63,6 +63,7 @@ class WeatherSensorView(
         val outdoorSensor: Pair<Instant, RemoteReport>?
     )
 
+    @Volatile
     var currentReport: CurrentReport? = null
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =

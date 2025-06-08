@@ -15,7 +15,7 @@ class RealTimeClockDaemonTest {
     @Test
     fun testBasic() {
         val hardware = mockk<Hardware>()
-        val d = RealTimeClockDaemon( hardware)
+        val d = RealTimeClockDaemon(hardware)
 
         coEvery { hardware.clockDisplay.setDisplay(any(), any(), any(), any()) } just Runs
 

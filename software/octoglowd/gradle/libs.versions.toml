@@ -3,7 +3,6 @@ kotlin = "2.1.21"
 shadow-plugin = "8.3.6"
 app-cash-sqldelight = "2.1.0"
 
-ch-qos-logback-logback-classic = "1.5.18"
 com-thedeanda-lorem = "2.2"
 de-jollyday-jollyday = "0.5.10"
 io-dvlopt-linux-i2c = "1.0.0"
@@ -18,6 +17,8 @@ org-jetbrains-kotlinx-kotlinx-serialization-json-jvm = "1.8.1"
 org-junit-platform-junit-platform-launcher = "1.12.2"
 org-junit-jupiter-junit = "5.12.2"
 tinylog = "2.7.0"
+org-glassfish-jaxb-jaxb-runtime = "2.3.1"
+javax-xml-bind-jaxb-api = "2.3.1"
 
 [libraries]
 org-tinylog-tinylog-api-kotlin = { module = "org.tinylog:tinylog-api-kotlin", version.ref = "tinylog" }
@@ -44,3 +45,5 @@ org-junit-jupiter-junit-jupiter-api = { module = "org.junit.jupiter:junit-jupite
 org-junit-jupiter-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "org-junit-jupiter-junit" }
 org-junit-jupiter-junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "org-junit-jupiter-junit" }
 app-cash-sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "app-cash-sqldelight" }
+org-glassfish-jaxb-jaxb-runtime = { module = "org.glassfish.jaxb:jaxb-runtime", version.ref = "org-glassfish-jaxb-jaxb-runtime" }
+javax-xml-bind-jaxb-api = { module = "javax.xml.bind:jaxb-api", version.ref = "javax-xml-bind-jaxb-api" }

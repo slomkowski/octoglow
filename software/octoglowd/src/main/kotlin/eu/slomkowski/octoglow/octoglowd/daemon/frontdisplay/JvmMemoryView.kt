@@ -2,7 +2,6 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
 import com.sun.management.OperatingSystemMXBean
-import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.now
 import io.github.oshai.kotlinlogging.KotlinLogging

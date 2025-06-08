@@ -97,7 +97,7 @@ sealed class Holiday {
 }
 
 // as of 2023-11-07
-val holidayMap = mapOf(
+private val holidayMap = mapOf(
     "PL" to listOf(
         Holiday.Fixed(Month.JANUARY, 1, "New Year"),
         Holiday.Fixed(Month.JANUARY, 6, "Epiphany"),
@@ -115,10 +115,12 @@ val holidayMap = mapOf(
     )
 )
 
+fun holidayNamesSupportCountryCode(countryCode: String): Boolean = holidayMap.containsKey(countryCode)
+
 /**
  * @return holiday name if given day is a holiday, null otherwise
  */
-fun determineHolidayNamesForDay(date: LocalDate, country: String): Set<String> {
-    val countryHolidays = requireNotNull(holidayMap[country.uppercase()]) { "unsupported country: $country" }
+fun determineHolidayNamesForDay(date: LocalDate, countryCode: String): Set<String> {
+    val countryHolidays = requireNotNull(holidayMap[countryCode.uppercase()]) { "unsupported country: $countryCode" }
     return countryHolidays.filter { it.calculateDate(date.year) == date }.map { it.name }.toSet()
 }

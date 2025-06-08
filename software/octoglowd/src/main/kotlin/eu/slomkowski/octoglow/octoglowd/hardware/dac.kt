@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.runBlocking
 import kotlin.time.ExperimentalTime
 
 enum class DacChannel(val number: Int) {
@@ -16,10 +15,8 @@ class Dac(hardware: Hardware) : I2CDevice(hardware, 0x4f, logger) {
         private val logger = KotlinLogging.logger {}
     }
 
-    init {
-        runBlocking {
-            setToZero()
-        }
+    override suspend fun initDevice() {
+        setToZero()
     }
 
     override suspend fun closeDevice() {

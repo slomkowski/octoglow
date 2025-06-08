@@ -41,11 +41,9 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
         private const val MAX_VALUES_IN_CHART = 5 * 20
     }
 
-    init {
-        runBlocking {
-            clear()
-            setBrightness(3)
-        }
+    override suspend fun initDevice() {
+        clear()
+        setBrightness(3)
     }
 
     override suspend fun closeDevice() {
@@ -148,7 +146,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
                     2 -> 0b1110
                     3 -> 0b1111
                     null -> 0b1000001
-                    else -> throw IllegalStateException()
+                    else -> error("Unexpected state encountered")
                 }
             }
             .plus(0b0001000)
@@ -207,7 +205,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
                 255 -> ButtonState.JUST_RELEASED
                 1 -> ButtonState.JUST_PRESSED
                 0 -> ButtonState.NO_CHANGE
-                else -> throw IllegalStateException("invalid button state value: ${readBuffer[1]}")
+                else -> error("invalid button state value: ${readBuffer[1]}")
             }, if (readBuffer[0] <= 127) {
                 readBuffer[0]
             } else {

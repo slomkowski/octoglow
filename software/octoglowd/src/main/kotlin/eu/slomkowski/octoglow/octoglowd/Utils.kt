@@ -23,6 +23,7 @@ const val DEGREE: Char = '\u00B0'
 
 val WARSAW_ZONE_ID: TimeZone = TimeZone.of("Europe/Warsaw")
 
+val MANY_WHITESPACES_REGEX =  Regex("\\s+")
 
 val jsonSerializer = kotlinx.serialization.json.Json {
     prettyPrint = true

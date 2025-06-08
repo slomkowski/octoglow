@@ -4,6 +4,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.calendar.determineHolidayNamesForDay
 import eu.slomkowski.octoglow.octoglowd.calendar.determineNamedaysFor
+import eu.slomkowski.octoglow.octoglowd.calendar.holidayNamesSupportCountryCode
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -82,13 +83,14 @@ class CalendarView(
         }
     }
 
+    private val countryCode = config.countryCode.uppercase()
+
     init {
-        val locale = config.locale
-        logger.info { "Initializing calendar for $locale." }
+        require(holidayNamesSupportCountryCode(countryCode)) { "unsupported country: $countryCode" }
+        logger.info { "Initializing calendar for $countryCode." }
     }
 
     fun getInfoForDay(day: LocalDate): String {
-        val countryCode = config.locale.country.uppercase()
         val holidayNames = determineHolidayNamesForDay(day, countryCode).map { it.uppercase() }.takeIf { it.isNotEmpty() }
         val names = determineNamedaysFor(day, countryCode).takeIf { it.isNotEmpty() }
 

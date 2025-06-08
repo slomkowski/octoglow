@@ -86,14 +86,15 @@ class FrontDisplayTest {
     @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
-            FrontDisplay(hardware).use { frontDisplay ->
-                frontDisplay.setStaticText(0, LoremIpsum.getInstance().getTitle(10).substring(0..39))
+            val frontDisplay = FrontDisplay(hardware)
+            frontDisplay.setStaticText(0, LoremIpsum.getInstance().getTitle(10).substring(0..39))
 
-                for (i in 0..5) {
-                    frontDisplay.setBrightness(i)
-                    delay(1000)
-                }
+            for (i in 0..5) {
+                frontDisplay.setBrightness(i)
+                delay(1000)
             }
+
+            frontDisplay.closeDevice()
         }
     }
 

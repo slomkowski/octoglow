@@ -119,6 +119,10 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightn
         private const val I2C_READ_TRIES = 5
     }
 
+    override suspend fun initDevice() {
+        // nothing to do
+    }
+
     override suspend fun closeDevice() {
         setBrightness(3)
     }
@@ -128,13 +132,13 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightn
         doWrite(7, brightness)
     }
 
-    suspend fun getDeviceState(): GeigerDeviceState = trySeveralTimes(I2C_READ_TRIES, logger,"getDeviceState()") {
+    suspend fun getDeviceState(): GeigerDeviceState = trySeveralTimes(I2C_READ_TRIES, logger, "getDeviceState()") {
         val readBuffer = doTransaction(listOf(1), GeigerDeviceState.SIZE_IN_BYTES)
         logger.trace { "Device state buffer: ${readBuffer.contentToString()}." }
         GeigerDeviceState.parse(readBuffer)
     }
 
-    suspend fun getCounterState(): GeigerCounterState = trySeveralTimes(I2C_READ_TRIES, logger,"getCounterState()") {
+    suspend fun getCounterState(): GeigerCounterState = trySeveralTimes(I2C_READ_TRIES, logger, "getCounterState()") {
         val readBuffer = doTransaction(listOf(2), GeigerCounterState.SIZE_IN_BYTES)
         logger.trace { "Counter state buffer: ${readBuffer.contentToString()}." }
         GeigerCounterState.parse(readBuffer)

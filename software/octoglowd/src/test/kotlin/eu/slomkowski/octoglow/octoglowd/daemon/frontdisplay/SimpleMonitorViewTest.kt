@@ -6,7 +6,6 @@ import eu.slomkowski.octoglow.octoglowd.now
 import eu.slomkowski.octoglow.octoglowd.readToString
 import eu.slomkowski.octoglow.octoglowd.testConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant

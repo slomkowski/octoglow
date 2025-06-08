@@ -99,6 +99,7 @@ class AirQualityView(
             }
     }
 
+    @Volatile
     private var currentReport: CurrentReport? = null
 
     companion object {
@@ -109,14 +110,14 @@ class AirQualityView(
         suspend fun retrieveAirQualityData(stationId: Long): AirQualityDto {
             require(stationId > 0)
 
-            logger.debug("Downloading currency rates for station {}.", stationId)
+            logger.debug { "Downloading currency rates for station $stationId." }
             val url = "https://api.gios.gov.pl/pjp-api/rest/aqindex/getIndex/$stationId"
 
             val resp: AirQualityDto = httpClient.get(url).body()
 
             check(resp.stIndexStatus) { "no air quality index for station ${resp.id}" }
             checkNotNull(resp.stIndexLevel.level) { "no air quality index for station ${resp.id}" }
-            logger.debug("Air quality is {}.", resp)
+            logger.debug { "Air quality is $resp." }
 
             return resp
         }
@@ -133,7 +134,7 @@ class AirQualityView(
 
         AirQualityReport(station.name, checkNotNull(dto.stIndexLevel.level), value, history)
     } catch (e: Exception) {
-        logger.error("Failed to update air quality of station ${station.id}.", e)
+        logger.error(e) { "Failed to update air quality of station ${station.id}." }
         null
     }
 

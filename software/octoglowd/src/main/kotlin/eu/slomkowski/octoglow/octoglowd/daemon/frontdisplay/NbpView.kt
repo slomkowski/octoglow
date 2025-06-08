@@ -158,6 +158,7 @@ class NbpView(
         check(it.length == 3) { "invalid currency code $it" }
     }
 
+    @Volatile
     private var currentReport: CurrentReport? = null
 
     private suspend fun drawCurrencyInfo(cr: SingleCurrencyReport?, offset: Int, diffChartStep: Double) {

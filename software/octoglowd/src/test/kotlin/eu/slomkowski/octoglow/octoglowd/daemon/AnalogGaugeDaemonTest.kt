@@ -28,7 +28,7 @@ class AnalogGaugeDaemonTest {
     @Test
     fun testBasic() {
         val hardware = mockk<Hardware>()
-        val d = AnalogGaugeDaemon( hardware)
+        val d = AnalogGaugeDaemon(hardware)
 
         val dacValueSlot = slot<Int>()
         coEvery { hardware.dac.setValue(any(), capture(dacValueSlot)) } answers {

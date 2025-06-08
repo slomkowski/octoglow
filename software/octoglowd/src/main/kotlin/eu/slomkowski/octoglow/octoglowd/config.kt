@@ -88,8 +88,7 @@ data class Config(
     val i2cBus: Int,
     val databaseFile: Path = Paths.get("data.db"),
 
-    @Serializable(LocaleSerializer::class)
-    val locale: Locale = Locale("pl", "PL"),
+    val countryCode: String = "PL",
 
     // When the dial is used, the device goes to manual mode. After this timeout, it switches back to automatic views cycling.
     val viewAutomaticCycleTimeout: Duration = 40.seconds,

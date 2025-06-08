@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
 import eu.slomkowski.octoglow.octoglowd.Config
+import eu.slomkowski.octoglow.octoglowd.MANY_WHITESPACES_REGEX
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.readToString
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -70,6 +71,7 @@ class NetworkView(
         val gwPing: Duration?
     )
 
+    @Volatile
     private var currentReport: CurrentReport? = null
 
     companion object {
@@ -105,7 +107,7 @@ class NetworkView(
         }
 
         fun parseProcNetRouteFile(reader: BufferedReader): List<RouteEntry> = reader.lines().skip(1).map { line ->
-            val columns = line.trim().split(Regex("\\s+"))
+            val columns = line.trim().split(MANY_WHITESPACES_REGEX)
 
             RouteEntry(
                 createIpFromHexString(columns[1].trim()),
@@ -153,9 +155,10 @@ class NetworkView(
             return parsePingOutput(output.toString())
         }
 
+        private val packetRegex = Regex("(\\d+) packets transmitted, (\\d+) received")
+        private val rttRegex = Regex("rtt min/avg/max/mdev = (\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+) ms")
+
         fun parsePingOutput(text: String): PingResult {
-            val packetRegex = Regex("(\\d+) packets transmitted, (\\d+) received")
-            val rttRegex = Regex("rtt min/avg/max/mdev = (\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+) ms")
 
             val (packetsTransmitted, packetsReceived) = checkNotNull(packetRegex.find(text))
             { "info about packet numbers not found in ping output" }.groupValues.let {

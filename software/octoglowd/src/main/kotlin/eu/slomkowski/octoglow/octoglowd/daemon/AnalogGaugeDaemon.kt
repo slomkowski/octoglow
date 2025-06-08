@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.sun.management.OperatingSystemMXBean
+import eu.slomkowski.octoglow.octoglowd.MANY_WHITESPACES_REGEX
 import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -40,7 +41,7 @@ class AnalogGaugeDaemon(
 
         fun parseProcNetWirelessFile(reader: BufferedReader): List<WifiSignalInfo> =
             reader.lines().skip(2).map { line ->
-                val columns = line.trim().split(Regex("\\s+"))
+                val columns = line.trim().split(MANY_WHITESPACES_REGEX)
 
                 WifiSignalInfo(
                     columns[0].trim(':'),
