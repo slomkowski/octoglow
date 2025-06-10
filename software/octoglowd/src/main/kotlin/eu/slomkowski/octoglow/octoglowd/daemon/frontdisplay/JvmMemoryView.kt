@@ -11,6 +11,7 @@ import kotlinx.datetime.Instant
 import java.lang.management.ManagementFactory
 import java.lang.management.ThreadMXBean
 import kotlin.math.min
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -24,8 +25,9 @@ class JvmMemoryView(
     "JVM Memory",
     10.minutes,
     1.seconds, //todo
-    5.seconds,
 ) {
+    override val preferredDisplayTime: Duration = 5.seconds
+
     private val operatingSystemMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
     private val threadBean: ThreadMXBean = ManagementFactory.getThreadMXBean()
 

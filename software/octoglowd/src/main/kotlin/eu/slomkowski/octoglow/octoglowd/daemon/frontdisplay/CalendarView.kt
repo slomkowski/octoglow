@@ -26,8 +26,9 @@ class CalendarView(
     "Calendar",
     3.minutes,
     1.minutes,
-    20.seconds
 ) {
+    override val preferredDisplayTime = 20.seconds
+
     companion object {
         private val logger = KotlinLogging.logger {}
 

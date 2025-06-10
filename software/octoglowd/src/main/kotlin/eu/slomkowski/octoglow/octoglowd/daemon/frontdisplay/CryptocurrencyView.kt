@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -28,8 +29,8 @@ class CryptocurrencyView(
     "Cryptocurrencies",
     10.minutes,
     15.seconds,
-    13.seconds
 ) {
+    override val preferredDisplayTime: Duration = 13.seconds
 
     companion object {
         private val logger = KotlinLogging.logger {}

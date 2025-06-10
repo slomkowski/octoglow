@@ -30,8 +30,8 @@ class NbpView(
     "NBP exchange rates",
     10.minutes,
     15.seconds,
-    13.seconds
 ) {
+    override val preferredDisplayTime = 13.seconds
 
     interface DatedPrice {
         val date: LocalDate

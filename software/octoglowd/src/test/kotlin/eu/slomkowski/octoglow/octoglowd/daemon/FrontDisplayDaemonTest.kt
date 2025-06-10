@@ -31,8 +31,8 @@ class FrontDisplayDaemonTest {
         name,
         10.seconds,
         1.seconds,
-        7.seconds
     ) {
+        override val preferredDisplayTime = 7.seconds
 
         override suspend fun poolStatusData(now: Instant): UpdateStatus {
             logger.info { "Call poolStatusData." }

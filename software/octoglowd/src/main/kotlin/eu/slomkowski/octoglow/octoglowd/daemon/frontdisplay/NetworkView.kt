@@ -32,8 +32,8 @@ class NetworkView(
     "Network",
     38.seconds,
     37.seconds,
-    5.seconds
 ) {
+    override val preferredDisplayTime: Duration = 5.seconds
 
     data class RouteEntry(
         val dst: InetAddress,

@@ -18,6 +18,8 @@ import org.apache.commons.lang3.StringUtils
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.util.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
@@ -30,7 +32,6 @@ class SimpleMonitorView(
     "SimpleMonitor",
     90.seconds,
     15.seconds,
-    8.seconds
 ) {
 
     @Serializable
@@ -82,6 +83,12 @@ class SimpleMonitorView(
             }
         }
     }
+
+    override val preferredDisplayTime: Duration
+        get() {
+            val noFailedMonitors = currentReport?.data?.monitors?.filterValues { it.status == MonitorStatus.FAIL }?.count() ?: 0
+            return (1500.milliseconds * noFailedMonitors).coerceIn(5.seconds, 60.seconds)
+        }
 
     @Volatile
     internal var currentReport: CurrentReport? = null

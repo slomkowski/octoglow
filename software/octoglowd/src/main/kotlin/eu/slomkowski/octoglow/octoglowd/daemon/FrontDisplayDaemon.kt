@@ -10,15 +10,10 @@ import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.FrontDisplay
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.now
+import eu.slomkowski.octoglow.octoglowd.toKotlinxDatetimeInstant
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Instant
+import kotlinx.coroutines.*
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
@@ -29,6 +24,7 @@ class FrontDisplayDaemon(
     private val hardware: Hardware,
     frontDisplayViews: List<FrontDisplayView>,
     additionalMenus: List<Menu>,
+    private val clock: Clock = Clock.System,
 ) : Daemon(logger, 20.milliseconds) {
 
     companion object {
@@ -48,11 +44,10 @@ class FrontDisplayDaemon(
             override suspend fun saveCurrentOption(current: MenuOption) = throw IllegalStateException()
         }
 
-        fun getMostSuitableViewInfo(views: Collection<ViewInfo>): ViewInfo {
+        fun getMostSuitableViewInfo(clock: Clock, views: Collection<ViewInfo>): ViewInfo {
             return checkNotNull(views.maxByOrNull {
-                val v1 = ((it.lastSuccessfulStatusUpdate ?: Instant.DISTANT_PAST) - (it.lastViewed
-                    ?: Instant.DISTANT_PAST)).inWholeMilliseconds
-                val v2 = (now() - (it.lastViewed ?: Instant.DISTANT_PAST)).inWholeMilliseconds
+                val v1 = (it.lastSuccessfulStatusUpdate - it.lastViewed).inWholeMicroseconds
+                val v2 = (clock.now() - it.lastViewed).inWholeMicroseconds
 
                 30 * v1 + 50 * v2
             })
@@ -60,77 +55,76 @@ class FrontDisplayDaemon(
     }
 
     data class ViewInfo(
+        private val clock: Clock,
         private val workerScope: CoroutineScope,
         private val frontDisplay: FrontDisplay,
         val view: FrontDisplayView,
     ) {
 
         @Volatile
-        var lastViewed: Instant? = null
+        var lastViewed: kotlin.time.Instant = kotlin.time.Instant.DISTANT_PAST
             private set
 
         @Volatile
-        var lastSuccessfulStatusUpdate: Instant? = null
+        var lastSuccessfulStatusUpdate: kotlin.time.Instant = kotlin.time.Instant.DISTANT_PAST
             private set
 
         @Volatile
-        var lastStatusPool: Instant? = null
+        var lastStatusPool: kotlin.time.Instant = kotlin.time.Instant.DISTANT_PAST
             private set
 
         @Volatile
-        var lastInstantPool: Instant? = null
+        var lastInstantPool: kotlin.time.Instant = kotlin.time.Instant.DISTANT_FUTURE
             private set
 
         val menus = view.getMenus()
 
         override fun toString(): String = view.toString()
 
-        fun bumpLastStatusAndInstant() = now().let {
+        fun bumpLastStatusAndInstant() = clock.now().let {
             lastStatusPool = it
             lastInstantPool = it
         }
 
         fun bumpLastInstant() {
-            lastInstantPool = now()
+            lastInstantPool = clock.now()
         }
 
         fun bumpLastSuccessfulStatusUpdate() {
-            lastSuccessfulStatusUpdate = now()
+            lastSuccessfulStatusUpdate = clock.now()
         }
 
         suspend fun redrawAll() {
-            lastViewed = now()
+            val now = clock.now()
+            lastViewed = now
             logger.debug { "Redrawing $view." }
             frontDisplay.clear()
-            view.redrawDisplay(true, true, now())
+            view.redrawDisplay(redrawStatic = true, redrawStatus = true, now = now.toKotlinxDatetimeInstant())
         }
 
         fun redrawStatus() {
-            lastViewed = now()
+            val now = clock.now()
+            lastViewed = now
             workerScope.launch {
                 logger.debug { "Updating state of active $view." }
-                view.redrawDisplay(false, true, now())
+                view.redrawDisplay(redrawStatic = false, redrawStatus = true, now = now.toKotlinxDatetimeInstant())
             }
         }
 
         fun redrawInstant() {
             workerScope.launch {
                 logger.debug { "Updating instant of $view." }
-                view.redrawDisplay(false, false, now())
+                view.redrawDisplay(redrawStatic = false, redrawStatus = false, now = clock.now().toKotlinxDatetimeInstant())
             }
         }
     }
 
     private val views =
-        frontDisplayViews.map { ViewInfo(workerScope, hardware.frontDisplay, it) }
+        frontDisplayViews.map { ViewInfo(clock, workerScope, hardware.frontDisplay, it) }
 
     private val allMenus = additionalMenus.plus(views.flatMap { it.menus }).plus(exitMenu)
 
-    private val stateExecutorMutex = Mutex()
     private val stateExecutor: StateMachine<State, Event, SideEffect>
-
-    @Volatile
-    private var lastDialActivity: Instant? = null
 
     init {
         require(frontDisplayViews.isNotEmpty())
@@ -222,7 +216,7 @@ class FrontDisplayDaemon(
     sealed class Event {
         data object ButtonPressed : Event()
 
-        data class Timeout(val now: Instant) : Event()
+        data class Timeout(val now: kotlin.time.Instant) : Event()
 
         data class EncoderDelta(val delta: Int) : Event()
 
@@ -291,9 +285,6 @@ class FrontDisplayDaemon(
 
     private fun createStateMachineExecutor(): StateMachine<State, Event, SideEffect> {
 
-        fun launchInBackground(lambda: suspend () -> Unit) =
-            workerScope.launch { lambda() }
-
         return StateMachine.create<State, Event, SideEffect> {
             initialState(State.ViewCycle.Auto(views.first()))
 
@@ -311,7 +302,7 @@ class FrontDisplayDaemon(
 
                 on<Event.Timeout> { event ->
                     if (event.now - (info.lastViewed ?: event.now) >= info.view.preferredDisplayTime) {
-                        val newView = getMostSuitableViewInfo(views)
+                        val newView = getMostSuitableViewInfo(clock, views)
                         logger.info { "Going to view $newView because of timeout." }
                         transitionTo(State.ViewCycle.Auto(newView), SideEffect.ViewInfoRedrawAll(this.info))
                     } else {
@@ -327,7 +318,7 @@ class FrontDisplayDaemon(
                     when (val newMenu = getNeighbourMenu(this.menu, event.delta)) {
                         exitMenu -> {
                             logger.info { "Switching to exit menu." }
-                            launchInBackground { drawExitMenu() }
+                            workerScope.launch { drawExitMenu() }
                             transitionTo(State.Menu.Overview(exitMenu, exitMenu.options.first(), calledFrom))
                         }
 
@@ -364,7 +355,7 @@ class FrontDisplayDaemon(
 
                 on<Event.ButtonPressed> {
                     logger.info { "Setting value of $menu to $current." }
-                    launchInBackground {
+                    workerScope.launch {
                         menu.saveCurrentOption(current)
                         drawMenuOverview(menu, current)
                     }
@@ -375,7 +366,7 @@ class FrontDisplayDaemon(
                     val newOption = getNeighbourMenuOption(menu, current, event.delta)
                     logger.debug { "Changing visible menu option $current to $newOption." }
 
-                    launchInBackground {
+                    workerScope.launch {
                         drawMenuSettingOption(menu, newOption, false)
                     }
 
@@ -397,60 +388,57 @@ class FrontDisplayDaemon(
         }
     }
 
-    private suspend fun poolStatusAndInstant(now: Instant) {
+    private suspend fun poolStatusAndInstant(now: kotlin.time.Instant) = coroutineScope {
         for (info in views) {
-            if ((info.lastStatusPool ?: Instant.DISTANT_PAST) + info.view.poolStatusEvery < now) {
+            if (info.lastStatusPool + info.view.poolStatusEvery < now) {
                 info.bumpLastStatusAndInstant()
 
-                workerScope.launch {
-                    val status = info.view.poolStatusData(now())
+                launch {
+                    val status = info.view.poolStatusData(clock.now().toKotlinxDatetimeInstant())
                     if (status != UpdateStatus.NO_NEW_DATA) {
                         info.bumpLastSuccessfulStatusUpdate()
-                        stateExecutorMutex.withLock {
-                            stateExecutor.transition(Event.StatusUpdate(info, status))
-                        }
+                        stateExecutor.transition(Event.StatusUpdate(info, status))
                     }
                 }
-            } else if (((info.lastInstantPool ?: Instant.DISTANT_FUTURE) + info.view.poolInstantEvery) < now) {
+            } else if ((info.lastInstantPool + info.view.poolInstantEvery) < now) {
                 info.bumpLastInstant()
 
-                if (stateExecutorMutex.withLock { (stateExecutor.state as? State.ViewCycle)?.info } == info) {
-                    workerScope.launch {
-                        val status = info.view.poolInstantData(now())
+                if ((stateExecutor.state as? State.ViewCycle)?.info == info) {
+                    launch {
+                        val status = info.view.poolInstantData(clock.now().toKotlinxDatetimeInstant())
                         if (status != UpdateStatus.NO_NEW_DATA) {
-                            stateExecutorMutex.withLock {
-                                stateExecutor.transition(Event.InstantUpdate(info, status))
-                            }
+                            stateExecutor.transition(Event.InstantUpdate(info, status))
                         }
                     }
                 }
+            } else {
+                yield()
             }
         }
     }
 
+    @Volatile
+    private var lastDialActivity: kotlin.time.Instant = kotlin.time.Instant.DISTANT_PAST
+
     override suspend fun pool() {
         val buttonState = hardware.frontDisplay.getButtonReport()
-        val now = now()
+        val now = clock.now()
 
         when {
             buttonState.button == ButtonState.JUST_RELEASED -> {
                 lastDialActivity = now
-                stateExecutorMutex.withLock { stateExecutor.transition(Event.ButtonPressed) }
+                stateExecutor.transition(Event.ButtonPressed)
             }
 
             buttonState.encoderDelta != 0 -> {
                 lastDialActivity = now
-                stateExecutorMutex.withLock { stateExecutor.transition(Event.EncoderDelta(buttonState.encoderDelta)) }
+                stateExecutor.transition(Event.EncoderDelta(buttonState.encoderDelta))
             }
 
             else -> {
                 // timeout
-                if (now - (lastDialActivity
-                        ?: Instant.DISTANT_PAST) > config.viewAutomaticCycleTimeout
-                ) {
-                    stateExecutorMutex.withLock {
-                        stateExecutor.transition(Event.Timeout(now))
-                    }
+                if ((now - lastDialActivity) > config.viewAutomaticCycleTimeout) {
+                    stateExecutor.transition(Event.Timeout(now))
                 }
                 poolStatusAndInstant(now)
             }

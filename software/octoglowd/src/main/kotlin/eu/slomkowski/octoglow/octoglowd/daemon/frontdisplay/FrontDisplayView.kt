@@ -29,7 +29,6 @@ abstract class FrontDisplayView(
     val name: String,
     val poolStatusEvery: kotlin.time.Duration,
     val poolInstantEvery: kotlin.time.Duration,
-    val preferredDisplayTime: kotlin.time.Duration
 ) {
 
     init {
@@ -38,6 +37,8 @@ abstract class FrontDisplayView(
         check(poolInstantEvery.isPositive())
         check(poolStatusEvery > poolInstantEvery)
     }
+
+    abstract val preferredDisplayTime: kotlin.time.Duration
 
     open fun getMenus(): List<Menu> = emptyList()
 

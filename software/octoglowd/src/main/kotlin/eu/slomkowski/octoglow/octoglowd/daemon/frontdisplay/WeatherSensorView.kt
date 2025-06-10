@@ -25,8 +25,9 @@ class WeatherSensorView(
     "Weather sensor view",
     5.seconds,
     2.seconds,
-    12.seconds,
 ) {
+    override val preferredDisplayTime: Duration = 12.seconds
+
     companion object {
         private val logger = KotlinLogging.logger {}
 

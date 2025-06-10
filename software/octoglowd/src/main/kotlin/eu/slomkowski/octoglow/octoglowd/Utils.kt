@@ -9,21 +9,18 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.delay
 import kotlinx.datetime.*
-import kotlinx.datetime.TimeZone
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.util.*
 import kotlin.math.*
 import kotlin.time.DurationUnit
+import kotlin.time.ExperimentalTime
 
 
 const val DEGREE: Char = '\u00B0'
 
 val WARSAW_ZONE_ID: TimeZone = TimeZone.of("Europe/Warsaw")
 
-val MANY_WHITESPACES_REGEX =  Regex("\\s+")
+val MANY_WHITESPACES_REGEX = Regex("\\s+")
 
 val jsonSerializer = kotlinx.serialization.json.Json {
     prettyPrint = true
@@ -40,14 +37,6 @@ val httpClient = HttpClient(CIO) {
     install(ContentNegotiation) {
         json(jsonSerializer)
     }
-}
-
-fun LocalDate.toCalendar() = Calendar.getInstance().also {
-    val zonedDateTime: ZonedDateTime = this.toJavaLocalDate().atStartOfDay(ZoneId.systemDefault())
-    val instant = zonedDateTime.toInstant()
-    val date = Date.from(instant)
-    val calendar = Calendar.getInstance()
-    calendar.time = date
 }
 
 /**
@@ -187,3 +176,6 @@ fun LocalDateTime.toLocalTime() = LocalTime(hour, minute, second, nanosecond)
 fun now(): Instant = Clock.System.now()
 
 fun LocalTime.formatJustHoursMinutes() = "${hour.toString().padStart(2, ' ')}:${minute.toString().padStart(2, '0')}"
+
+@OptIn(ExperimentalTime::class)
+fun kotlin.time.Instant.toKotlinxDatetimeInstant(): Instant = Instant.fromEpochSeconds(this.epochSeconds, this.nanosecondsOfSecond)
