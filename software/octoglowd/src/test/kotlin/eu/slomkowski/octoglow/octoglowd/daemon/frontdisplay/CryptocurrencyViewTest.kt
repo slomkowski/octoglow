@@ -1,23 +1,27 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.CryptocurrenciesKey
+
+import eu.slomkowski.octoglow.octoglowd.ConfCryptocurrencies
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.now
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 class CryptocurrencyViewTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testCoinpaprikaMethods() {
@@ -39,17 +43,14 @@ class CryptocurrencyViewTest {
         assertEquals("$232.3", CryptocurrencyView.formatDollars(232.29094))
         assertEquals("$3072", CryptocurrencyView.formatDollars(3072.23))
         assertEquals("$10345", CryptocurrencyView.formatDollars(10345.23323))
+        assertEquals("$101k", CryptocurrencyView.formatDollars(100525.4321))
         assertEquals("$-----", CryptocurrencyView.formatDollars(null))
     }
 
     @Test
     fun testView() {
-        val config = Config {
-            addSpec(CryptocurrenciesKey)
-            set(CryptocurrenciesKey.coin1, "BTC")
-            set(CryptocurrenciesKey.coin2, "ETH")
-            set(CryptocurrenciesKey.coin3, "EOS")
-        }
+        val config = defaultTestConfig.copy(cryptocurrencies = ConfCryptocurrencies(coin1 = "BTC", coin2 = "ETH", coin3 = "EOS"))
+
         val db = mockk<DatabaseLayer>()
         val hardware = mockk<Hardware>()
 

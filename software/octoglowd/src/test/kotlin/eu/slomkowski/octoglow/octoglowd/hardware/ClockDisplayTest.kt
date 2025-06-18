@@ -2,22 +2,24 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import io.dvlopt.linux.i2c.I2CBuffer
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import java.time.Duration
 import kotlin.test.*
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class ClockDisplayTest {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val DELTA = 0.05
     }
 
@@ -31,6 +33,7 @@ class ClockDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testGetOutdoorWeatherReport(hardware: Hardware) {
         runBlocking {
             ClockDisplay(hardware).apply {
@@ -85,6 +88,7 @@ class ClockDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
             ClockDisplay(hardware).apply {
@@ -98,6 +102,7 @@ class ClockDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetDisplay(hardware: Hardware) {
         runBlocking {
             ClockDisplay(hardware).apply {
@@ -109,18 +114,7 @@ class ClockDisplayTest {
     }
 
     @Test
-    @Disabled("ringing is scary, so only done when explicitly needed")
-    fun testRingBell(hardware: Hardware) {
-        runBlocking {
-            ClockDisplay(hardware).apply {
-                ringBell(Duration.ofMillis(100))
-                delay(1000)
-                ringBell(Duration.ofMillis(500))
-            }
-        }
-    }
-
-    @Test
+    @Tag("hardware")
     @Disabled("persistent displaying new reports")
     fun testConstantReportsReceiving(hardware: Hardware) {
         runBlocking {

@@ -1,9 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import eu.slomkowski.octoglow.octoglowd.ConfKey
-import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.readToString
-import mu.KLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -12,25 +11,23 @@ import java.io.InputStreamReader
 import java.net.InetAddress
 import java.nio.charset.StandardCharsets
 import kotlin.test.assertFails
-import kotlin.time.ExperimentalTime
-import kotlin.time.milliseconds
-import kotlin.time.nanoseconds
-import kotlin.time.seconds
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.nanoseconds
+import kotlin.time.Duration.Companion.seconds
 
-@ExperimentalTime
+
 internal class NetworkViewTest {
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testPingAddress() {
-        val config = com.uchuhimo.konf.Config {
-            addSpec(ConfKey)
-            addSpec(NetworkViewKey)
-        }
+        val pingBinary = defaultTestConfig.networkInfo.pingBinary
 
         val active = checkNotNull(NetworkView.getActiveInterfaceInfo())
 
-        NetworkView.pingAddressAndGetRtt(config[NetworkViewKey.pingBinary], active.name, "1.1.1.1", 5.seconds, 4)
+        NetworkView.pingAddressAndGetRtt(pingBinary, active.name, "1.1.1.1", 5.seconds, 4)
             .apply {
                 assertNotNull(this)
                 logger.info { "Ping stats: $this" }
@@ -38,7 +35,7 @@ internal class NetworkViewTest {
 
         assertFails {
             NetworkView.pingAddressAndGetRtt(
-                config[NetworkViewKey.pingBinary],
+                pingBinary,
                 active.name,
                 "254.254.254.254",
                 3.seconds,

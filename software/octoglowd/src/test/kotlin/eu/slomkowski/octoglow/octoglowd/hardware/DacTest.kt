@@ -1,28 +1,30 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class DacTest {
 
-    companion object : KLogging()
-
     @Test
+    @Tag("hardware")
     fun testOut2Max(hardware: Hardware) {
         testOut2(hardware, (255).toInt())
     }
 
     @Test
+    @Tag("hardware")
     fun testOut2Half(hardware: Hardware) {
         testOut2(hardware, (127).toInt())
     }
 
     @Test
+    @Tag("hardware")
     fun testOut2Zero(hardware: Hardware) {
         testOut2(hardware, 0)
     }

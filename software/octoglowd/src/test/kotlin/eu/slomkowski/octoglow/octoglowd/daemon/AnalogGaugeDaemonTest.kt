@@ -2,11 +2,11 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 
 import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDaemon.Companion.parseProcNetWirelessFile
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.Assert
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -15,17 +15,20 @@ import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 class AnalogGaugeDaemonTest {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val DELTA = 0.01
     }
 
     @Test
     fun testBasic() {
         val hardware = mockk<Hardware>()
-        val d = AnalogGaugeDaemon(mockk(), hardware)
+        val d = AnalogGaugeDaemon(hardware)
 
         val dacValueSlot = slot<Int>()
         coEvery { hardware.dac.setValue(any(), capture(dacValueSlot)) } answers {

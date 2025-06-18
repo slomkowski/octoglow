@@ -4,15 +4,11 @@ import eu.slomkowski.octoglow.octoglowd.ChangeableSetting
 import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
 import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import kotlinx.datetime.toKotlinInstant
-import mu.KLogging
-import java.time.ZonedDateTime
 import kotlin.time.ExperimentalTime
-import kotlin.time.toJavaDuration
-import kotlin.time.toKotlinDuration
 
 enum class UpdateStatus {
     NO_NEW_DATA,
@@ -26,13 +22,13 @@ enum class UpdateStatus {
  * status - values provided by the view, updatable usually once a minute or so.
  * instant - exact state of the processing on the device, updatable once every several seconds.
  */
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 abstract class FrontDisplayView(
     val hardware: Hardware,
     val name: String,
     val poolStatusEvery: kotlin.time.Duration,
     val poolInstantEvery: kotlin.time.Duration,
-    val preferredDisplayTime: kotlin.time.Duration
 ) {
 
     init {
@@ -41,6 +37,8 @@ abstract class FrontDisplayView(
         check(poolInstantEvery.isPositive())
         check(poolStatusEvery > poolInstantEvery)
     }
+
+    abstract val preferredDisplayTime: kotlin.time.Duration
 
     open fun getMenus(): List<Menu> = emptyList()
 
@@ -52,18 +50,6 @@ abstract class FrontDisplayView(
 
     override fun toString(): String = "'$name'"
 
-    @Deprecated("migrating to kotlinx date time")
-    protected suspend fun drawProgressBar(
-        reportTimestamp: ZonedDateTime?,
-        now: ZonedDateTime,
-        period: java.time.Duration = poolStatusEvery.toJavaDuration()
-    ) = drawProgressBar(
-        reportTimestamp?.toInstant()?.toKotlinInstant(),
-        now.toInstant().toKotlinInstant(),
-        period.toKotlinDuration()
-    )
-
-    @ExperimentalTime
     protected suspend fun drawProgressBar(
         reportTimestamp: Instant?,
         now: Instant,
@@ -109,7 +95,9 @@ class BooleanChangeableSettingMenu(
     private val key: ChangeableSetting,
     text: String
 ) : Menu(text) {
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private val optOn = MenuOption("ON")
         private val optOff = MenuOption("OFF")
     }

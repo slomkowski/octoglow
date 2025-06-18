@@ -1,34 +1,38 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
+
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon.Companion.updateViewIndex
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonReport
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
-import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 class FrontDisplayDaemonTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     class TestView(name: String) : FrontDisplayView(
         mockk(),
         name,
         10.seconds,
         1.seconds,
-        7.seconds
     ) {
+        override val preferredDisplayTime = 7.seconds
 
         override suspend fun poolStatusData(now: Instant): UpdateStatus {
             logger.info { "Call poolStatusData." }
@@ -50,34 +54,32 @@ class FrontDisplayDaemonTest {
 
     @Test
     fun testStateMachineSwitchView() {
-        val config = Config {
-            addSpec(ConfKey)
-        }
-
         runBlocking {
-            val hardware = mockk<Hardware>()
+            coroutineScope {
+                val hardware = mockk<Hardware>()
 
-            coEvery { hardware.frontDisplay.clear() } just Runs
+                coEvery { hardware.frontDisplay.clear() } just Runs
 
-            coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
+                coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
 
-            val v1 = mockk<FrontDisplayView>()
-            val v2 = mockk<FrontDisplayView>()
+                val v1 = mockk<FrontDisplayView>()
+                val v2 = mockk<FrontDisplayView>()
 
-            coEvery { v1.getMenus() } returns listOf()
-            coEvery { v2.getMenus() } returns listOf()
+                coEvery { v1.getMenus() } returns listOf()
+                coEvery { v2.getMenus() } returns listOf()
 
-            coEvery { v1.redrawDisplay(true, true, any()) } just Runs
-            coEvery { v2.redrawDisplay(true, true, any()) } just Runs
+                coEvery { v1.redrawDisplay(true, true, any()) } just Runs
+                coEvery { v2.redrawDisplay(true, true, any()) } just Runs
 
-            val d = FrontDisplayDaemon(config, coroutineContext, hardware, listOf(v1, v2), emptyList())
+                val d = FrontDisplayDaemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList())
 
-            d.pool()
+                d.pool()
 
-            d.pool()
+                d.pool()
 
-            coVerify { v1.redrawDisplay(true, true, any()) }
-            coVerify { v2.redrawDisplay(true, true, any()) }
+                coVerify { v1.redrawDisplay(true, true, any()) }
+                coVerify { v2.redrawDisplay(true, true, any()) }
+            }
         }
     }
 

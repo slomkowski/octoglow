@@ -1,22 +1,16 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.handleException
-import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+
+import io.github.oshai.kotlinlogging.KLogger
 import kotlinx.coroutines.*
-import mu.KLogger
-import java.time.Duration
-import kotlin.time.ExperimentalTime
+import kotlin.time.Duration
 
 /**
  * Daemons implement features which are long-running and periodical.
  */
-@ExperimentalTime
 abstract class Daemon(
-    private val config: Config,
-    private val hardware: Hardware,
     private val logger: KLogger,
-    private val poolInterval: Duration
+    private val poolInterval: Duration,
 ) {
 
     /**
@@ -25,26 +19,20 @@ abstract class Daemon(
     abstract suspend fun pool()
 
     suspend fun createJob(): Job = coroutineScope {
-        delay(poolInterval.toMillis() % 2000)
+        delay(poolInterval.inWholeMilliseconds % 2000)
 
-        logger.debug("Creating repeating job.")
+        logger.debug { "Creating repeating job." }
 
         launch {
             while (isActive) {
                 try {
                     pool()
-                    delay(poolInterval.toMillis())
+                    delay(poolInterval.inWholeMilliseconds)
                 } catch (e: Exception) {
-                    handleException(config, logger, hardware, coroutineContext, e)
+                    logger.error(e) { "Exception caught in $coroutineContext." }
                     delay(5_000)
                 }
             }
-        }
-    }
-
-    protected val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
-        runBlocking {
-            handleException(config, logger, hardware, coroutineContext, throwable)
         }
     }
 

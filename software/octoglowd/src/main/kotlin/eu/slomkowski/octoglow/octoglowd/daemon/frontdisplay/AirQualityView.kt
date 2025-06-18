@@ -1,9 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -11,23 +13,24 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import mu.KLogging
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.minutes
-import kotlin.time.seconds
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 class AirQualityView(
     private val config: Config,
     private val database: DatabaseLayer,
-    hardware: Hardware
+    hardware: Hardware,
 ) : FrontDisplayView(
     hardware,
     "Air quality from powietrze.gios.gov.pl",
     10.minutes,
     15.seconds,
-    13.seconds
 ) {
+    override val preferredDisplayTime: Duration = 13.seconds
 
     enum class AirQualityIndex(val text: String) {
         EXCELLENT("excellent"),
@@ -97,29 +100,31 @@ class AirQualityView(
             }
     }
 
+    @Volatile
     private var currentReport: CurrentReport? = null
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
         private const val HISTORIC_VALUES_LENGTH = 14
 
         suspend fun retrieveAirQualityData(stationId: Long): AirQualityDto {
             require(stationId > 0)
 
-            logger.debug("Downloading currency rates for station {}.", stationId)
-            val url = "http://api.gios.gov.pl/pjp-api/rest/aqindex/getIndex/$stationId"
+            logger.debug { "Downloading currency rates for station $stationId." }
+            val url = "https://api.gios.gov.pl/pjp-api/rest/aqindex/getIndex/$stationId"
 
-            val resp: AirQualityDto = httpClient.get(url)
+            val resp: AirQualityDto = httpClient.get(url).body()
 
             check(resp.stIndexStatus) { "no air quality index for station ${resp.id}" }
             checkNotNull(resp.stIndexLevel.level) { "no air quality index for station ${resp.id}" }
-            logger.debug("Air quality is {}.", resp)
+            logger.debug { "Air quality is $resp." }
 
             return resp
         }
     }
 
-    private suspend fun createStationReport(now: Instant, station: AirStationKey) = try {
+    private suspend fun createStationReport(now: Instant, station: ConfSingleAirStation) = try {
         val dto = retrieveAirQualityData(station.id)
         val dbKey = AirQuality(station.id)
         val value = dto.stIndexLevel.id.toDouble()
@@ -130,7 +135,7 @@ class AirQualityView(
 
         AirQualityReport(station.name, checkNotNull(dto.stIndexLevel.level), value, history)
     } catch (e: Exception) {
-        logger.error("Failed to update air quality of station ${station.id}.", e)
+        logger.error(e) { "Failed to update air quality of station ${station.id}." }
         null
     }
 
@@ -138,8 +143,8 @@ class AirQualityView(
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
-        val rep1 = async { createStationReport(now, config[AirQualityKey.station1]) }
-        val rep2 = async { createStationReport(now, config[AirQualityKey.station2]) }
+        val rep1 = async { createStationReport(now, config.airQuality.station1) }
+        val rep2 = async { createStationReport(now, config.airQuality.station2) }
 
         val newRep = CurrentReport(rep1.await(), rep2.await())
 

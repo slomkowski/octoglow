@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
 project(front-display)
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
 SET(FREQ "16000000")
 
 SET(LIBRARY_SOURCES ../noarch/protocol.hpp

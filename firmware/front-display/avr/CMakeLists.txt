@@ -1,6 +1,9 @@
-SET(CMAKE_SYSTEM_NAME Generic)
-
+cmake_minimum_required(VERSION 3.7)
 project(front-display-avr)
+
+SET(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR avr)
+set(CMAKE_CROSS_COMPILING 1)
 
 SET(DEVICE "atmega88")
 

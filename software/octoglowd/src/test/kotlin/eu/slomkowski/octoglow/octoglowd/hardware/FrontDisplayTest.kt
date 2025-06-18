@@ -1,23 +1,28 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import com.thedeanda.lorem.LoremIpsum
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.system.measureTimeMillis
 import kotlin.test.assertEquals
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class FrontDisplayTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
+    @Tag("hardware")
     fun testSetUpperBar(hardware: Hardware) {
         runBlocking {
             val frontDisplay = FrontDisplay(hardware)
@@ -47,6 +52,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetStaticText(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {
@@ -63,6 +69,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetScrollingText(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {
@@ -76,38 +83,42 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
-            FrontDisplay(hardware).use { frontDisplay ->
-                frontDisplay.setStaticText(0, LoremIpsum.getInstance().getTitle(10).substring(0..39))
+            val frontDisplay = FrontDisplay(hardware)
+            frontDisplay.setStaticText(0, LoremIpsum.getInstance().getTitle(10).substring(0..39))
 
-                for (i in 0..5) {
-                    frontDisplay.setBrightness(i)
-                    delay(1000)
-                }
+            for (i in 0..5) {
+                frontDisplay.setBrightness(i)
+                delay(1000)
             }
+
+            frontDisplay.closeDevice()
         }
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("only to test correct dial behavior")
     fun testGetButtonReport2(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {
 
-                repeat(100) {
+                repeat(1000) {
                     getButtonReport().apply {
                         if (encoderDelta != 0) {
                             logger.info { "Delta: $encoderDelta." }
                         }
                     }
-                    delay(100)
+                    delay(20)
                 }
             }
         }
     }
 
     @Test
+    @Tag("hardware")
     fun testGetButtonReport(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {
@@ -123,6 +134,7 @@ class FrontDisplayTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testCharts(hardware: Hardware) {
         runBlocking {
             FrontDisplay(hardware).apply {

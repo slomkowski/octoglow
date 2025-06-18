@@ -1,27 +1,27 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.ConfKey
+import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.contentToString
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.dvlopt.linux.i2c.I2CBus
 import io.dvlopt.linux.i2c.I2CFunctionality
 import io.dvlopt.linux.i2c.I2CTransaction
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import mu.KLogging
 import java.io.IOException
-import java.time.Duration
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @ExperimentalTime
 class Hardware(
     private val bus: I2CBus,
-    ringAtStartup: Boolean
 ) : AutoCloseable {
 
     enum class Errno(
@@ -42,26 +42,33 @@ class Hardware(
         ETIMEDOUT(110, "Connection timed out")
     }
 
-    companion object : KLogging() {
-        fun handleI2cException(baseException: Exception): Exception =
-            Regex("Native error while doing an I2C transaction : errno (\\d+)")
-                .matchEntire(baseException.message?.trim() ?: "")
-                ?.let { matchResult ->
-                    val errno = matchResult.groupValues[1].toInt()
-
-                    val knownErrno = Errno.values().firstOrNull { errno == it.code }
-
-                    IOException(
-                        "native I2C transaction error: " + when (knownErrno) {
-                            null -> "errno $errno"
-                            else -> "$knownErrno: ${knownErrno.message}"
-                        }, baseException
-                    )
-                } ?: baseException
-    }
-
-
     private val busMutex = Mutex()
+
+    @Volatile
+    private var lastHardwareCallEnded: Instant = Clock.System.now()
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
+        private val minWaitTimeBetweenSubsequentCalls = 2.milliseconds
+
+        private val exceptionRegex = Regex("Native error while doing an I2C transaction : errno (\\d+)")
+
+        fun handleI2cException(baseException: Exception): Exception = exceptionRegex
+            .matchEntire(baseException.message?.trim() ?: "")
+            ?.let { matchResult ->
+                val errno = matchResult.groupValues[1].toInt()
+
+                val knownErrno = Errno.entries.firstOrNull { errno == it.code }
+
+                IOException(
+                    "native I2C transaction error: " + when (knownErrno) {
+                        null -> "errno $errno"
+                        else -> "$knownErrno: ${knownErrno.message}"
+                    }, baseException
+                )
+            } ?: baseException
+    }
 
     val clockDisplay = ClockDisplay(this)
 
@@ -72,6 +79,8 @@ class Hardware(
     val dac = Dac(this)
 
     private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac)
+
+    private val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
 
     init {
         require(bus.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
@@ -85,38 +94,56 @@ class Hardware(
                     clear()
                     setStaticText(0, "Initializing...")
                 }
-
-                if (ringAtStartup) {
-                    clockDisplay.ringBell(Duration.ofMillis(70))
-                }
             }
         } catch (e: Exception) {
-            logger.error("Error during hardware initialization;", e)
+            logger.error(e) { "Error during hardware initialization;" }
         }
     }
 
-    constructor(config: Config) : this(I2CBus(config[ConfKey.i2cBus]), config[ConfKey.ringAtStartup])
+    constructor(config: Config) : this(I2CBus(config.i2cBus))
 
     suspend fun setBrightness(brightness: Int) {
-        listOf<HasBrightness>(clockDisplay, frontDisplay, geiger).forEach { it.setBrightness(brightness) }
+        brightnessDevices.forEach { it.setBrightness(brightness) }
     }
 
     override fun close() {
-        allDevices.forEach { it.close() }
+        runBlocking {
+            for (device in allDevices) {
+                try {
+                    device.closeDevice()
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to close device $this." }
+                }
+            }
+        }
     }
 
-    suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = busMutex.withLock {
-        withContext(Dispatchers.IO) {
-            try {
+    suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = withContext(Dispatchers.IO) {
+        try {
+            executeExclusivelyAndWaitIfRequired {
                 bus.doTransaction(I2CTransaction(1).apply {
                     getMessage(0).apply {
                         address = i2cAddress
                         buffer = writeBuffer
                     }
                 })
-            } catch (e: Exception) {
-                throw handleI2cException(e)
             }
+        } catch (e: Exception) {
+            throw handleI2cException(e)
+        }
+    }
+
+    private suspend fun executeExclusivelyAndWaitIfRequired(executionBlock: suspend () -> Unit) {
+
+        busMutex.withLock {
+            val durationToWait = (Clock.System.now() - lastHardwareCallEnded).coerceIn(0.milliseconds, minWaitTimeBetweenSubsequentCalls)
+            if (durationToWait > 0.milliseconds) {
+                delay(durationToWait)
+            }
+
+            executionBlock()
+
+            lastHardwareCallEnded = Clock.System.now()
         }
     }
 
@@ -133,7 +160,7 @@ class Hardware(
         withContext(Dispatchers.IO) {
             for (tryNo in 1..numberOfTries) {
                 try {
-                    busMutex.withLock {
+                    executeExclusivelyAndWaitIfRequired {
                         bus.selectSlave(i2cAddress)
                         bus.write(writeBuffer)
                         delay(1)

@@ -2,9 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import io.dvlopt.linux.i2c.I2CBuffer
-import kotlinx.coroutines.delay
-import mu.KLogging
-import java.time.Duration
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.time.ExperimentalTime
 
 data class RemoteSensorReport(
@@ -13,9 +11,11 @@ data class RemoteSensorReport(
     val humidity: Double,
     val batteryIsWeak: Boolean,
     val alreadyReadFlag: Boolean,
-    val manualTx: Boolean
+    val manualTx: Boolean,
 ) {
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val VALID_MEASUREMENT_FLAG = 1 shl 1
         private const val ALREADY_READ_FLAG = 1 shl 2
 
@@ -86,9 +86,9 @@ data class RemoteSensorReport(
             }
 
             if (!alreadyRead) {
-                logger.debug {
+                logger.trace {
                     String.format(
-                        "ch=%d,temp=%2.1f,hum=%2.0f%%,wb=%b,tx=%b,raw=%s",
+                        "ch=%d,temp=%2.1f,hum=%2.0f%%,wb=%b,tx=%b,raw=%s.",
                         sensorId,
                         temperature,
                         humidity,
@@ -111,10 +111,12 @@ data class RemoteSensorReport(
     }
 }
 
-@ExperimentalTime
-class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightness {
+@OptIn(ExperimentalTime::class)
+class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasBrightness {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
     }
@@ -155,23 +157,9 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10), HasBrightnes
 
         doWrite(
             1, when (hours < 10) {
-                true -> ' '.toInt()
+                true -> ' '.code
                 else -> 0x30 + hours / 10
             }, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots
         )
-    }
-
-    suspend fun ringBell(duration: Duration) {
-        require(!duration.isNegative)
-        require(!duration.isZero)
-
-        logger.info { "Ringing for ${duration.toMillis()} ms." }
-
-        try {
-            doWrite(2, 0, 1)
-            delay(duration.toMillis())
-        } finally {
-            doWrite(2, 0, 0)
-        }
     }
 }

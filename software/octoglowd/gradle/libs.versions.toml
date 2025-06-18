@@ -1,0 +1,49 @@
+[versions]
+kotlin = "2.1.21"
+shadow-plugin = "8.3.6"
+app-cash-sqldelight = "2.1.0"
+
+com-thedeanda-lorem = "2.2"
+de-jollyday-jollyday = "0.5.10"
+io-dvlopt-linux-i2c = "1.0.0"
+io-github-oshai-kotlin-logging = "7.0.7"
+io-ktor = "3.1.3"
+io-mockk = "1.14.2"
+org-apache-commons-commons-lang3 = "3.17.0"
+org-assertj-assertj-core = "3.27.3"
+org-jetbrains-kotlinx-kotlinx-coroutines-core = "1.10.2"
+org-jetbrains-kotlinx-kotlinx-datetime-jvm = "0.6.2"
+org-jetbrains-kotlinx-kotlinx-serialization-json-jvm = "1.8.1"
+org-junit-platform-junit-platform-launcher = "1.12.2"
+org-junit-jupiter-junit = "5.12.2"
+tinylog = "2.7.0"
+org-glassfish-jaxb-jaxb-runtime = "2.3.1"
+javax-xml-bind-jaxb-api = "2.3.1"
+
+[libraries]
+org-tinylog-tinylog-api-kotlin = { module = "org.tinylog:tinylog-api-kotlin", version.ref = "tinylog" }
+org-tinylog-tinylog-impl = { module = "org.tinylog:tinylog-impl", version.ref = "tinylog" }
+org-tinylog-tinylog-slf4j = { module = "org.tinylog:slf4j-tinylog", version.ref = "tinylog" }
+com-thedeanda-lorem = { module = "com.thedeanda:lorem", version.ref = "com-thedeanda-lorem" }
+de-jollyday-jollyday = { module = "de.jollyday:jollyday", version.ref = "de-jollyday-jollyday" }
+io-dvlopt-linux-i2c = { module = "io.dvlopt:linux-i2c", version.ref = "io-dvlopt-linux-i2c" }
+io-github-oshai-kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "io-github-oshai-kotlin-logging" }
+io-ktor-ktor-client-cio-jvm = { module = "io.ktor:ktor-client-cio-jvm", version.ref = "io-ktor" }
+io-ktor-ktor-client-content-negotiation-jvm = { module = "io.ktor:ktor-client-content-negotiation-jvm", version.ref = "io-ktor" }
+io-ktor-ktor-serialization-kotlinx-json-jvm = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm", version.ref = "io-ktor" }
+io-mockk-mockk-jvm = { module = "io.mockk:mockk-jvm", version.ref = "io-mockk" }
+org-apache-commons-commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "org-apache-commons-commons-lang3" }
+org-assertj-assertj-core = { module = "org.assertj:assertj-core", version.ref = "org-assertj-assertj-core" }
+org-jetbrains-kotlin-kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+org-jetbrains-kotlin-kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+org-jetbrains-kotlinx-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "org-jetbrains-kotlinx-kotlinx-coroutines-core" }
+org-jetbrains-kotlinx-kotlinx-datetime-jvm = { module = "org.jetbrains.kotlinx:kotlinx-datetime-jvm", version.ref = "org-jetbrains-kotlinx-kotlinx-datetime-jvm" }
+org-jetbrains-kotlinx-kotlinx-serialization-json-jvm = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm", version.ref = "org-jetbrains-kotlinx-kotlinx-serialization-json-jvm" }
+org-junit-platform-junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "org-junit-platform-junit-platform-launcher" }
+org-junit-jupiter-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "org-junit-jupiter-junit" }
+org-junit-jupiter-junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "org-junit-jupiter-junit" }
+org-junit-jupiter-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "org-junit-jupiter-junit" }
+org-junit-jupiter-junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "org-junit-jupiter-junit" }
+app-cash-sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "app-cash-sqldelight" }
+org-glassfish-jaxb-jaxb-runtime = { module = "org.glassfish.jaxb:jaxb-runtime", version.ref = "org-glassfish-jaxb-jaxb-runtime" }
+javax-xml-bind-jaxb-api = { module = "javax.xml.bind:jaxb-api", version.ref = "javax-xml-bind-jaxb-api" }

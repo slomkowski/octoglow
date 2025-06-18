@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS changeable_settings (id INTEGER PRIMARY KEY, created TEXT NOT NULL, "key" TEXT NOT NULL, "value" TEXT);
+CREATE UNIQUE INDEX IF NOT EXISTS changeable_settings_key ON changeable_settings ("key");
+
+selectSetting:
+SELECT * FROM changeable_settings WHERE "key" = ?;
+
+updateSetting:
+UPDATE changeable_settings SET "value" = ?, created = ? WHERE "key" = ?;
+
+insertSetting:
+INSERT INTO changeable_settings ("value", created, "key") VALUES (?, ?, ?);

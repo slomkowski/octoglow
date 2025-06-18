@@ -7,33 +7,37 @@ import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.EyeInverterState
 import eu.slomkowski.octoglow.octoglowd.hardware.GeigerDeviceState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import mu.KLogging
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 class GeigerView(
     private val database: DatabaseLayer,
-    hardware: Hardware
+    hardware: Hardware,
 ) : FrontDisplayView(
     hardware,
     "Geiger counter",
     7.seconds,
     3.seconds,
-    11.seconds
 ) {
+    override val preferredDisplayTime: Duration = 11.seconds
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val HISTORIC_VALUES_LENGTH = 4 * 5 - 1
 
         private const val GEIGER_TUBE_SENSITIVITY = 25.0
 
-        fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.inMinutes
+        fun calculateCPM(v: Int, duration: Duration): Double = v.toDouble() / duration.toDouble(DurationUnit.MINUTES)
 
         fun calculateUSVh(v: Int, duration: Duration): Double =
             calculateCPM(v, duration) / 60.0 * 10.0 / GEIGER_TUBE_SENSITIVITY
@@ -57,7 +61,10 @@ class GeigerView(
     data class CounterReport(
         val lastCPM: Double?, // counts-per-minute
         val lastUSVh: Double?, // uSv/h
+
+        @Volatile
         var progress: Duration,
+
         val timeSpan: Duration,
         val historical: List<Double?>?
     ) {
@@ -69,8 +76,10 @@ class GeigerView(
         }
     }
 
+    @Volatile
     private var counterReport: CounterReport? = null
 
+    @Volatile
     private var deviceReport: GeigerDeviceState? = null
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
@@ -90,9 +99,7 @@ class GeigerView(
                 launch {
                     fd.setStaticText(0, formatCPM(cr?.lastCPM))
                     fd.setStaticText(20, formatUSVh(cr?.lastUSVh))
-                }
 
-                launch {
                     if (cr?.historical != null && cr.lastUSVh != null) {
                         fd.setOneLineDiffChart(5 * 8, cr.lastUSVh, cr.historical, 0.01)
                     } else {
@@ -176,17 +183,17 @@ class GeigerView(
         try {
             val cs = hardware.geiger.getCounterState()
 
-            if (cs.hasCycleEverCompleted && (cs.hasNewCycleStarted || counterReport == null)) {
+            return if (cs.hasCycleEverCompleted && (cs.hasNewCycleStarted || counterReport == null)) {
                 val cpm = calculateCPM(cs.numOfCountsInPreviousCycle, cs.cycleLength)
                 val uSvh = calculateUSVh(cs.numOfCountsInPreviousCycle, cs.cycleLength)
 
-                logger.info(
+                logger.info {
                     String.format(
                         "Read radioactivity: %d counts = %.2f uSv/h.",
                         cs.numOfCountsInPreviousCycle,
                         uSvh
                     )
-                )
+                }
 
                 listOf(
                     database.insertHistoricalValueAsync(now, RadioactivityCpm, cpm),
@@ -198,7 +205,8 @@ class GeigerView(
 
                 counterReport =
                     CounterReport(cpm, uSvh, cs.currentCycleProgress, cs.cycleLength, historicalRadioactivity.await())
-                return UpdateStatus.FULL_SUCCESS
+
+                UpdateStatus.FULL_SUCCESS
             } else {
                 val rep = counterReport
                 if (rep == null) {
@@ -207,7 +215,7 @@ class GeigerView(
                     rep.progress = cs.currentCycleProgress
                 }
 
-                return UpdateStatus.NO_NEW_DATA
+                UpdateStatus.NO_NEW_DATA
             }
         } catch (e: Exception) {
             counterReport = null

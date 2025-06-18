@@ -12,9 +12,10 @@ constexpr uint8_t LOOP_NUMBER_OF_SPACES = 2;
 
 static uint16_t scrollingWaitCounter = 0;
 
-static uint8_t scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH + 2];
-static uint8_t scrolTextBuffer1[scroll::SLOT1_MAX_LENGTH + 2];
-static uint8_t scrolTextBuffer2[scroll::SLOT2_MAX_LENGTH + 2];
+constexpr uint8_t SCROL_TEXT_BUFFER_TRAILING_OVERHEAD = 4;
+static uint8_t scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH + SCROL_TEXT_BUFFER_TRAILING_OVERHEAD];
+static uint8_t scrolTextBuffer1[scroll::SLOT1_MAX_LENGTH + SCROL_TEXT_BUFFER_TRAILING_OVERHEAD];
+static uint8_t scrolTextBuffer2[scroll::SLOT2_MAX_LENGTH + SCROL_TEXT_BUFFER_TRAILING_OVERHEAD];
 
 namespace octoglow::front_display::display {
     uint8_t _frameBuffer[NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER];
@@ -28,7 +29,7 @@ namespace octoglow::front_display::display {
     };
 
     static_assert(sizeof(_scrollingSlots) / sizeof(_scrollingSlots[0]) == scroll::NUMBER_OF_SLOTS,
-    "slot number doesn't match");
+                  "slot number doesn't match");
 }
 
 
@@ -82,8 +83,7 @@ void _ScrollingSlot::scrollAndLoadIntoFramebuffer() {
     }
 }
 
-static const uint16_t utfMappings[]
-PROGMEM = {
+static const uint16_t utfMappings[] PROGMEM = {
         0x104, 0x105,
         0x106, 0x107,
         0x118, 0x119,
@@ -97,60 +97,49 @@ PROGMEM = {
 };
 
 void octoglow::front_display::display::_forEachUtf8character(const char *str,
-                                                             const bool stringInProgramSpace,
-                                                             const uint8_t maxLength,
-                                                             void *const userData,
-                                                             void (*callback)(void *, uint8_t, uint8_t)
+                                 const bool stringInProgramSpace,
+                                 const uint8_t maxLength,
+                                 void *const userData,
+                                 void (*callback)(void *, uint8_t, uint8_t)) {
+    uint8_t strIdx = 0;
+    uint8_t currPos = 0;
 
-) {
-uint8_t strIdx = 0;
-uint8_t currPos = 0;
+    while (currPos < maxLength) {
+        const uint8_t singleAsciiValue = stringInProgramSpace
+                                         ? pgm_read_byte(str + strIdx)
+                                         : reinterpret_cast<const uint8_t & >(str[strIdx]);
 
-while (currPos<maxLength) {
-const uint8_t singleAsciiValue = stringInProgramSpace
-                                 ? pgm_read_byte(str + strIdx)
-                                 : reinterpret_cast<const uint8_t & >(str[strIdx]);
+        if (singleAsciiValue == 0) {
+            break;
+        }
 
-if (singleAsciiValue == 0) {
-break;
-}
+        if (singleAsciiValue < 0x80) {
+            strIdx++;
+            callback(userData, currPos, singleAsciiValue);
+        } else {
+            const uint8_t secondByteValue = stringInProgramSpace
+                                            ? pgm_read_byte(str + strIdx + 1)
+                                            : reinterpret_cast<const uint8_t & >(str[strIdx + 1]);
+            const uint16_t twoByteUnicodeValue = (secondByteValue & 0x3f) + ((singleAsciiValue & 0x1f) << 6);
+            strIdx += 2;
 
-if (singleAsciiValue < 0x80) {
-strIdx++;
-callback(userData, currPos, singleAsciiValue
-);
-} else {
-const uint8_t secondByteValue = stringInProgramSpace
-                                ? pgm_read_byte(str + strIdx + 1)
-                                : reinterpret_cast<const uint8_t & >(str[strIdx + 1]);
-const uint16_t twoByteUnicodeValue = (secondByteValue & 0x3f) + ((singleAsciiValue & 0x1f) << 6);
-strIdx += 2;
+            constexpr uint8_t NUMBER_OF_NATIONAL_CHARACTERS = sizeof(utfMappings) / sizeof(utfMappings[0]);
+            uint8_t offset;
+            for (offset = 0; offset < NUMBER_OF_NATIONAL_CHARACTERS; ++offset) {
+                if (pgm_read_word(&utfMappings[offset]) == twoByteUnicodeValue) {
+                    break;
+                }
+            }
 
-constexpr uint8_t
-NUMBER_OF_NATIONAL_CHARACTERS = sizeof(utfMappings) / sizeof(utfMappings[0]);
-uint8_t offset;
-for (
-offset = 0;
-offset<NUMBER_OF_NATIONAL_CHARACTERS;
-++offset) {
-if (
-pgm_read_word(&utfMappings[offset])
-== twoByteUnicodeValue) {
-break;
-}
-}
+            if (offset == NUMBER_OF_NATIONAL_CHARACTERS) {
+                offset = INVALID_CHARACTER_CODE - UNICODE_START_CODE;
+            }
 
-if (offset == NUMBER_OF_NATIONAL_CHARACTERS) {
-offset = INVALID_CHARACTER_CODE - UNICODE_START_CODE;
-}
+            callback(userData, currPos, UNICODE_START_CODE + offset);
+        }
 
-callback(userData, currPos, UNICODE_START_CODE
-+ offset);
-}
-
-++
-currPos;
-}
+        ++currPos;
+    }
 }
 
 
@@ -164,18 +153,18 @@ void octoglow::front_display::display::writeStaticText(const uint8_t position,
     } local{position, 0};
 
     _forEachUtf8character(text, textInProgramSpace, maxLength, &local,
-                          [](void *s, uint8_t curPos, uint8_t code) -> void {
-                              const auto ld = static_cast<LocalData *>(s);
+                         [](void *s, uint8_t curPos, uint8_t code) -> void {
+                             const auto ld = static_cast<LocalData *>(s);
 
-                              memcpy_P(_frameBuffer +
-                                       COLUMNS_IN_CHARACTER * (ld->startPosition + curPos),
-                                       Font5x7 + COLUMNS_IN_CHARACTER * (code - ' '),
-                                       COLUMNS_IN_CHARACTER);
+                             memcpy_P(_frameBuffer +
+                                      COLUMNS_IN_CHARACTER * (ld->startPosition + curPos),
+                                      Font5x7 + COLUMNS_IN_CHARACTER * (code - ' '),
+                                      COLUMNS_IN_CHARACTER);
 
-                              ld->lastPos = curPos;
-                          });
+                             ld->lastPos = curPos;
+                         });
 
-    if (maxLength > local.lastPos + 1) {
+    if(maxLength > local.lastPos + 1) {
         memset(_frameBuffer + COLUMNS_IN_CHARACTER * (position + local.lastPos + 1),
                0,
                COLUMNS_IN_CHARACTER * (maxLength - local.lastPos));
@@ -194,10 +183,10 @@ void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumb
     slot.currentShift = 0;
 
     _forEachUtf8character(text, textInProgramSpace, slot.maxTextLength, &slot,
-                          [](void *s, uint8_t curPos, uint8_t code) -> void {
-                              static_cast<_ScrollingSlot *>(s)->convertedText[curPos] = code;
-                              static_cast<_ScrollingSlot *>(s)->textLength = curPos + 1;
-                          });
+                         [](void *s, uint8_t curPos, uint8_t code) -> void {
+                             static_cast<_ScrollingSlot *>(s)->convertedText[curPos] = code;
+                             static_cast<_ScrollingSlot *>(s)->textLength = curPos + 1;
+                         });
 
     if (slot.textLength <= slot.length) {
         // if text is shorter than the window, fall back to static mode
@@ -210,7 +199,7 @@ void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumb
 }
 
 void octoglow::front_display::display::clear() {
-    for (auto &scrollingSlot: _scrollingSlots) {
+    for (auto &scrollingSlot : _scrollingSlots) {
         scrollingSlot.clear();
     }
 
@@ -226,7 +215,7 @@ void octoglow::front_display::display::pool() {
 
     if (scrollingWaitCounter == 300) {
 
-        for (auto &scrollingSlot: _scrollingSlots) {
+        for (auto &scrollingSlot : _scrollingSlots) {
             scrollingSlot.scrollAndLoadIntoFramebuffer();
         }
 

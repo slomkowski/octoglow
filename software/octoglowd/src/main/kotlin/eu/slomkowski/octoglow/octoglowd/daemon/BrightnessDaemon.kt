@@ -1,22 +1,26 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import com.uchuhimo.konf.Config
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.toKotlinLocalDate
-import mu.KLogging
-import java.time.Duration
-import java.time.LocalTime
-import java.time.ZonedDateTime
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 class BrightnessDaemon(
     private val config: Config,
     private val database: DatabaseLayer,
-    private val hardware: Hardware
-) : Daemon(config, hardware, logger, Duration.ofSeconds(30)) {
+    private val hardware: Hardware,
+) : Daemon(logger, 30.seconds) {
 
     data class BrightnessMode(
         val isDay: Boolean,
@@ -24,13 +28,14 @@ class BrightnessDaemon(
         val brightness: Int
     )
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
         private val brightnessModes = setOf(
-            BrightnessMode(true, false, 5),
-            BrightnessMode(true, true, 4),
-            BrightnessMode(false, false, 3),
-            BrightnessMode(false, true, 1)
+            BrightnessMode(isDay = true, isSleeping = false, brightness = 5),
+            BrightnessMode(isDay = true, isSleeping = true, brightness = 4),
+            BrightnessMode(isDay = false, isSleeping = false, brightness = 3),
+            BrightnessMode(isDay = false, isSleeping = true, brightness = 1),
         )
 
         fun calculateFromData(
@@ -40,20 +45,30 @@ class BrightnessDaemon(
             sleepDuration: Duration,
             now: LocalTime
         ): Int {
-            require(sunset.isAfter(sunrise))
+            require(sunset > sunrise)
 
-            val sr = Duration.between(LocalTime.MIN, sunrise)
-            val ss = Duration.between(LocalTime.MIN, sunset)
+            val sr = sunrise.toSecondOfDay().seconds
+            val ss = sunset.toSecondOfDay().seconds
             val dayRange = sr..ss
-            val nowd = Duration.between(LocalTime.MIN, now)
+            val nowd = now.toSecondOfDay().seconds
 
             val isDay = nowd in dayRange
             val isSleeping = isSleeping(goToSleep, sleepDuration, now)
 
             return brightnessModes.first { it.isDay == isDay && it.isSleeping == isSleeping }.brightness
         }
+
+        fun isSleeping(start: LocalTime, duration: Duration, now: LocalTime): Boolean {
+            val sleepTime = start.toSecondOfDay().seconds
+
+            val sleepRange = sleepTime..(sleepTime + duration)
+            val nowd = now.toSecondOfDay().seconds
+
+            return nowd in sleepRange || nowd.plus(1.days) in sleepRange
+        }
     }
 
+    @Volatile
     var forced: Int? = null
         private set
 
@@ -72,25 +87,27 @@ class BrightnessDaemon(
     }
 
     override suspend fun pool() {
-        val br = (forced ?: calculateBrightnessFraction(ZonedDateTime.now())).coerceIn(1, 5)
+        val br = (forced ?: calculateBrightnessFraction(now())).coerceIn(1, 5)
         logger.debug { "Setting brightness to $br." }
         hardware.setBrightness(br)
     }
 
-    fun calculateBrightnessFraction(ts: ZonedDateTime): Int {
+    fun calculateBrightnessFraction(ts: Instant): Int {
 
-        val sleepStart = config[SleepKey.startAt]
-        val sleepDuration = config[SleepKey.duration]
+        val sleepStart = config.sleep.startAt
+        val sleepDuration = config.sleep.duration
+
+        val localDateTime = ts.toLocalDateTime(TimeZone.currentSystemDefault())
 
         //todo should check if geo is within timezone
         val (sunrise, sunset) = calculateSunriseAndSunset(
-            config[GeoPosKey.latitude],
-            config[GeoPosKey.longitude],
-            ts.toLocalDate().toKotlinLocalDate()
+            config.geoPosition.latitude,
+            config.geoPosition.longitude,
+            localDateTime.date,
         )
-        logger.debug { "On ${ts.toLocalDate()} sun is up from $sunrise to $sunset." }
+        logger.debug { "On ${localDateTime.date} sun is up from $sunrise to $sunset." }
 
-        val br = calculateFromData(sunrise, sunset, sleepStart, sleepDuration, ts.toLocalTime())
+        val br = calculateFromData(sunrise, sunset, sleepStart, sleepDuration, localDateTime.time)
 
         logger.debug { "Assuming $sleepDuration sleep starts at $sleepStart, the current brightness is $br." }
 

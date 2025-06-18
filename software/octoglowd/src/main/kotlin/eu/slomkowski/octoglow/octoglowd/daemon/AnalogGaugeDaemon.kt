@@ -1,39 +1,39 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 import com.sun.management.OperatingSystemMXBean
-import com.uchuhimo.konf.Config
+import eu.slomkowski.octoglow.octoglowd.MANY_WHITESPACES_REGEX
 import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import mu.KLogging
 import java.io.BufferedReader
 import java.lang.management.ManagementFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.time.Duration
 import java.util.stream.Collectors
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
 
-@ExperimentalTime
+@OptIn(ExperimentalTime::class)
 class AnalogGaugeDaemon(
-    config: Config,
-    private val hardware: Hardware
-) : Daemon(config, hardware, logger, Duration.ofMillis(700)) {
+    private val hardware: Hardware,
+) : Daemon(logger, 700.milliseconds) {
 
     data class WifiSignalInfo(
         val ifName: String,
         val linkQuality: Double, // in percent
         val signalStrength: Double, // in dBm
-        val noiseLevel: Double
+        val noiseLevel: Double,
     )
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
         private val CPU_CHANNEL = DacChannel.C2
         private val WIFI_CHANNEL = DacChannel.C1
 
@@ -41,7 +41,7 @@ class AnalogGaugeDaemon(
 
         fun parseProcNetWirelessFile(reader: BufferedReader): List<WifiSignalInfo> =
             reader.lines().skip(2).map { line ->
-                val columns = line.trim().split(Regex("\\s+"))
+                val columns = line.trim().split(MANY_WHITESPACES_REGEX)
 
                 WifiSignalInfo(
                     columns[0].trim(':'),
@@ -55,11 +55,9 @@ class AnalogGaugeDaemon(
     private val operatingSystemMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
 
     override suspend fun pool() = coroutineScope {
-        launch { setValue(CPU_CHANNEL, operatingSystemMXBean.systemCpuLoad) }
+        launch { setValue(CPU_CHANNEL, operatingSystemMXBean.cpuLoad) }
 
-        val wifiInterfaces = withContext(Dispatchers.IO) {
-            Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
-        }
+        val wifiInterfaces = gatherWiFiInterfaces()
 
         check(wifiInterfaces.size <= 1) { "more than one active Wi-Fi interface found" }
 
@@ -76,6 +74,10 @@ class AnalogGaugeDaemon(
         }
 
         Unit
+    }
+
+    private suspend fun gatherWiFiInterfaces(): List<WifiSignalInfo> = withContext(Dispatchers.IO) {
+        Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
     }
 
     private suspend fun setValue(channel: DacChannel, v: Double) =

@@ -1,18 +1,19 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
-import mu.KLogging
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+
 class NbpViewTest {
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testDownloadExchangeRates() {
@@ -101,7 +102,7 @@ class NbpViewTest {
         assertEquals("76.0zł", NbpView.formatZloty(76.0))
         assertEquals("232 zł", NbpView.formatZloty(232.29094))
         assertEquals("3072zł", NbpView.formatZloty(3072.23))
-        assertEquals("10345", NbpView.formatZloty(10345.23323))
+        assertEquals("10k3zł", NbpView.formatZloty(10345.23323))
         assertEquals("----zł", NbpView.formatZloty(null))
     }
 }

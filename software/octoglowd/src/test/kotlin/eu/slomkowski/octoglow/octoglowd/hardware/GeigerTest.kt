@@ -2,23 +2,27 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
 import io.dvlopt.linux.i2c.I2CBuffer
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import mu.KLogging
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.minutes
-import kotlin.time.seconds
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class GeigerTest {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     @Test
     fun testGeigerCounterStateParse() {
@@ -67,21 +71,23 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
-            Geiger(hardware).use { geiger ->
-                for (i in 0..5) {
-                    logger.info { "Setting brightness to $i." }
-                    geiger.setBrightness(i)
-                    delay(10_000)
-                }
-
-                geiger.setBrightness(3)
+            val geiger = Geiger(hardware)
+            for (i in 0..5) {
+                logger.info { "Setting brightness to $i." }
+                geiger.setBrightness(i)
+                delay(10_000)
             }
+
+            geiger.setBrightness(3)
+            geiger.closeDevice()
         }
     }
 
     @Test
+    @Tag("hardware")
     fun testGetCounterState(hardware: Hardware) {
         runBlocking {
             val geiger = Geiger(hardware)
@@ -97,6 +103,7 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testGetDeviceState(hardware: Hardware) {
         runBlocking {
             val geiger = Geiger(hardware)
@@ -112,12 +119,14 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("method used to enable eye manually")
     fun enableEye(hardware: Hardware) {
         setEye(hardware, true)
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("method used to disable eye manually")
     fun disableEye(hardware: Hardware) {
         setEye(hardware, false)
@@ -129,6 +138,7 @@ class GeigerTest {
     }
 
     @Test
+    @Tag("hardware")
     @Disabled("this test should be run only by hand, because of heating cycle")
     fun testEye(hardware: Hardware) {
         runBlocking {

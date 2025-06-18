@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS historical_values (id INTEGER PRIMARY KEY, created TEXT NOT NULL, "key" TEXT NOT NULL, "value" REAL NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS historical_values_created_key ON historical_values (created, "key");
+
+selectExistingHistoricalValue:
+SELECT * FROM historical_values WHERE created = ? AND "key" = ?;
+
+insertHistoricalValue:
+INSERT INTO historical_values (created, "key", "value") VALUES (?, ?, ?);

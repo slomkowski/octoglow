@@ -1,21 +1,21 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import com.uchuhimo.konf.RequiredItem
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import mu.KLogging
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.minutes
-import kotlin.time.seconds
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 class WeatherSensorView(
     private val config: Config,
     private val databaseLayer: DatabaseLayer,
@@ -25,10 +25,12 @@ class WeatherSensorView(
     "Weather sensor view",
     5.seconds,
     2.seconds,
-    12.seconds
 ) {
+    override val preferredDisplayTime: Duration = 12.seconds
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         const val HISTORIC_VALUES_LENGTH = 11
         const val TEMPERATURE_CHART_UNIT = 1.0
         const val HUMIDITY_CHART_UNIT = 5.0
@@ -40,7 +42,7 @@ class WeatherSensorView(
 
     init {
         require(MINIMAL_DURATION_BETWEEN_MEASUREMENTS < MAXIMAL_DURATION_BETWEEN_MEASUREMENTS)
-        require(config[RemoteSensorsKey.indoorChannelId] != config[RemoteSensorsKey.outdoorChannelId]) { "indoor and outdoor sensors cannot have identical IDs" }
+        require(config.remoteSensors.indoorChannelId != config.remoteSensors.outdoorChannelId) { "indoor and outdoor sensors cannot have identical IDs" }
     }
 
     data class RemoteReport(
@@ -62,6 +64,7 @@ class WeatherSensorView(
         val outdoorSensor: Pair<Instant, RemoteReport>?
     )
 
+    @Volatile
     var currentReport: CurrentReport? = null
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
@@ -72,7 +75,6 @@ class WeatherSensorView(
             if (redrawStatic) {
                 launch {
                     fd.setStaticText(9, "in:")
-//                    fd.setStaticText(10, "out:")
                 }
             }
 
@@ -146,7 +148,7 @@ class WeatherSensorView(
     private suspend fun poolRemoteSensor(
         now: Instant,
         receivedReport: RemoteSensorReport?,
-        channelIdConfigKey: RequiredItem<Int>,
+        channelId: Int,
         previousReport: Pair<Instant, RemoteReport>?,
         temperatureDbKey: HistoricalValueType,
         humidityDbKey: HistoricalValueType,
@@ -157,17 +159,15 @@ class WeatherSensorView(
             return@coroutineScope UpdateStatus.NO_NEW_DATA to null
         }
 
-        if (config[channelIdConfigKey] != receivedReport.sensorId) {
+        if (channelId != receivedReport.sensorId) {
             return@coroutineScope UpdateStatus.NO_NEW_DATA to null
         }
 
         // don't update report if it is younger than MINIMAL_DURATION_BETWEEN_MEASUREMENTS
         if (now - (previousReport?.first ?: Instant.DISTANT_PAST) < MINIMAL_DURATION_BETWEEN_MEASUREMENTS) {
-            logger.debug(
-                "Values for remote sensor (channel {}) saved at {}, skipping.",
-                config[channelIdConfigKey],
-                previousReport?.first
-            )
+            logger.debug {
+                "Values for remote sensor (channel $channelId) saved at ${previousReport?.first}, skipping."
+            }
             return@coroutineScope UpdateStatus.NO_NEW_DATA to null
         }
 
@@ -216,7 +216,7 @@ class WeatherSensorView(
                 UpdateStatus.FAILURE -> null
                 UpdateStatus.FULL_SUCCESS -> now to checkNotNull(newRep) { "status is $newStatus, but $newRep is null" }
                 UpdateStatus.NO_NEW_DATA -> oldRep?.takeIf { (prevTimestamp, _) -> now - prevTimestamp < MAXIMAL_DURATION_BETWEEN_MEASUREMENTS }
-                else -> throw IllegalStateException("status $newStatus not supported")
+                else -> error("status $newStatus not supported")
             }
         }
 
@@ -227,7 +227,7 @@ class WeatherSensorView(
         val newIndoorReport = poolRemoteSensor(
             now,
             remoteSensorReport,
-            RemoteSensorsKey.indoorChannelId,
+            config.remoteSensors.indoorChannelId,
             oldReport?.indoorSensor,
             IndoorTemperature,
             IndoorHumidity,
@@ -237,7 +237,7 @@ class WeatherSensorView(
         val newOutdoorReport = poolRemoteSensor(
             now,
             remoteSensorReport,
-            RemoteSensorsKey.outdoorChannelId,
+            config.remoteSensors.outdoorChannelId,
             oldReport?.outdoorSensor,
             OutdoorTemperature,
             OutdoorHumidity,
@@ -262,12 +262,15 @@ class WeatherSensorView(
             statuses[UpdateStatus.FAILURE] == 2 -> {
                 UpdateStatus.FAILURE
             }
+
             statuses[UpdateStatus.NO_NEW_DATA] == 2 -> {
                 UpdateStatus.NO_NEW_DATA
             }
-            statuses[UpdateStatus.FAILURE] ?: 0 > 0 -> {
+
+            (statuses[UpdateStatus.FAILURE] ?: 0) > 0 -> {
                 UpdateStatus.PARTIAL_SUCCESS
             }
+
             else -> {
                 UpdateStatus.FULL_SUCCESS
             }

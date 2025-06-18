@@ -1,25 +1,29 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import com.uchuhimo.konf.Config
+
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import mu.KLogging
-import java.time.Duration
-import java.time.LocalDateTime
+import eu.slomkowski.octoglow.octoglowd.now
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+@OptIn(ExperimentalTime::class)
 class RealTimeClockDaemon(
-    config: Config,
-    private val hardware: Hardware
-) : Daemon(config, hardware, logger, Duration.ofMillis(500)) {
+    private val hardware: Hardware,
+) : Daemon(logger, 200.milliseconds) {
 
-    companion object : KLogging()
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     data class DisplayContent(
         val hour: Int,
         val minute: Int,
         val upperDot: Boolean,
-        val lowerDot: Boolean
+        val lowerDot: Boolean,
     ) {
         companion object {
             fun ofTimestamp(dt: LocalDateTime): DisplayContent = when (dt.second % 2) {
@@ -29,10 +33,11 @@ class RealTimeClockDaemon(
         }
     }
 
+    @Volatile
     private var previousDisplayContent: DisplayContent? = null
 
     override suspend fun pool() {
-        val newDisplayContent = DisplayContent.ofTimestamp(LocalDateTime.now())
+        val newDisplayContent = DisplayContent.ofTimestamp(now().toLocalDateTime(TimeZone.currentSystemDefault()))
 
         if (newDisplayContent != previousDisplayContent) {
             newDisplayContent.apply {

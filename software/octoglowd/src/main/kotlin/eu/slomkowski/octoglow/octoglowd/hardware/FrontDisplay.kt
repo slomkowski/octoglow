@@ -2,8 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.set
 import io.dvlopt.linux.i2c.I2CBuffer
-import kotlinx.coroutines.runBlocking
-import mu.KLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
@@ -31,19 +30,19 @@ data class ButtonReport(
     }
 }
 
-@ExperimentalTime
-class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightness {
+@OptIn(ExperimentalTime::class)
+class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasBrightness {
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         // we assume last value as pivot
         private const val MAX_VALUES_IN_CHART = 5 * 20
     }
 
-    init {
-        runBlocking {
-            clear()
-            setBrightness(3)
-        }
+    override suspend fun initDevice() {
+        clear()
+        setBrightness(3)
     }
 
     override suspend fun closeDevice() {
@@ -109,7 +108,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
     suspend fun setScrollingText(slot: Slot, position: Int, length: Int, text: String) {
         val textBytes = text.toByteArray(StandardCharsets.UTF_8)
         val lastPosition = position + length - 1
-        require(slot.capacity > textBytes.size) { "UTF-8 text length (${textBytes.size} bytes) cannot exceed the capacity of the selected slot $slot, which is ${slot.capacity}" }
+        require(slot.capacity >= textBytes.size) { "UTF-8 text length (${textBytes.size} bytes) cannot exceed the capacity of the selected slot $slot, which is ${slot.capacity}" }
         require(position < 40) { "position has to be between 0 and 39, $position provided" }
         require(text.isNotEmpty()) { "text length has to be at least 1" }
         require(lastPosition < 40) { "end of the string cannot exceed position 39, but has length ${textBytes.size} and position $position, which sums to $lastPosition, text: $text" }
@@ -146,7 +145,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
                     2 -> 0b1110
                     3 -> 0b1111
                     null -> 0b1000001
-                    else -> throw IllegalStateException()
+                    else -> error("Unexpected state encountered")
                 }
             }
             .plus(0b0001000)
@@ -205,7 +204,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14), HasBrightnes
                 255 -> ButtonState.JUST_RELEASED
                 1 -> ButtonState.JUST_PRESSED
                 0 -> ButtonState.NO_CHANGE
-                else -> throw IllegalStateException("invalid button state value: ${readBuffer[1]}")
+                else -> error("invalid button state value: ${readBuffer[1]}")
             }, if (readBuffer[0] <= 127) {
                 readBuffer[0]
             } else {

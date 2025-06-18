@@ -1,12 +1,13 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import com.uchuhimo.konf.RequiredItem
+
+import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.LocalDateSerializer
-import eu.slomkowski.octoglow.octoglowd.NbpKey
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.httpClient
 import eu.slomkowski.octoglow.octoglowd.toLocalDate
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -15,12 +16,12 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import mu.KLogging
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.minutes
-import kotlin.time.seconds
 
-@ExperimentalTime
+
+@OptIn(ExperimentalTime::class)
 class NbpView(
     private val config: Config,
     hardware: Hardware
@@ -29,8 +30,8 @@ class NbpView(
     "NBP exchange rates",
     10.minutes,
     15.seconds,
-    13.seconds
 ) {
+    override val preferredDisplayTime = 13.seconds
 
     interface DatedPrice {
         val date: LocalDate
@@ -71,7 +72,7 @@ class NbpView(
 
     data class CurrentReport(
         val timestamp: Instant,
-        val currencies: Map<RequiredItem<String>, SingleCurrencyReport>
+        val currencies: Map<String, SingleCurrencyReport>
     )
 
     @Serializable
@@ -84,12 +85,14 @@ class NbpView(
         override val price: Double
     ) : DatedPrice
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
         private const val OUNCE = 31.1034768 // grams
 
         private const val HISTORIC_VALUES_LENGTH = 14
 
-        private const val NBP_API_BASE = "http://api.nbp.pl/api/"
+        private const val NBP_API_BASE = "https://api.nbp.pl/api/"
 
         suspend fun getCurrencyRates(currencyCode: String, howMany: Int): List<RateDto> {
             require(currencyCode.isNotBlank())
@@ -97,7 +100,7 @@ class NbpView(
             logger.debug { "Downloading currency rates for $currencyCode." }
             val url = "$NBP_API_BASE/exchangerates/rates/a/$currencyCode/last/$howMany"
 
-            val resp: CurrencyDto = httpClient.get(url)
+            val resp: CurrencyDto = httpClient.get(url).body()
 
             return resp.rates
         }
@@ -107,7 +110,7 @@ class NbpView(
             logger.debug { "Downloading gold price." }
             val url = "$NBP_API_BASE/cenyzlota/last/$howMany"
 
-            val resp: List<GoldPrice> = httpClient.get(url)
+            val resp: List<GoldPrice> = httpClient.get(url).body()
 
             return resp.apply {
                 check(isNotEmpty())
@@ -141,7 +144,7 @@ class NbpView(
         fun formatZloty(amount: Double?): String {
             return when (amount) {
                 null -> "----zł"
-                in 10_000.0..100_000.0 -> String.format("%5.0f", amount)
+                in 10_000.0..100_000.0 -> String.format("%2.1fzł", amount / 1000.0).replace('.', 'k')
                 in 1000.0..10_000.0 -> String.format("%4.0fzł", amount)
                 in 100.0..1000.0 -> String.format("%3.0f zł", amount)
                 in 10.0..100.0 -> String.format("%4.1fzł", amount)
@@ -151,13 +154,11 @@ class NbpView(
         }
     }
 
-    private val currencyKeys = listOf(NbpKey.currency1, NbpKey.currency2, NbpKey.currency3).apply {
-        forEach {
-            val code = config[it]
-            check(code.length == 3) { "invalid currency code $code" }
-        }
+    private val currencyKeys = listOf(config.nbp.currency1, config.nbp.currency2, config.nbp.currency3).onEach {
+        check(it.length == 3) { "invalid currency code $it" }
     }
 
+    @Volatile
     private var currentReport: CurrentReport? = null
 
     private suspend fun drawCurrencyInfo(cr: SingleCurrencyReport?, offset: Int, diffChartStep: Double) {
@@ -165,8 +166,8 @@ class NbpView(
         hardware.frontDisplay.apply {
             setStaticText(
                 offset, when (cr?.isLatestFromToday) {
-                    true -> cr.code.toUpperCase()
-                    false -> cr.code.toLowerCase()
+                    true -> cr.code.uppercase()
+                    false -> cr.code.lowercase()
                     null -> "---"
                 }
             )
@@ -184,11 +185,11 @@ class NbpView(
             val report = currentReport
 
             if (redrawStatus) {
-                val diffChartStep = config[NbpKey.diffChartFraction]
+                val diffChartStep = config.nbp.diffChartFraction
                 logger.debug { "Refreshing NBP screen, diff chart step: $diffChartStep." }
-                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency1), 0, diffChartStep) }
-                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency2), 7, diffChartStep) }
-                launch { drawCurrencyInfo(report?.currencies?.get(NbpKey.currency3), 14, diffChartStep) }
+                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency1), 0, diffChartStep) }
+                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency2), 7, diffChartStep) }
+                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency3), 14, diffChartStep) }
             }
 
             drawProgressBar(report?.timestamp, now)
@@ -203,11 +204,10 @@ class NbpView(
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
-        val newReport = CurrentReport(now, currencyKeys.map { currencyKey ->
+        val newReport = CurrentReport(now, currencyKeys.map { code ->
             async {
-                val code = config[currencyKey]
                 try {
-                    currencyKey to getCurrencyReport(
+                    code to getCurrencyReport(
                         code,
                         now.toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
                     )

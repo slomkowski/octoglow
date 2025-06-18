@@ -1,12 +1,13 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
-import eu.slomkowski.octoglow.octoglowd.NetworkViewKey
+
+import eu.slomkowski.octoglow.octoglowd.Config
+import eu.slomkowski.octoglow.octoglowd.MANY_WHITESPACES_REGEX
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.readToString
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.Instant
-import mu.KLogging
 import java.io.BufferedReader
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -18,11 +19,11 @@ import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 import kotlin.math.roundToLong
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.nanoseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.nanoseconds
-import kotlin.time.seconds
 
-@ExperimentalTime
+@OptIn(ExperimentalTime::class)
 class NetworkView(
     private val config: Config,
     hardware: Hardware
@@ -31,8 +32,8 @@ class NetworkView(
     "Network",
     38.seconds,
     37.seconds,
-    5.seconds
 ) {
+    override val preferredDisplayTime: Duration = 5.seconds
 
     data class RouteEntry(
         val dst: InetAddress,
@@ -70,9 +71,11 @@ class NetworkView(
         val gwPing: Duration?
     )
 
+    @Volatile
     private var currentReport: CurrentReport? = null
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
         private val PROC_NET_WIRELESS_PATH: Path = Paths.get("/proc/net/wireless")
         private val PROC_NET_ROUTE_PATH: Path = Paths.get("/proc/net/route")
@@ -84,7 +87,8 @@ class NetworkView(
             getDefaultRouteEntry(parseProcNetRouteFile(reader))
                 ?.let { it to NetworkInterface.getByName(it.dev) }
                 ?.let { (re, iface) ->
-                    InterfaceInfo(iface.name,
+                    InterfaceInfo(
+                        iface.name,
                         iface.inetAddresses.toList().first { it is Inet4Address } as Inet4Address,
                         re.gateway as Inet4Address,
                         !iface.isEthernet())
@@ -103,7 +107,7 @@ class NetworkView(
         }
 
         fun parseProcNetRouteFile(reader: BufferedReader): List<RouteEntry> = reader.lines().skip(1).map { line ->
-            val columns = line.trim().split(Regex("\\s+"))
+            val columns = line.trim().split(MANY_WHITESPACES_REGEX)
 
             RouteEntry(
                 createIpFromHexString(columns[1].trim()),
@@ -130,7 +134,7 @@ class NetworkView(
                 "-c", noPings.toString(),
                 "-i", "0.2",
                 "-I", iface,
-                "-w", timeout.inSeconds.toInt().toString(),
+                "-w", timeout.inWholeSeconds.toString(),
                 address
             )
 
@@ -141,7 +145,7 @@ class NetworkView(
                 output.append(process.inputStream.readToString())
             }
 
-            process.waitFor((timeout.inMilliseconds + 2000).roundToLong(), TimeUnit.MILLISECONDS)
+            process.waitFor(timeout.inWholeMilliseconds + 2000, TimeUnit.MILLISECONDS)
 
             check(output.isNotBlank()) {
                 val errorMsg = process.errorStream.readToString()
@@ -151,9 +155,10 @@ class NetworkView(
             return parsePingOutput(output.toString())
         }
 
+        private val packetRegex = Regex("(\\d+) packets transmitted, (\\d+) received")
+        private val rttRegex = Regex("rtt min/avg/max/mdev = (\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+) ms")
+
         fun parsePingOutput(text: String): PingResult {
-            val packetRegex = Regex("(\\d+) packets transmitted, (\\d+) received")
-            val rttRegex = Regex("rtt min/avg/max/mdev = (\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+) ms")
 
             val (packetsTransmitted, packetsReceived) = checkNotNull(packetRegex.find(text))
             { "info about packet numbers not found in ping output" }.groupValues.let {
@@ -169,9 +174,9 @@ class NetworkView(
             return PingResult(packetsTransmitted, packetsReceived, rttMin, rttAvg, rttMax)
         }
 
-        fun formatPingRtt(d: Duration?): String = when (val ms = d?.inMilliseconds?.toInt()) {
+        fun formatPingRtt(d: Duration?): String = when (val ms = d?.inWholeMilliseconds) {
             null -> " -- ms"
-            0 -> " <1 ms"
+            0L -> " <1 ms"
             in 1..99 -> String.format(" %2d ms", ms)
             in 100..999 -> String.format(" %3dms", ms)
             else -> ">999ms"
@@ -198,7 +203,7 @@ class NetworkView(
 
             val remotePingTime = async {
                 try {
-                    val remoteAddress = config[NetworkViewKey.pingAddress]
+                    val remoteAddress = config.networkInfo.pingAddress
                     pingAddressAndGetRtt(remoteAddress, iface)
                 } catch (e: Exception) {
                     logger.error(e) { "Error during remote ping ping." }
@@ -238,7 +243,7 @@ class NetworkView(
 
         val pingInfo = withContext(Dispatchers.IO) {
             pingAddressAndGetRtt(
-                config[NetworkViewKey.pingBinary],
+                config.networkInfo.pingBinary,
                 interfaceInfo.name,
                 address,
                 4.seconds,
@@ -248,7 +253,7 @@ class NetworkView(
 
         val pingTime = pingInfo.rttAvg
 
-        logger.info { "RTT to $address is ${pingTime.inMilliseconds} ms." }
+        logger.info { "RTT to $address is ${pingTime.inWholeMilliseconds} ms." }
 
         return pingTime
     }

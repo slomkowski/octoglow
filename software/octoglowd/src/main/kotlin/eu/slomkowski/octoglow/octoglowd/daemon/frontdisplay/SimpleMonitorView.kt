@@ -1,39 +1,37 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import com.uchuhimo.konf.Config
+
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toJavaLocalDateTime
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import mu.KLogging
 import org.apache.commons.lang3.StringUtils
-import java.net.URL
+import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.time.Duration
-import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
 
-@ExperimentalTime
+@OptIn(ExperimentalTime::class)
 class SimpleMonitorView(
     private val config: Config,
-    private val database: DatabaseLayer,
     hardware: Hardware
 ) : FrontDisplayView(
     hardware,
     "SimpleMonitor",
     90.seconds,
     15.seconds,
-    8.seconds
 ) {
 
     @Serializable
@@ -67,49 +65,50 @@ class SimpleMonitorView(
         val data: SimpleMonitorJson?
     )
 
-    companion object : KLogging() {
+    companion object {
+        private val logger = KotlinLogging.logger {}
 
-
-        suspend fun getLatestSimpleMonitorJson(url: URL, user: String?, password: String?): SimpleMonitorJson {
+        suspend fun getLatestSimpleMonitorJson(url: URI, user: String?, password: String?): SimpleMonitorJson {
 
             logger.info { "Downloading SimpleMonitor status from $url." }
 
             return if (user != null && password != null) {
                 val auth = Base64.getEncoder().encodeToString("$user:$password".toByteArray(StandardCharsets.UTF_8))
-                httpClient.get(url.toString()) {
+                httpClient.get {
+                    url(url.toString())
                     header("Authorization", "Basic $auth")
-                }
+                }.body()
             } else {
-                httpClient.get(url.toString())
+                httpClient.get(url.toString()).body()
             }
         }
     }
 
-    private var currentReport: CurrentReport? = null
+    override val preferredDisplayTime: Duration
+        get() {
+            val noFailedMonitors = currentReport?.data?.monitors?.filterValues { it.status == MonitorStatus.FAIL }?.count() ?: 0
+            return (1500.milliseconds * noFailedMonitors).coerceIn(5.seconds, 60.seconds)
+        }
+
+    @Volatile
+    internal var currentReport: CurrentReport? = null
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
         val (status, newReport) = try {
             val json = getLatestSimpleMonitorJson(
-                config[SimpleMonitorKey.url],
-                config[SimpleMonitorKey.user], config[SimpleMonitorKey.password]
+                config.simplemonitor.url,
+                config.simplemonitor.user, config.simplemonitor.password
             )
 
-            if (json.monitors.filterValues { it.status == MonitorStatus.FAIL }.isNotEmpty()) {
-                logger.warn { "Some monitors are failed." }
-                launch {
-                    val shouldRing =
-                        database.getChangeableSettingAsync(ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE).await()
-                    if (shouldRing != "false") {
-                        ringBellIfNotSleeping(config, logger, hardware, Duration.ofMillis(100))
-                    } else {
-                        logger.warn { "Ringing on failure is disabled." }
-                    }
+            json.monitors.filterValues { it.status == MonitorStatus.FAIL }.let { failedMons ->
+                if (failedMons.isNotEmpty()) {
+                    logger.warn { "${failedMons.size} monitors are failed." }
                 }
             }
 
             UpdateStatus.FULL_SUCCESS to CurrentReport(now, json)
         } catch (e: Exception) {
-            logger.error(e) { "Failed to download status from Simplemonitor URL." }
+            logger.error(e) { "Failed to download status from SimpleMonitor URL." }
             UpdateStatus.FAILURE to CurrentReport(now, null)
         }
 
@@ -135,8 +134,8 @@ class SimpleMonitorView(
 
                 launch {
                     val time = report?.data?.generated?.toLocalDateTime(TimeZone.currentSystemDefault())
-                        ?.toJavaLocalDateTime() //todo?
-                        ?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                        ?.toLocalTime()
+                        ?.formatJustHoursMinutes()
                         ?: "--:--"
                     fd.setStaticText(0, "*$time")
                 }
@@ -178,12 +177,4 @@ class SimpleMonitorView(
 
             Unit
         }
-
-    override fun getMenus(): List<Menu> = listOf(
-        BooleanChangeableSettingMenu(
-            database,
-            ChangeableSetting.SIMPLEMONITOR_RING_ON_FAILURE,
-            "Ring on bad mon."
-        )
-    )
 }

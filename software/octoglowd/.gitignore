@@ -9,11 +9,21 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
+build
+.gradle
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+.kotlin
+
 *.iml
 .idea
 
-*db
+*.db
 .attach_*
 
 config.yml
 test-config.yml
+
+/config.json
+/test-config.json
