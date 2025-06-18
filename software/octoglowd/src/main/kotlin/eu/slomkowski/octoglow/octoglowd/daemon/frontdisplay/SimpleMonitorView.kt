@@ -162,7 +162,7 @@ class SimpleMonitorView(
                         else -> {
                             val failedText = "${failedMonitors.size} FAILED"
                             fd.setStaticText(20, failedText)
-                            val scrollingText = StringUtils.abbreviate(failedMonitors.keys.joinToString(","), 150)
+                            val scrollingText = StringUtils.abbreviate(failedMonitors.keys.joinToString(","), Slot.SLOT0.capacity)
                             fd.setScrollingText(
                                 Slot.SLOT0,
                                 21 + failedText.length,
