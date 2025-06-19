@@ -16,16 +16,17 @@ class Dac(hardware: Hardware) : I2CDevice(hardware, 0x4f, logger) {
     }
 
     override suspend fun initDevice() {
-        setToZero()
+        setToMiddle()
     }
 
     override suspend fun closeDevice() {
-        setToZero()
+        setToMiddle()
     }
 
-    private suspend fun setToZero() {
-        setValue(DacChannel.C1, 0)
-        setValue(DacChannel.C2, 0)
+    // we set to middle to avoid abrupt bumping of the needle
+    private suspend fun setToMiddle() {
+        setValue(DacChannel.C1, 127)
+        setValue(DacChannel.C2, 127)
     }
 
     suspend fun setValue(channel: DacChannel, value: Int) {

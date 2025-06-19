@@ -23,7 +23,7 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 class AnalogGaugeDaemon(
     private val hardware: Hardware,
-) : Daemon(logger, 700.milliseconds) {
+) : Daemon(logger, 200.milliseconds) {
 
     data class WifiSignalInfo(
         val ifName: String,
@@ -36,6 +36,8 @@ class AnalogGaugeDaemon(
         private val logger = KotlinLogging.logger {}
         private val CPU_CHANNEL = DacChannel.C2
         private val WIFI_CHANNEL = DacChannel.C1
+
+        private const val NUMBER_OF_SAMPLES_TO_AVERAGE = 5
 
         private val PROC_NET_WIRELESS_PATH: Path = Paths.get("/proc/net/wireless")
 
@@ -68,7 +70,7 @@ class AnalogGaugeDaemon(
                 WIFI_CHANNEL, if (interfaceInfo != null) {
                     interfaceInfo.linkQuality / 100.0
                 } else {
-                    0.0
+                    0.5 // set to the middle of the gauge
                 }
             )
         }
@@ -80,6 +82,19 @@ class AnalogGaugeDaemon(
         Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
     }
 
-    private suspend fun setValue(channel: DacChannel, v: Double) =
-        hardware.dac.setValue(channel, (v * 255.0).roundToInt())
+    private val valueHistory = DacChannel.entries.associateWith { ArrayDeque<Double>(NUMBER_OF_SAMPLES_TO_AVERAGE) }
+
+    private suspend fun setValue(channel: DacChannel, v: Double) {
+
+        val history = valueHistory.getValue(channel)
+
+        if (history.size == NUMBER_OF_SAMPLES_TO_AVERAGE) {
+            history.removeFirst()
+        }
+        history.addLast(v)
+
+        val averagedValue = history.average()
+
+        hardware.dac.setValue(channel, (averagedValue * 255.0).roundToInt())
+    }
 }

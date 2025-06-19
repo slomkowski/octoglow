@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.mockk.mockk
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -24,7 +25,7 @@ class DatabaseTest {
 
     private fun <T : Any> createTestDbContext(func: (DatabaseLayer) -> T): T {
         val dbFile = Files.createTempFile("unit-test-", ".db")
-        DatabaseLayer(dbFile).use { db ->
+        DatabaseLayer(dbFile, mockk()).use { db ->
             assertNotNull(db)
             logger.debug { "Opened DB file $dbFile" }
             return func(db)

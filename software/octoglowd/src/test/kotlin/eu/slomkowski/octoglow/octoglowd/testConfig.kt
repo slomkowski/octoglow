@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import kotlinx.datetime.LocalTime
+import org.apache.commons.lang3.RandomUtils
 import java.net.URI
 import java.nio.file.Paths
 
@@ -28,5 +29,9 @@ val defaultTestConfig = Config(
     remoteSensors = ConfRemoteSensors(
         indoorChannelId = 0,
         outdoorChannelId = 1
+    ),
+    mqtt = ConfMqttInfo(
+        enabled = true,
+        port = RandomUtils.nextInt(10_000, 30_000) //todo
     )
 )
