@@ -65,7 +65,7 @@ class GeigerTest {
         )
 
         assertFails {
-            val invalid = listOf(0, 255, 255, 255, 255, 255, 255, 255, 255).toI2CBuffer()
+            val invalid = intArrayOf(0, 255, 255, 255, 255, 255, 255, 255, 255).toI2CBuffer()
             GeigerCounterState.parse(invalid)
         }
     }

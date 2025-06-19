@@ -151,12 +151,10 @@ suspend fun <T : Any> trySeveralTimes(
     error("cannot be ever called")
 }
 
-fun List<Int>.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {
+fun IntArray.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {
     require(this@toI2CBuffer.isNotEmpty())
     this@toI2CBuffer.forEachIndexed { index, value -> this.set(index, value) }
 }
-
-fun I2CBuffer.toByteArray(): ByteArray = (0 until length).map { get(it).toByte() }.toByteArray()
 
 fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
 
@@ -164,9 +162,9 @@ fun I2CBuffer.contentToString(): String =
     (0 until this.length).map { this[it] }.joinToString(" ", prefix = "[", postfix = "]")
 
 fun I2CBuffer.contentToBitString(): String =
-    this.toList().joinToString(" ") { it.toString(2).padStart(8, '0') }
+    this.toIntArray().joinToString(" ") { it.toString(2).padStart(8, '0') }
 
-fun I2CBuffer.toList(): List<Int> = (0 until this.length).map { this[it] }.toList()
+fun I2CBuffer.toIntArray(): IntArray = (0 until this.length).map { this[it] }.toIntArray()
 
 fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).readText()
 

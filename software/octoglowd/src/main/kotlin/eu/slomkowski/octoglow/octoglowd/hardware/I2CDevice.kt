@@ -21,19 +21,17 @@ abstract class I2CDevice(
     abstract suspend fun closeDevice()
 
     suspend fun doWrite(vararg bytes: Int) {
-        val buff = I2CBuffer(bytes.size)
-        bytes.forEachIndexed { idx, v -> buff.set(idx, v) }
-        doWrite(buff)
+        doWrite(bytes.toI2CBuffer())
     }
 
     @OptIn(ExperimentalTime::class)
     suspend fun doWrite(writeBuffer: I2CBuffer) = hardware.doWrite(i2cAddress, writeBuffer)
 
-    suspend fun doTransaction(command: List<Int>, bytesToRead: Int): I2CBuffer {
+    suspend fun doTransaction(command: IntArray, bytesToRead: Int): I2CBuffer {
         return doTransaction(command.toI2CBuffer(), bytesToRead)
     }
 
     @OptIn(ExperimentalTime::class)
-    suspend fun doTransaction(writeBuffer: I2CBuffer, bytesToRead: Int) =
+    suspend fun doTransaction(writeBuffer: I2CBuffer, bytesToRead: Int): I2CBuffer =
         hardware.doTransaction(i2cAddress, writeBuffer, bytesToRead)
 }

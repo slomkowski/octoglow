@@ -78,7 +78,9 @@ class Hardware(
 
     val dac = Dac(this)
 
-    private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac)
+    val scd40 = Scd40(this)
+
+    private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac, scd40)
 
     private val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
 

@@ -3,6 +3,8 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.set
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
@@ -153,7 +155,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
         drawImage(position, false, img)
     }
 
-    suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
+    suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) = coroutineScope {
         require(historicalValues.size < MAX_VALUES_IN_CHART) { "number of values cannot exceed $MAX_VALUES_IN_CHART" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
         val maxPosition = 5 * 20 - historicalValues.size
@@ -174,8 +176,8 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
             .plus(0b1000000 to 0b1)
             .unzip()
 
-        drawImage(position, false, upper)
-        drawImage(5 * 20 + position, false, lower)
+        launch { drawImage(position, false, upper) }
+        launch { drawImage(5 * 20 + position, false, lower) }
     }
 
     private suspend fun drawImage(position: Int, sumWithExistingText: Boolean, content: List<Int>) {

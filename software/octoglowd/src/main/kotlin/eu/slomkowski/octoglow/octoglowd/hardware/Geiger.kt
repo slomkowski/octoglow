@@ -1,7 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToString
-import eu.slomkowski.octoglow.octoglowd.toList
+import eu.slomkowski.octoglow.octoglowd.toIntArray
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -30,20 +30,15 @@ data class GeigerCounterState(
     val cycleLength: Duration,
 ) {
     companion object {
-        private val invalidBufferContent = listOf(255, 255, 255, 255, 255, 255, 255, 255)
+        private val invalidBufferContent = intArrayOf(255, 255, 255, 255, 255, 255, 255, 255)
 
         const val SIZE_IN_BYTES = 9
 
         fun parse(readBuffer: I2CBuffer): GeigerCounterState {
             require(readBuffer.length == SIZE_IN_BYTES)
-            val buff = readBuffer.toList()
+            val buff = readBuffer.toIntArray()
 
-            check(
-                buff.subList(
-                    1,
-                    buff.size
-                ) != invalidBufferContent
-            ) { "read buffer has characteristic invalid pattern" }
+            check(!buff.sliceArray(1 until buff.size).contentEquals(invalidBufferContent)) { "read buffer has characteristic invalid pattern" }
 
             return GeigerCounterState(
                 when (buff[0] and 0b1) {
@@ -72,7 +67,7 @@ data class GeigerDeviceState(
     val eyePwmValue: Int,
 ) {
     companion object {
-        private val invalidBufferContent = listOf(255, 255, 255, 255, 255, 255, 255)
+        private val invalidBufferContent = intArrayOf(255, 255, 255, 255, 255, 255, 255)
 
         const val SIZE_IN_BYTES = 8
 
@@ -82,14 +77,9 @@ data class GeigerDeviceState(
 
         fun parse(readBuffer: I2CBuffer): GeigerDeviceState {
             require(readBuffer.length == SIZE_IN_BYTES)
-            val buff = readBuffer.toList()
+            val buff = readBuffer.toIntArray()
 
-            check(
-                buff.subList(
-                    1,
-                    buff.size
-                ) != invalidBufferContent
-            ) { "read buffer has characteristic invalid pattern" }
+            check(!buff.sliceArray(1 until buff.size).contentEquals(invalidBufferContent)) { "read buffer has characteristic invalid pattern" }
 
             return GeigerDeviceState(
                 GEIGER_ADC_SCALING_FACTOR * ((buff[1] shl 8) + buff[0]).toDouble(),
@@ -133,13 +123,13 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightn
     }
 
     suspend fun getDeviceState(): GeigerDeviceState = trySeveralTimes(I2C_READ_TRIES, logger, "getDeviceState()") {
-        val readBuffer = doTransaction(listOf(1), GeigerDeviceState.SIZE_IN_BYTES)
+        val readBuffer = doTransaction(intArrayOf(1), GeigerDeviceState.SIZE_IN_BYTES)
         logger.trace { "Device state buffer: ${readBuffer.contentToString()}." }
         GeigerDeviceState.parse(readBuffer)
     }
 
     suspend fun getCounterState(): GeigerCounterState = trySeveralTimes(I2C_READ_TRIES, logger, "getCounterState()") {
-        val readBuffer = doTransaction(listOf(2), GeigerCounterState.SIZE_IN_BYTES)
+        val readBuffer = doTransaction(intArrayOf(2), GeigerCounterState.SIZE_IN_BYTES)
         logger.trace { "Counter state buffer: ${readBuffer.contentToString()}." }
         GeigerCounterState.parse(readBuffer)
     }
