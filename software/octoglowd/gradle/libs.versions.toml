@@ -19,6 +19,7 @@ org-junit-jupiter-junit = "5.12.2"
 tinylog = "2.7.0"
 org-glassfish-jaxb-jaxb-runtime = "2.3.1"
 javax-xml-bind-jaxb-api = "2.3.1"
+de-kempmobil-ktor-mqtt = "0.6.1"
 
 [libraries]
 org-tinylog-tinylog-api-kotlin = { module = "org.tinylog:tinylog-api-kotlin", version.ref = "tinylog" }
@@ -47,3 +48,5 @@ org-junit-jupiter-junit-jupiter-params = { module = "org.junit.jupiter:junit-jup
 app-cash-sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "app-cash-sqldelight" }
 org-glassfish-jaxb-jaxb-runtime = { module = "org.glassfish.jaxb:jaxb-runtime", version.ref = "org-glassfish-jaxb-jaxb-runtime" }
 javax-xml-bind-jaxb-api = { module = "javax.xml.bind:jaxb-api", version.ref = "javax-xml-bind-jaxb-api" }
+de-kempmobil-ktor-mqtt-core = { module = "de.kempmobil.ktor.mqtt:mqtt-core", version.ref = "de-kempmobil-ktor-mqtt" }
+de-kempmobil-ktor-mqtt-client = { module = "de.kempmobil.ktor.mqtt:mqtt-client", version.ref = "de-kempmobil-ktor-mqtt" }

@@ -23,6 +23,7 @@ fun Instant.fmt(): String {
 
 class DatabaseLayer(
     databaseFile: Path,
+    private val mqtt: MqttEmiter,
 ) : AutoCloseable {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -148,6 +149,7 @@ class DatabaseLayer(
 
     fun insertHistoricalValueAsync(ts: Instant, key: HistoricalValueType, value: Double): Job {
         return workerScope.launch {
+            launch { mqtt.publishMeasurement(key, value) }
             database.transaction {
                 if (database.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
                     logger.debug { "Inserting data to DB: $key = $value." }

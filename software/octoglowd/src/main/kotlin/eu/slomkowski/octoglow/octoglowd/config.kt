@@ -83,6 +83,16 @@ data class ConfNetworkInfo(
 )
 
 @Serializable
+data class ConfMqttInfo(
+    val enabled: Boolean = false,
+    val host: String = "localhost",
+    val port: Int = 1883,
+    val username: String = "",
+    val password: String = "",
+    val homeassistantDiscoveryPrefix : String = "homeassistant",
+)
+
+@Serializable
 data class Config(
     val i2cBus: Int,
     val databaseFile: Path = Paths.get("data.db"),
@@ -107,6 +117,8 @@ data class Config(
     val nbp: ConfNbp,
 
     val networkInfo: ConfNetworkInfo,
+
+    val mqtt: ConfMqttInfo,
 ) {
     init {
         require(i2cBus >= 0)

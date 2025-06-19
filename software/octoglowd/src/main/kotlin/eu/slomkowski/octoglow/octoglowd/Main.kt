@@ -21,8 +21,9 @@ fun main() {
 
     val workerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    val mqttEmiter = MqttEmiter(config,workerScope)
     val hardware = Hardware(config)
-    val database = DatabaseLayer(config.databaseFile)
+    val database = DatabaseLayer(config.databaseFile, mqttEmiter)
     val closeable = listOf(database, hardware)
 
     Runtime.getRuntime().addShutdownHook(Thread {

@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.io.ktor.ktor.client.cio.jvm)
     implementation(libs.io.ktor.ktor.client.content.negotiation.jvm)
     implementation(libs.io.ktor.ktor.serialization.kotlinx.json.jvm)
+    implementation(libs.de.kempmobil.ktor.mqtt.core)
+    implementation(libs.de.kempmobil.ktor.mqtt.client)
 
     implementation(libs.app.cash.sqldelight.sqlite.driver)
 
