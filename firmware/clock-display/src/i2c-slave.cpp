@@ -7,10 +7,10 @@
  * write transmission is detected by i2c_message_ready polling the flag.
  ****************************************************************************/
 
-#include <stdint.h>
+#include "i2c-slave.hpp"
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include "i2c-slave.hpp"
 
 #define DEBUG 0
 

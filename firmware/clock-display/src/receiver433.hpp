@@ -2,17 +2,10 @@
 
 #include "protocol.hpp"
 
-#include <stdint.h>
+namespace octoglow::vfd_clock::receiver433 {
+    void init();
 
-namespace octoglow {
-    namespace vfd_clock {
-        namespace receiver433 {
-            void init();
+    void pool();
 
-            void pool();
-
-            extern octoglow::vfd_clock::protocol::WeatherSensorState currentWeatherSensorState;
-        }
-    }
+    extern protocol::WeatherSensorState currentWeatherSensorState;
 }
-

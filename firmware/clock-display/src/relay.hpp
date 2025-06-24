@@ -1,19 +1,14 @@
 #pragma once
 
-#include <stdint-gcc.h>
+#include "global.hpp"
 
-namespace octoglow {
-    namespace vfd_clock {
-        namespace relay {
+namespace octoglow::vfd_clock::relay {
+    enum class Relay : uint8_t {
+        RELAY_1,
+        RELAY_2
+    };
 
-            enum class Relay : uint8_t {
-                RELAY_1,
-                RELAY_2
-            };
+    void init();
 
-            void init();
-
-            void setState(Relay relay, bool enabled);
-        }
-    }
+    void setState(Relay relay, bool enabled);
 }

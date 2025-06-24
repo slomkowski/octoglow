@@ -4,13 +4,11 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-namespace octoglow {
-    namespace vfd_clock {
-        namespace receiver433 {
-            octoglow::vfd_clock::protocol::WeatherSensorState currentWeatherSensorState;
-        }
-    }
+
+namespace octoglow::vfd_clock::receiver433 {
+    protocol::WeatherSensorState currentWeatherSensorState;
 }
+
 
 constexpr uint8_t NUM_OF_BITS_IN_PACKET = 40;
 
@@ -23,29 +21,31 @@ enum class ValueUpdateState : uint8_t {
 };
 
 static volatile uint16_t timer1overflowCounter = 0;
-static volatile ValueUpdateState updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
+static volatile auto updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
 static volatile uint8_t mainMeasurementBuffer[NUM_OF_BITS_IN_PACKET / 8 + 1];
 static uint8_t comparingMeasurementBuffer[NUM_OF_BITS_IN_PACKET / 8 + 1];
 
 
-constexpr uint8_t msToTimer0pulses(double milliseconds) {
-    return uint8_t(milliseconds / 1000.0 * ((double) F_CPU) / 1024.0); // we assume prescaler is set to 1024
+constexpr uint8_t msToTimer0pulses(const double milliseconds) {
+    // we assume prescaler is set to 1024
+    return static_cast<uint8_t>(milliseconds / 1000.0 * static_cast<double>(F_CPU) / 1024.0);
 }
 
-constexpr uint8_t msToTimer1overflows(double milliseconds) {
-    return uint8_t(milliseconds / 1000.0 * ((double) F_CPU) / 128.0 / 255.0);// we assume prescaler is set to 512
+constexpr uint8_t msToTimer1overflows(const double milliseconds) {
+    // we assume prescaler is set to 512
+    return static_cast<uint8_t>(milliseconds / 1000.0 * static_cast<double>(F_CPU) / 128.0 / 255.0);
 }
 
-static inline void timerRestart() {
+static void timerRestart() {
     TCNT0L = 0;
     TCCR0B = _BV(CS02) | _BV(CS00); // prescaler to fclk/1024
 }
 
-static inline void timerStop() {
+static void timerStop() {
     TCCR0B = 0;
 }
 
-void ::octoglow::vfd_clock::receiver433::init() {
+void octoglow::vfd_clock::receiver433::init() {
     MCUCR |= _BV(ISC01) | _BV(ISC00);
     GIMSK |= _BV(INT0);
     TIMSK |= _BV(TOIE1);
@@ -57,8 +57,7 @@ void ::octoglow::vfd_clock::receiver433::init() {
     timerRestart();
 }
 
-void ::octoglow::vfd_clock::receiver433::pool() {
-
+void octoglow::vfd_clock::receiver433::pool() {
     if (timer1overflowCounter > msToTimer1overflows(700)) {
         timer1overflowCounter = 0;
         updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
@@ -96,7 +95,6 @@ void ::octoglow::vfd_clock::receiver433::pool() {
 
 
 ISR(INT0_vect) {
-
     static uint8_t position;
     static bool startBitWasFound = false;
 
@@ -113,14 +111,14 @@ ISR(INT0_vect) {
                and TCNT0L > msToTimer0pulses(4.7 - DELTA_MS)
                and TCNT0L < msToTimer0pulses(5.2 + DELTA_MS)) {
         // this is 1
-        mainMeasurementBuffer[position / 8] |= _BV(7 - (position % 8));
+        mainMeasurementBuffer[position / 8] |= _BV(7 - position % 8);
         ++position;
     } else if (startBitWasFound
                and position < NUM_OF_BITS_IN_PACKET
                and TCNT0L > msToTimer0pulses(2.4 - DELTA_MS)
                and TCNT0L < msToTimer0pulses(2.9 + DELTA_MS)) {
         // this is 0
-        mainMeasurementBuffer[position / 8] &= ~_BV(7 - (position % 8));
+        mainMeasurementBuffer[position / 8] &= ~_BV(7 - position % 8);
         ++position;
     } else {
         startBitWasFound = false;
@@ -140,7 +138,7 @@ ISR(INT0_vect) {
 
 // this is configured in init() in display.cpp. called every 16.384 ms
 ISR(TIMER1_OVF_vect) {
-    if (timer1overflowCounter !=  4 * 250) {
+    if (timer1overflowCounter != 4 * 250) {
         ++timer1overflowCounter;
     }
 }

@@ -32,7 +32,9 @@
  *
  ****************************************************************************/
 
-#include <stdint.h>
+#pragma once
+
+#include "global.hpp"
 
 constexpr uint8_t I2C_ADDRESS = 0x10;
 
@@ -51,7 +53,6 @@ uint8_t i2c_reply_ready();
 
 void i2c_reply_done(uint8_t nbytes);    // set i2c_rdlen
 
+// they have to be volatile because they are used in interrupt routines
 extern volatile uint8_t i2c_rdbuf[I2C_RDSIZE];
-//extern volatile uint8_t i2c_rdlen;
 extern volatile uint8_t i2c_wrbuf[I2C_WRSIZE];
-//extern volatile uint8_t i2c_wrlen;
