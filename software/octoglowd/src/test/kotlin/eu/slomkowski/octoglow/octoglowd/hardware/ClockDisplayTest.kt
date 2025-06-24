@@ -1,13 +1,15 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
+import eu.slomkowski.octoglow.octoglowd.hardware.ClockDisplay.Companion.createCommandWithCrc
+import eu.slomkowski.octoglow.octoglowd.toIntArray
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.*
@@ -25,19 +27,31 @@ class ClockDisplayTest {
 
     @Test
     fun testCalculateChecksum() {
-        val i2CBuffer = createI2CBuffer(4, 6, 183, 160, 103, 51, 33)
+        val i2CBuffer = intArrayOf(4, 6, 183, 160, 103, 51, 33)
         logger.info { i2CBuffer.contentToBitString() }
-        logger.info("{}", RemoteSensorReport.toBitArray(i2CBuffer))
+        logger.info { "${RemoteSensorReport.toBitArray(i2CBuffer)}" }
 
         assertTrue(RemoteSensorReport.calculateChecksum(i2CBuffer))
     }
 
     @Test
-    @Tag("hardware")
+    fun testCalculateCrc8() {
+        val buff = intArrayOf(4, 2, 137, 20, 104, 132, 19, 251)
+        val result = RemoteSensorReport.calculateCcittCrc8(buff, 0..buff.size - 2)
+        assertThat(result).isEqualTo(buff.last())
+    }
+
+    @Test
+    fun testCreateCommandWithCrc() {
+        val buff = intArrayOf(1, 49, 50, 51, 52)
+        val result = createCommandWithCrc(*buff)
+        assertThat(result).isEqualTo(intArrayOf(1, 49, 50, 51, 52, 160))
+    }
+
+    @Test
     fun testGetOutdoorWeatherReport(hardware: Hardware) {
         runBlocking {
-            ClockDisplay(hardware).apply {
-                initDevice()
+            hardware.clockDisplay.apply {
 
                 val report1 = retrieveRemoteSensorReport()
                     ?: fail("Report is invalid. Perhaps no measurement received yet?")
@@ -61,26 +75,21 @@ class ClockDisplayTest {
     @Test
     fun testParseInvalid() {
         assertFails {
-            RemoteSensorReport.parse(I2CBuffer(3))
+            RemoteSensorReport.parse(I2CBuffer(3).toIntArray())
         }
 
-        assertNull(RemoteSensorReport.parse(I2CBuffer(7).set(0, 4).set(1, 43).set(2, 34).set(3, 43).set(4, 43)))
+        assertNull(RemoteSensorReport.parse(intArrayOf(4, 43, 34, 43, 43, 0, 0, 49)))
     }
 
     @Test
     fun testGetOutdoorWeatherReportParse() {
-        assertParsing(23.9, 32.0, 4, 6, 183, 160, 103, 51, 33)
+        assertParsing(23.9, 32.0, 4, 6, 183, 160, 103, 51, 33, 102)
 
         //todo more positive temp
     }
 
-    private fun createI2CBuffer(vararg buffer: Int) = I2CBuffer(buffer.size).apply {
-        require(buffer.size == 7)
-        buffer.forEachIndexed { i, v -> this.set(i, v) }
-    }
-
     private fun assertParsing(temperature: Double, humidity: Double, vararg buffer: Int) {
-        val i2CBuffer = createI2CBuffer(*buffer)
+        val i2CBuffer = intArrayOf(*buffer)
         val report = assertNotNull(RemoteSensorReport.parse(i2CBuffer))
 
         assertEquals(temperature, report.temperature, DELTA)
@@ -88,11 +97,10 @@ class ClockDisplayTest {
     }
 
     @Test
-    @Tag("hardware")
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
             ClockDisplay(hardware).apply {
-                setDisplay(12, 34, true, false)
+                setDisplay(12, 34, upperDot = true, lowerDot = false)
                 for (brightness in 0..5) {
                     setBrightness(brightness)
                     delay(600)
@@ -102,19 +110,33 @@ class ClockDisplayTest {
     }
 
     @Test
-    @Tag("hardware")
-    fun testSetDisplay(hardware: Hardware) {
-        runBlocking {
-            ClockDisplay(hardware).apply {
-                setDisplay(3, 58, true, false)
-                delay(1000)
-                setDisplay(21, 2, false, true)
+    fun testSetRelay(hardware: Hardware): Unit = runBlocking {
+        ClockDisplay(hardware).apply {
+            repeat(3) {
+                setRelay(true)
+                delay(100)
+                setRelay(false)
+                delay(50)
             }
         }
     }
 
     @Test
-    @Tag("hardware")
+    fun testSetDisplay(hardware: Hardware): Unit = runBlocking {
+        ClockDisplay(hardware).apply {
+            setDisplay(3, 58, upperDot = true, lowerDot = false)
+            delay(1000)
+            setDisplay(21, 2, upperDot = false, lowerDot = true)
+            delay(1000)
+            for (hour in 0..24) {
+                for (minute in 0..59 step 3) {
+                    setDisplay(hour, minute, upperDot = minute % 2 == 0, lowerDot = hour % 2 == 0)
+                }
+            }
+        }
+    }
+
+    @Test
     @Disabled("persistent displaying new reports")
     fun testConstantReportsReceiving(hardware: Hardware) {
         runBlocking {

@@ -1,6 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
+import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport.Companion.calculateCcittCrc8
+import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport.Companion.verifyThatBufferHasValidCrc
+import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
+import eu.slomkowski.octoglow.octoglowd.toIntArray
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.time.ExperimentalTime
@@ -19,7 +23,7 @@ data class RemoteSensorReport(
         private const val VALID_MEASUREMENT_FLAG = 1 shl 1
         private const val ALREADY_READ_FLAG = 1 shl 2
 
-        fun toBitArray(i2CBuffer: I2CBuffer) = BooleanArray(40).apply {
+        fun toBitArray(i2CBuffer: IntArray) = BooleanArray(40).apply {
             for (i in 0..39) {
                 this[i] = i2CBuffer[2 + i / 8] and (0b10000000 shr (i % 8)) != 0
             }
@@ -28,8 +32,7 @@ data class RemoteSensorReport(
         /**
          * This code is ported from https://www.chaosgeordend.nl/documents/analyse_rf433.py
          */
-        fun calculateChecksum(i2CBuffer: I2CBuffer): Boolean {
-
+        fun calculateChecksum(i2CBuffer: IntArray): Boolean {
             var csum = 0x0
             var mask = 0xC
             val msg = toBitArray(i2CBuffer)
@@ -56,9 +59,39 @@ data class RemoteSensorReport(
             return csum == checksum
         }
 
-        fun parse(buff: I2CBuffer): RemoteSensorReport? {
-            require(buff.length == 7)
-            require(buff[0] == 4)
+        // todo move something else
+        fun calculateCcittCrc8(data: IntArray, range: ClosedRange<Int>): Int {
+            var crcValue = 0x00
+
+            var i = range.start
+            while (i <= range.endInclusive) {
+                crcValue = 0xff and (crcValue xor data[i])
+                repeat(8) {
+                    crcValue = if (crcValue and 0x80 != 0) {
+                        (crcValue shl 1) xor 0x07
+                    } else {
+                        crcValue shl 1
+                    } and 0xff
+                }
+                i++
+            }
+
+            return crcValue
+        }
+
+        fun verifyThatBufferHasValidCrc(buff: IntArray) {
+            require(buff.size >= 2)
+            val calculatedLocally = calculateCcittCrc8(buff, 0..buff.size - 2)
+            val received = buff.last()
+            check(calculatedLocally == received) {
+                "CRC mismatch, received data: ${buff.joinToString(" ", prefix = "[", postfix = "]")}, calculated CRC8 = $calculatedLocally, received = $received"
+            }
+        }
+
+        fun parse(buff: IntArray): RemoteSensorReport? {
+            require(buff.size == 8) { "invalid buffer length: 8" }
+            require(buff[0] == 4) { "invalid sensor report type: ${buff[0]}" }
+            verifyThatBufferHasValidCrc(buff)
 
             if ((buff[1] and VALID_MEASUREMENT_FLAG) == 0) {
                 return null
@@ -105,7 +138,7 @@ data class RemoteSensorReport(
                 humidity,
                 weakBattery,
                 alreadyRead,
-                manualTx
+                manualTx,
             )
         }
     }
@@ -119,25 +152,45 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
 
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
+
+        fun createCommandWithCrc(vararg cmd: Int): IntArray {
+            val buff = IntArray(cmd.size + 1) { 0 }
+            cmd.copyInto(buff, 0, 0, cmd.size)
+            buff[cmd.size] = calculateCcittCrc8(cmd, cmd.indices)
+            return buff
+        }
+
+        private val retrieveRemoteSensorReportCmd: I2CBuffer = createCommandWithCrc(4).toI2CBuffer()
+    }
+
+    // todo optimize?
+    private suspend fun sendCommand(vararg cmd: Int) {
+        val returned = doTransaction(createCommandWithCrc(*cmd), 2).toIntArray()
+        check(returned.size == 2)
+        verifyThatBufferHasValidCrc(returned)
     }
 
     override suspend fun setBrightness(brightness: Int) {
-        doWrite(3, brightness)
+        sendCommand(3, brightness)
+    }
+
+    suspend fun setRelay(enabled: Boolean) {
+        sendCommand(2, 0, if (enabled) 1 else 0)
     }
 
     override suspend fun initDevice() {
-        doWrite(2, 0, 0)
+        sendCommand(2, 0, 0)
     }
 
     override suspend fun closeDevice() {
         setBrightness(3)
-        doWrite(2, 0, 0)
-        doWrite(1, 45, 45, 45, 45)
+        sendCommand(2, 0, 0)
+        sendCommand(1, 45, 45, 45, 45)
     }
 
     suspend fun retrieveRemoteSensorReport(): RemoteSensorReport? {
-        val readBuffer = doTransaction(I2CBuffer(1).set(0, 4), 7)
-        check(readBuffer[0] == 4)
+        val readBuffer = doTransaction(retrieveRemoteSensorReportCmd, 8).toIntArray()
+        check(readBuffer[0] == 4) { "invalid read command type: ${readBuffer[0]}" }
         return RemoteSensorReport.parse(readBuffer)
     }
 
@@ -155,7 +208,7 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
             0
         }
 
-        doWrite(
+        sendCommand(
             1, when (hours < 10) {
                 true -> ' '.code
                 else -> 0x30 + hours / 10
