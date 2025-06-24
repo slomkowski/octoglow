@@ -7,8 +7,6 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-#include <stdlib.h>
-
 constexpr bool WATCHDOG_ENABLE = true;
 
 using namespace octoglow::front_display;
@@ -21,14 +19,14 @@ static void showDemoOnDisplay() {
 
     display::writeStaticText_P(0, 9, PSTR("OCTOGLOW"));
 
-    display::writeScrollingText_P(1, 10, 10, PSTR("2018 Michał Słomkowski slomkowski.eu"));
+    display::writeScrollingText_P(1, 10, 10, PSTR("2016-2025 Michał Słomkowski slomkowski.eu"));
 
     display::writeStaticText_P(21, 19, PSTR("Controller boot..."));
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
-int main() {
+[[noreturn]] int main() {
+    //todo pull-up all unused pins
+
     encoder::init();
     display::init();
 
@@ -53,5 +51,3 @@ int main() {
         }
     }
 }
-
-#pragma clang diagnostic pop

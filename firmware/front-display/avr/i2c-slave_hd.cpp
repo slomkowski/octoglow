@@ -9,13 +9,13 @@ using namespace octoglow::front_display::i2c;
 /**
  * set the TWCR to enable address matching and enable TWI, clear TWINT, enable TWI interrupt
  */
-inline static void prepareForNextByte() {
-    TWCR |= (1 << TWIE) | (1 << TWINT) | (1 << TWEA) | (1 << TWEN);
+static void prepareForNextByte() {
+    TWCR |= 1 << TWIE | 1 << TWINT | 1 << TWEA | 1 << TWEN;
 }
 
 void octoglow::front_display::i2c::init() {
     // load address into TWI address register
-    TWAR = (SLAVE_ADDRESS << 1);
+    TWAR = SLAVE_ADDRESS << 1;
 
     prepareForNextByte();
 }
@@ -48,7 +48,7 @@ ISR(TWI_vect) {
 
         prepareForNextByte();
     } else {
-        // if none of the above apply prepare TWI to be addressed again
-        TWCR |= (1 << TWIE) | (1 << TWEA) | (1 << TWEN);
+        // if none of the above apply to prepare TWI to be addressed again
+        TWCR |= 1 << TWIE | 1 << TWEA | 1 << TWEN;
     }
 }

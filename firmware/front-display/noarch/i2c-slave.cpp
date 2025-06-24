@@ -11,16 +11,16 @@ constexpr uint8_t BUFFER_SIZE = 200;
 static uint8_t buffer[BUFFER_SIZE];
 static uint8_t bytesProcessed;
 
-void octoglow::front_display::i2c::onTransmit(uint8_t volatile *value) {
+void i2c::onTransmit(uint8_t volatile *value) {
     *value = buffer[bytesProcessed];
     ++bytesProcessed;
 }
 
-void octoglow::front_display::i2c::onStart() {
+void i2c::onStart() {
     bytesProcessed = 0;
 }
 
-void octoglow::front_display::i2c::onReceive(uint8_t value) {
+void i2c::onReceive(uint8_t value) {
     if (bytesProcessed == sizeof(buffer)) {
         return;
     }
@@ -28,7 +28,7 @@ void octoglow::front_display::i2c::onReceive(uint8_t value) {
     buffer[bytesProcessed] = value;
     ++bytesProcessed;
 
-    const auto cmd = static_cast<Command >(buffer[0]);
+    const auto cmd = static_cast<Command>(buffer[0]);
 
     if (bytesProcessed == 1) {
         if (cmd == Command::CLEAR_DISPLAY) {

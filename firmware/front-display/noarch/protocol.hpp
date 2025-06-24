@@ -2,7 +2,7 @@
 
 #include "encoder.hpp"
 
-#include <stdint.h>
+#include <inttypes.h>
 
 
 namespace octoglow::front_display::protocol {

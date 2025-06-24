@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <inttypes.h>
 
 namespace octoglow::front_display::display {
 
@@ -80,7 +80,6 @@ namespace octoglow::front_display::display {
         const uint8_t maxTextLength;
         uint8_t *const convertedText;
 
-    public:
         void clear();
 
         void scrollAndLoadIntoFramebuffer();

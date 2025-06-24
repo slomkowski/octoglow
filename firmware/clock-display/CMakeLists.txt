@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 SET(CMAKE_SYSTEM_NAME Generic)
 
 project(octoglow-clock-display)

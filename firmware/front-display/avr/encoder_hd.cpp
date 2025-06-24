@@ -13,7 +13,7 @@ using namespace octoglow::front_display::encoder;
 
 constexpr uint8_t DEBOUNCE_ITERATIONS = 20;
 
-void ::octoglow::front_display::encoder::init() {
+void octoglow::front_display::encoder::init() {
     // enable pull-up
     PORT(ENC_PORT) |= _BV(ENC_A_PIN) | _BV(ENC_B_PIN) | _BV(ENC_BTN_PIN);
 
@@ -33,7 +33,7 @@ void octoglow::front_display::encoder::pool() {
             prevButtonState = true;
             _currentButtonState = ButtonState::JUST_PRESSED;
         }
-    } else if ((PIN(ENC_PORT) & _BV(ENC_BTN_PIN)) and prevButtonState) {
+    } else if (PIN(ENC_PORT) & _BV(ENC_BTN_PIN) and prevButtonState) {
         ++currentDebounceIterations;
 
         if (currentDebounceIterations == DEBOUNCE_ITERATIONS) {
@@ -46,7 +46,7 @@ void octoglow::front_display::encoder::pool() {
 
 ISR(PCINT2_vect) {
     static uint8_t old = 0;
-    uint8_t current = 0b11 & ((PIN(ENC_PORT) & (_BV(ENC_A_PIN) | _BV(ENC_B_PIN))) >> 1);
+    const uint8_t current = 0b11 & (PIN(ENC_PORT) & (_BV(ENC_A_PIN) | _BV(ENC_B_PIN))) >> 1;
 
     if (old == 0b00) {
         if (current == 0b10) { _currentEncoderSteps++; }

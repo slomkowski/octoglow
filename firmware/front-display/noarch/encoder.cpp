@@ -6,13 +6,13 @@ namespace octoglow::front_display::encoder {
 }
 
 int8_t octoglow::front_display::encoder::getValueAndClear() {
-    auto v = _currentEncoderSteps;
+    const auto v = _currentEncoderSteps;
     _currentEncoderSteps = 0;
     return v;
 }
 
 octoglow::front_display::encoder::ButtonState octoglow::front_display::encoder::getButtonStateAndClear() {
-    auto v = _currentButtonState;
+    const auto v = _currentButtonState;
     _currentButtonState = ButtonState::NO_CHANGE;
     return v;
 }

@@ -2,7 +2,7 @@
 
 #include "main.hpp"
 
-#include <stdint.h>
+#include <inttypes.h>
 
 namespace octoglow::front_display::display {
     constexpr uint8_t UNICODE_START_CODE = 126;

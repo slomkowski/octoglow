@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <inttypes.h>
 
 
 namespace octoglow::front_display::encoder {
