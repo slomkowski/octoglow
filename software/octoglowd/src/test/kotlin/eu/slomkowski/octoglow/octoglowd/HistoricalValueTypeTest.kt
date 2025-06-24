@@ -15,5 +15,8 @@ class HistoricalValueTypeTest {
         assertEquals("STOCK_ABC", Stock("ABC").databaseSymbol)
         assertEquals("STOCK__ABC", Stock("^ABC").databaseSymbol)
         assertEquals("STOCK__REKE", Stock("^Reke").databaseSymbol)
+
+        assertEquals("BME280_HUMIDITY", Bme280Humidity.databaseSymbol)
+
     }
 }

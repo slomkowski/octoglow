@@ -33,5 +33,8 @@ val defaultTestConfig = Config(
     mqtt = ConfMqttInfo(
         enabled = true,
         port = RandomUtils.nextInt(10_000, 30_000) //todo
+    ),
+    todoist = ConfTodoist(
+        apiKey = "api-key-here"
     )
 )

@@ -21,6 +21,16 @@ object IndoorTemperature : HistoricalValueType()
 object IndoorWeakBattery : HistoricalValueType()
 object IndoorHumidity : HistoricalValueType()
 
+object Bme280Temperature : HistoricalValueType()
+object Bme280Humidity: HistoricalValueType()
+
+
+object RealPressure : HistoricalValueType()
+object MSLPressure : HistoricalValueType() {
+    override val databaseSymbol: String
+        get() = "MSL_PRESSURE"
+}
+
 data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
     init {
         require(symbol.isNotBlank())

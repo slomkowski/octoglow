@@ -5,6 +5,7 @@ import eu.slomkowski.octoglow.octoglowd.testConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.time.ExperimentalTime
@@ -38,6 +39,17 @@ class HardwareTest {
 
                 delay(2000)
             }
+        }
+    }
+
+    @Test
+    fun testHandleException() {
+        Hardware.handleI2cException(Exception("Native error while writing I2C buffer : errno 6")).also {
+            assertThat(it.message).isEqualTo("native I2C transaction error: ENXIO: No such device or address")
+        }
+
+        Hardware.handleI2cException(Exception("Native error while writing I2C buffer : errno 32423")).also {
+            assertThat(it.message).isEqualTo("native I2C transaction error: errno 32423")
         }
     }
 }

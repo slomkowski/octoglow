@@ -161,8 +161,9 @@ fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
 fun I2CBuffer.contentToString(): String =
     (0 until this.length).map { this[it] }.joinToString(" ", prefix = "[", postfix = "]")
 
-fun I2CBuffer.contentToBitString(): String =
-    this.toIntArray().joinToString(" ") { it.toString(2).padStart(8, '0') }
+fun IntArray.contentToBitString(): String =
+    this.joinToString(" ") { it.toString(2).padStart(8, '0') }
+
 
 fun I2CBuffer.toIntArray(): IntArray = (0 until this.length).map { this[it] }.toIntArray()
 

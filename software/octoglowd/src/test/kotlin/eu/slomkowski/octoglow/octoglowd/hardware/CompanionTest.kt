@@ -1,11 +1,8 @@
 import eu.slomkowski.octoglow.octoglowd.hardware.Scd40.Companion.calculateCrc8
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-/**
- * Tests for the calculateCrc8 function in the Companion object of the Scd40 class.
- */
+
 class CompanionTest {
 
     @Test
@@ -15,5 +12,7 @@ class CompanionTest {
         assertThat(calculateCrc8(0x0000)).isEqualTo(0x81)
         assertThat(calculateCrc8(0xf896)).isEqualTo(0x31)
         assertThat(calculateCrc8(0x9f07)).isEqualTo(0xc2)
+        assertThat(calculateCrc8(0x4c02)).isEqualTo(0xde)
+        assertThat(calculateCrc8(0xe307)).isEqualTo(0x4d)
     }
 }

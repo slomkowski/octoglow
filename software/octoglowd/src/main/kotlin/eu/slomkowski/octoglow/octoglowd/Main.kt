@@ -21,7 +21,7 @@ fun main() {
 
     val workerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    val mqttEmiter = MqttEmiter(config,workerScope)
+    val mqttEmiter = MqttEmiter(config, workerScope)
     val hardware = Hardware(config)
     val database = DatabaseLayer(config.databaseFile, mqttEmiter)
     val closeable = listOf(database, hardware)
@@ -46,6 +46,8 @@ fun main() {
         AirQualityView(config, database, hardware),
         NetworkView(config, hardware),
         JvmMemoryView(hardware),
+        LocalSensorView(config, database, hardware),
+        TodoistView(config, hardware),
     )
 
     val brightnessDaemon = BrightnessDaemon(config, database, hardware)

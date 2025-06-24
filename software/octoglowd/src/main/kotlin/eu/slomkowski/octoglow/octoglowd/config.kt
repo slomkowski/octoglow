@@ -89,8 +89,17 @@ data class ConfMqttInfo(
     val port: Int = 1883,
     val username: String = "",
     val password: String = "",
-    val homeassistantDiscoveryPrefix : String = "homeassistant",
+    val homeassistantDiscoveryPrefix: String = "homeassistant",
 )
+
+@Serializable
+data class ConfTodoist(
+    val apiKey: String,
+) {
+    init {
+        require(apiKey.isNotBlank()) { "Todoist API key must not be blank" }
+    }
+}
 
 @Serializable
 data class Config(
@@ -119,6 +128,8 @@ data class Config(
     val networkInfo: ConfNetworkInfo,
 
     val mqtt: ConfMqttInfo,
+
+    val todoist: ConfTodoist,
 ) {
     init {
         require(i2cBus >= 0)

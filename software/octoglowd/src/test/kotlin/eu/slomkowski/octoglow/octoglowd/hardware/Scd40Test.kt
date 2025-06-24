@@ -1,46 +1,48 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import org.junit.jupiter.api.Assertions.assertArrayEquals
+import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
+import io.dvlopt.linux.i2c.I2CBuffer
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.mockk.coEvery
+import io.mockk.mockk
+import io.mockk.spyk
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import kotlin.math.log
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
+@ExtendWith(HardwareParameterResolver::class)
 class Scd40Test {
+
+    private val logger = KotlinLogging.logger { }
+
     @Test
-    fun `splitToBytes should correctly split a 16-bit command into two bytes`() {
-        val command = 0x21B1
-        val expected = intArrayOf(0x21, 0xB1)
-        val result = Scd40.Companion.splitToBytes(command)
-        assertArrayEquals(expected, result)
+    fun `test readSerialNumber from mock`(): Unit = runBlocking {
+        val hardwareMock = mockk<Hardware>()
+        val scd40 = spyk(Scd40(hardwareMock))
+
+        val mockedBuffer = intArrayOf(0x4c, 0x02, 0xde, 0xe3, 0x07, 0x4d, 0x3b, 0xe8, 0x51).toI2CBuffer()
+        coEvery { scd40.doTransaction(any<I2CBuffer>(), any()) } returns mockedBuffer
+
+        val result = scd40.readSerialNumber()
+        assertThat(result).isEqualTo(0x4c02e3073be8)
     }
 
     @Test
-    fun `splitToBytes should correctly split a command with all bytes set to zero`() {
-        val command = 0x0000
-        val expected = intArrayOf(0x00, 0x00)
-        val result = Scd40.Companion.splitToBytes(command)
-        assertArrayEquals(expected, result)
-    }
+    fun testInitAndRead(hardware: Hardware): Unit = runBlocking {
 
-    @Test
-    fun `splitToBytes should correctly split a command with maximum possible value`() {
-        val command = 0xFFFF
-        val expected = intArrayOf(0xFF, 0xFF)
-        val result = Scd40.Companion.splitToBytes(command)
-        assertArrayEquals(expected, result)
-    }
+//        hardware.scd40.performSelfTest()
 
-    @Test
-    fun `splitToBytes should correctly split a command with low byte set to zero`() {
-        val command = 0xFF00
-        val expected = intArrayOf(0xFF, 0x00)
-        val result = Scd40.Companion.splitToBytes(command)
-        assertArrayEquals(expected, result)
-    }
-
-    @Test
-    fun `splitToBytes should correctly split a command with high byte set to zero`() {
-        val command = 0x00FF
-        val expected = intArrayOf(0x00, 0xFF)
-        val result = Scd40.Companion.splitToBytes(command)
-        assertArrayEquals(expected, result)
+        repeat(20) {
+            while (!hardware.scd40.getDataReadyStatus()) {
+                delay(10000)
+            }
+            val report = hardware.scd40.readMeasurement()
+            logger.info { "Read report: $report" }
+        }
     }
 }

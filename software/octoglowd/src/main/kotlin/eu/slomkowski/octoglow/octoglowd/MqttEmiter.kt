@@ -42,6 +42,14 @@ class MqttEmiter(
             HaHumidity(IndoorHumidity, "Wilgotność wewnątrz"),
             HaHumidity(OutdoorHumidity, "Wilgotność na zewnątrz"),
             SendableToHomeassistant(
+                MSLPressure,
+                "Ciśnienie atmosferyczne",
+                "atmospheric_pressure",
+                "hPa",
+                "{{ value_json.pressure | round(0) }}",
+                null,
+            ) { SensorPayload.PressurePayload(it) },
+            SendableToHomeassistant(
                 RadioactivityUSVH,
                 "Promieniowanie γ",
                 null,
@@ -169,6 +177,11 @@ class MqttEmiter(
         @Serializable
         data class HumidityPayload(
             val humidity: Double,
+        ) : SensorPayload()
+
+        @Serializable
+        data class PressurePayload(
+            val pressure: Double,
         ) : SensorPayload()
     }
 

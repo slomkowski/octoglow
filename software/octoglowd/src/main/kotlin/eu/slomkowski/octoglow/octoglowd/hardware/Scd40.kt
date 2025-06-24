@@ -1,7 +1,27 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import eu.slomkowski.octoglow.octoglowd.toIntArray
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.delay
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
+
+data class Scd40measurements(
+    val co2: Double,
+    val temperature: Double,
+    val humidity: Double,
+) {
+    init {
+//        require(
+//            temperature in (-10.0..60.0)
+//                    && humidity in (0.0..100.0)
+//                    && co2 in (350.0..2500.0)
+//        )
+//        { String.format("invalid report: %4.2f deg C, H: %3.0f%%, CO2: %4.0f ppm", temperature, humidity, co2) }
+    }
+}
 
 @OptIn(ExperimentalTime::class)
 class Scd40(hardware: Hardware) : I2CDevice(hardware, 0x62, logger) {
@@ -9,20 +29,14 @@ class Scd40(hardware: Hardware) : I2CDevice(hardware, 0x62, logger) {
     companion object {
         private val logger = KotlinLogging.logger {}
 
-        private const val START_PERIODIC_MEASUREMENT = 0x21b1u
-        private const val STOP_PERIODIC_MEASUREMENT = 0x3F86u
-        private const val READ_MEASUREMENT = 0xEC05u
-
-        private const val SET_TEMPERATURE_OFFSET = 0x241Du
-        private const val REINIT = 0x3646u
-        private const val GET_SERIAL_NUMBER = 0x3682u
-
         inline fun splitToBytes(command: Int): IntArray = intArrayOf((command shr 8) and 0xff, command and 0xff)
 
-        inline fun calculateCrc8(value: Int): Int {
+        inline fun calculateCrc8(value: Int) = calculateCrc8(splitToBytes(value))
+
+        fun calculateCrc8(data: IntArray): Int {
             var crc = 0xff
 
-            for (byte in splitToBytes(value)) {
+            for (byte in data) {
                 crc = 0xff and (crc xor byte)
                 repeat(8) {
                     crc = if (crc and 0x80 != 0) {
@@ -38,21 +52,50 @@ class Scd40(hardware: Hardware) : I2CDevice(hardware, 0x62, logger) {
     }
 
     override suspend fun initDevice() {
-        try {
-            val serialNumber = readSerialNumber()
-            logger.info { "Serial number is $serialNumber" }
-        } catch (e: Exception) {
-            logger.error { "Unable to read serial number." }
-        }
+        stopPeriodicMeasurement()
+
+        val serialNumber = readSerialNumber()
+        logger.info { "Serial number is $serialNumber." }
+        startPeriodicMeasurement()
     }
 
     override suspend fun closeDevice() {
-        TODO()
+        stopPeriodicMeasurement()
     }
+
+    suspend fun startPeriodicMeasurement() {
+        devSendCommand(0x21b1)
+    }
+
+    suspend fun stopPeriodicMeasurement() {
+        devSendCommand(0x3f86)
+        delay(500)
+    }
+
+    suspend fun getDataReadyStatus(): Boolean {
+        val result = devRead(0xe4b8, 1)
+        return (result[0] and 0b11111111111) != 0
+    }
+    
+    suspend fun performSelfTest() {
+        val result = devRead(0x3639, 1, 10.seconds)
+        check(result[0] == 0) { "Self test failed with error: ${result[0]}" }
+    }
+
+    suspend fun readMeasurement(): Scd40measurements {
+        val result = devRead(0xec05, 3)
+        val co2 = result[0].toDouble()
+        val temperature = -45.0 + 175.0 * result[1].toDouble() / 65535.0
+        val humidity = 100.0 * result[2].toDouble() / 65535.0
+        // todo przenieść do parse()
+
+        return Scd40measurements(co2, temperature, humidity)
+    }
+
 
     suspend fun readSerialNumber(): Long {
         val result = devRead(0x3682, 3)
-        return (result[0].toLong() shl 32) or (result[1].toLong() shl 16) or (result[2].toLong() shl 8)
+        return (result[0].toLong() shl 32) or (result[1].toLong() shl 16) or result[2].toLong()
     }
 
     private suspend fun devSendCommand(command: Int) {
@@ -63,16 +106,26 @@ class Scd40(hardware: Hardware) : I2CDevice(hardware, 0x62, logger) {
         doWrite(*splitToBytes(command), *splitToBytes(value), calculateCrc8(value))
     }
 
-    // todo add delay
-    private suspend fun devRead(command: Int, numberOfWords: Int): IntArray {
+    // todo add delay to transaction
+    internal suspend fun devRead(command: Int, numberOfWords: Int, delay : Duration = 1.milliseconds): IntArray {
         require(numberOfWords in 1..3)
-        val readBuffer = doTransaction(splitToBytes(command), numberOfWords * 3)
+        val bufferLen = numberOfWords * 3
+        val readBuffer = doTransaction(splitToBytes(command), bufferLen)
+        check(readBuffer.length == bufferLen) { "invalid number of bytes read, expected $bufferLen, got ${readBuffer.length}" }
 
-        return (0..<numberOfWords).map { idx ->
+        return (0 until numberOfWords).map { idx ->
             val offset = 3 * idx
-            val readValue = readBuffer[offset + 0] shl 8 + readBuffer[offset + 1]
+            val readValue = (readBuffer[offset + 0] shl 8) + (readBuffer[offset + 1])
             val calculatedCrc8 = calculateCrc8(readValue)
-            check(calculatedCrc8 == readBuffer[offset + 2]) { "SCD40 CRC8 mismatch, command $command" }
+            val readCrc8 = readBuffer[offset + 2]
+            check(calculatedCrc8 == readCrc8) {
+                "CRC8 mismatch when reading $idx word, " +
+                        "calculated: 0x${calculatedCrc8.toString(16)}, " +
+                        "read: 0x${readCrc8.toString(16)}, " +
+                        "command: 0x${command.toString(16)}, " +
+                        "read data: ${readBuffer.toIntArray().joinToString(", ") { "0x${it.toString(16)}" }}"
+            }
+
             readValue
         }.toIntArray()
     }

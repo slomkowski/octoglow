@@ -15,6 +15,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -52,10 +53,10 @@ class Hardware(
 
         private val minWaitTimeBetweenSubsequentCalls = 2.milliseconds
 
-        private val exceptionRegex = Regex("Native error while doing an I2C transaction : errno (\\d+)")
+        private val exceptionRegex = Regex("errno (\\d+)")
 
         fun handleI2cException(baseException: Exception): Exception = exceptionRegex
-            .matchEntire(baseException.message?.trim() ?: "")
+            .find(baseException.message ?: "")
             ?.let { matchResult ->
                 val errno = matchResult.groupValues[1].toInt()
 
@@ -80,7 +81,9 @@ class Hardware(
 
     val scd40 = Scd40(this)
 
-    private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac, scd40)
+    val bme280 = Bme280(this)
+
+    private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac, scd40, bme280)
 
     private val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
 
@@ -152,7 +155,8 @@ class Hardware(
     suspend fun doTransaction(
         i2cAddress: Int,
         writeBuffer: I2CBuffer,
-        bytesToRead: Int
+        bytesToRead: Int,
+        delayBetweenWriteAndRead : Duration,
     ): I2CBuffer {
         require(bytesToRead in 1..100)
         val numberOfTries = 3
@@ -165,7 +169,7 @@ class Hardware(
                     executeExclusivelyAndWaitIfRequired {
                         bus.selectSlave(i2cAddress)
                         bus.write(writeBuffer)
-                        delay(1)
+                        delay(delayBetweenWriteAndRead)
                         bus.read(readBuffer)
                     }
 
@@ -179,7 +183,7 @@ class Hardware(
                     }
 
                     if (e.message?.contains("errno 6", ignoreCase = true) == true && tryNo < numberOfTries) {
-                        logger.warn("errno 6 happened, retrying ({}/{}).", tryNo, numberOfTries)
+                        logger.warn {"errno 6 happened, retrying ($tryNo/$numberOfTries)." }
                         continue
                     } else {
                         logger.error(e) { "Error in bus transaction ($tryNo/$numberOfTries)" }
