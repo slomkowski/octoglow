@@ -14,13 +14,13 @@ import kotlin.time.ExperimentalTime
 enum class Slot(val capacity: Int) {
     SLOT0(148), // should be 150, but probably firmware bug
     SLOT1(68),
-    SLOT2(28)
+    SLOT2(28),
 }
 
 enum class ButtonState {
     NO_CHANGE,
     JUST_PRESSED,
-    JUST_RELEASED
+    JUST_RELEASED,
 }
 
 data class ButtonReport(
@@ -32,30 +32,24 @@ data class ButtonReport(
     }
 }
 
-@OptIn(ExperimentalTime::class)
-class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasBrightness {
+interface FrontDisplay {
+    suspend fun initDevice()
 
-    companion object {
-        private val logger = KotlinLogging.logger {}
+    suspend fun closeDevice()
 
-        // we assume last value as pivot
-        private const val MAX_VALUES_IN_CHART = 5 * 20
-    }
+    suspend fun setBrightness(brightness: Int)
 
-    override suspend fun initDevice() {
-        clear()
-        setBrightness(3)
-    }
+    suspend fun getButtonReport(): ButtonReport
 
-    override suspend fun closeDevice() {
-        clear()
-        setBrightness(3)
-        setStaticText(5, "SHUT  DOWN")
-    }
+    suspend fun clear()
 
-    override suspend fun setBrightness(brightness: Int) {
-        doWrite(3, brightness)
-    }
+    suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T)
+
+    suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T)
+
+    suspend fun setUpperBar(c: Int)
+
+    suspend fun setText(textBytes: ByteArray, header: IntArray)
 
     /**
      * Sets the upper bar content - all 20 positions are needed.
@@ -69,6 +63,8 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
                 false -> acc
             }
         }
+        
+        
         setUpperBar(c)
     }
 
@@ -84,15 +80,6 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
                 }
             }
         setUpperBar(c)
-    }
-
-    private suspend fun setUpperBar(c: Int) {
-        val bk = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(c)
-        doWrite(I2CBuffer(5).set(0, 7).set(1, bk[0]).set(2, bk[1]).set(3, bk[2]).set(4, bk[3]))
-    }
-
-    suspend fun clear() {
-        doWrite(2)
     }
 
     suspend fun setStaticText(position: Int, text: String) {
@@ -117,17 +104,51 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
 
         setText(textBytes, intArrayOf(5, slot.ordinal, position, length))
     }
+}
 
-    private suspend fun setText(textBytes: ByteArray, header: IntArray) {
+@OptIn(ExperimentalTime::class)
+class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasBrightness, FrontDisplay {
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
+        // we assume last value as pivot
+        private const val MAX_VALUES_IN_CHART = 5 * 20
+    }
+
+    override suspend fun initDevice() {
+        clear()
+        setBrightness(3)
+    }
+
+    override suspend fun closeDevice() {
+        clear()
+        setBrightness(3)
+        setStaticText(5, "SHUT  DOWN")
+    }
+
+    override suspend fun setBrightness(brightness: Int) {
+        doWrite(3, brightness)
+    }
+
+    override suspend fun setUpperBar(c: Int) {
+        val bk = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(c)
+        doWrite(I2CBuffer(5).set(0, 7).set(1, bk[0]).set(2, bk[1]).set(3, bk[2]).set(4, bk[3]))
+    }
+
+    override suspend fun clear() {
+        doWrite(2)
+    }
+
+    override suspend fun setText(textBytes: ByteArray, header: IntArray) {
         val writeBuffer = I2CBuffer(header.size + textBytes.size + 1)
         header.forEachIndexed { idx, v -> writeBuffer.set(idx, v) }
         textBytes.forEachIndexed { idx, b -> writeBuffer.set(idx + header.size, b) }
         writeBuffer.set(header.size + textBytes.size, 0)
-
         doWrite(writeBuffer)
     }
 
-    suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
+    override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
         require(historicalValues.size + 1 < MAX_VALUES_IN_CHART) { "number of values cannot exceed $MAX_VALUES_IN_CHART" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
         val maxPosition = 5 * 40 - historicalValues.size + 2
@@ -155,7 +176,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
         drawImage(position, false, img)
     }
 
-    suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) = coroutineScope {
+    override suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T): Unit = coroutineScope {
         require(historicalValues.size < MAX_VALUES_IN_CHART) { "number of values cannot exceed $MAX_VALUES_IN_CHART" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
         val maxPosition = 5 * 20 - historicalValues.size
@@ -198,7 +219,7 @@ class FrontDisplay(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasB
         doWrite(writeBuffer)
     }
 
-    suspend fun getButtonReport(): ButtonReport {
+    override suspend fun getButtonReport(): ButtonReport {
         val readBuffer = doTransaction(I2CBuffer(1).set(0, 1), 2)
 
         return ButtonReport(

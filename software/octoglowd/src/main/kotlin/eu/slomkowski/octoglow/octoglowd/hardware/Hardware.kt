@@ -73,7 +73,7 @@ class Hardware(
 
     val clockDisplay = ClockDisplay(this)
 
-    val frontDisplay = FrontDisplay(this)
+    val frontDisplay = FrontDisplayReal(this) // todo change with mock
 
     val geiger = Geiger(this)
 
