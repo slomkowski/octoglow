@@ -12,9 +12,9 @@ import kotlin.math.roundToInt
 import kotlin.time.ExperimentalTime
 
 enum class Slot(val capacity: Int) {
-    SLOT0(150),
-    SLOT1(70),
-    SLOT2(30)
+    SLOT0(148), // should be 150, but probably firmware bug
+    SLOT1(68),
+    SLOT2(28)
 }
 
 enum class ButtonState {
