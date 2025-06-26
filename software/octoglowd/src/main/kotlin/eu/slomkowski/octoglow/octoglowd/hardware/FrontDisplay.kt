@@ -1,7 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.set
-import io.dvlopt.linux.i2c.I2CBuffer
+import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
+import eu.slomkowski.octoglow.octoglowd.toIntArray
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -63,8 +63,7 @@ interface FrontDisplay {
                 false -> acc
             }
         }
-        
-        
+
         setUpperBar(c)
     }
 
@@ -114,6 +113,13 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
 
         // we assume last value as pivot
         private const val MAX_VALUES_IN_CHART = 5 * 20
+
+        fun createCommandWithCrc(vararg cmd: Int): IntArray {
+            val buff = IntArray(cmd.size + 1) { 0 }
+            cmd.copyInto(buff, 1, 0, cmd.size)
+            buff[0] = calculateCcittCrc8(cmd, cmd.indices)
+            return buff
+        }
     }
 
     override suspend fun initDevice() {
@@ -128,24 +134,24 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
     }
 
     override suspend fun setBrightness(brightness: Int) {
-        doWrite(3, brightness)
+        sendCommand(3, brightness)
     }
 
     override suspend fun setUpperBar(c: Int) {
         val bk = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(c)
-        doWrite(I2CBuffer(5).set(0, 7).set(1, bk[0]).set(2, bk[1]).set(3, bk[2]).set(4, bk[3]))
+        sendCommand(7, bk[0].toInt(), bk[1].toInt(), bk[2].toInt())
     }
 
     override suspend fun clear() {
-        doWrite(2)
+        sendCommand(2)
     }
 
     override suspend fun setText(textBytes: ByteArray, header: IntArray) {
-        val writeBuffer = I2CBuffer(header.size + textBytes.size + 1)
-        header.forEachIndexed { idx, v -> writeBuffer.set(idx, v) }
-        textBytes.forEachIndexed { idx, b -> writeBuffer.set(idx + header.size, b) }
-        writeBuffer.set(header.size + textBytes.size, 0)
-        doWrite(writeBuffer)
+        val writeBuffer = IntArray(header.size + textBytes.size + 1)
+        header.forEachIndexed { idx, v -> writeBuffer[idx] = v }
+        textBytes.forEachIndexed { idx, b -> writeBuffer[idx + header.size] = b.toInt() }
+        writeBuffer[header.size + textBytes.size] = 0
+        sendCommand(*writeBuffer)
     }
 
     override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
@@ -202,36 +208,47 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
     }
 
     private suspend fun drawImage(position: Int, sumWithExistingText: Boolean, content: List<Int>) {
-        val writeBuffer = I2CBuffer(content.size + 4)
-            .set(0, 6)
-            .set(1, position)
-            .set(2, content.size)
-            .set(
+        val writeBuffer = IntArray(content.size + 4).apply {
+            set(0, 6)
+            set(1, position)
+            set(2, content.size)
+            set(
                 3, if (sumWithExistingText) {
                     1
                 } else {
                     0
                 }
             )
+        }
 
-        content.forEachIndexed { idx, v -> writeBuffer.set(idx + 4, v) }
+        content.forEachIndexed { idx, v -> writeBuffer[idx + 4] = v }
 
-        doWrite(writeBuffer)
+        sendCommand(*writeBuffer)
+    }
+
+    //todo
+    private suspend fun sendCommand(vararg cmd: Int) {
+        val writeBuffer = createCommandWithCrc(*cmd).toI2CBuffer()
+        val readBuffer = doTransaction(writeBuffer, 2).toIntArray()
+
+        verifyResponse(writeBuffer, readBuffer, true)
     }
 
     override suspend fun getButtonReport(): ButtonReport {
-        val readBuffer = doTransaction(I2CBuffer(1).set(0, 1), 2)
+        val getButtonReportCmd = createCommandWithCrc(1).toI2CBuffer()
+        val readBuffer = doTransaction(getButtonReportCmd, 4).toIntArray()
+        verifyResponse(getButtonReportCmd, readBuffer, true)
 
         return ButtonReport(
-            when (readBuffer[1]) {
+            when (readBuffer[3]) {
                 255 -> ButtonState.JUST_RELEASED
                 1 -> ButtonState.JUST_PRESSED
                 0 -> ButtonState.NO_CHANGE
-                else -> error("invalid button state value: ${readBuffer[1]}")
-            }, if (readBuffer[0] <= 127) {
-                readBuffer[0]
+                else -> error("invalid button state value: ${readBuffer[3]}")
+            }, if (readBuffer[2] <= 127) {
+                readBuffer[2]
             } else {
-                readBuffer[0] - 256
+                readBuffer[2] - 256
             }
         )
     }

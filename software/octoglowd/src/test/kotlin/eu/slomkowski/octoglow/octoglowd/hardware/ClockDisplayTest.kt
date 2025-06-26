@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import eu.slomkowski.octoglow.octoglowd.hardware.ClockDisplay.Companion.createCommandWithCrc
+import eu.slomkowski.octoglow.octoglowd.hardware.I2CDevice.Companion.calculateCcittCrc8
 import eu.slomkowski.octoglow.octoglowd.toIntArray
 import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -37,7 +38,7 @@ class ClockDisplayTest {
     @Test
     fun testCalculateCrc8() {
         val buff = intArrayOf(4, 2, 137, 20, 104, 132, 19, 251)
-        val result = RemoteSensorReport.calculateCcittCrc8(buff, 0..buff.size - 2)
+        val result = calculateCcittCrc8(buff, 0..buff.size - 2)
         assertThat(result).isEqualTo(buff.last())
     }
 

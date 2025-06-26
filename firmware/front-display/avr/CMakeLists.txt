@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(front-display-avr)
+project(octoglow-front-display-avr)
 
 SET(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR avr)

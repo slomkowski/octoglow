@@ -8,6 +8,7 @@
 namespace octoglow::front_display::protocol {
 
     enum class Command : uint8_t {
+        NONE,
         GET_ENCODER_STATE = 1,
         CLEAR_DISPLAY,
         SET_BRIGHTNESS,

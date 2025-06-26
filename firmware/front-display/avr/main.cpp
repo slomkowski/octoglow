@@ -19,7 +19,7 @@ static void showDemoOnDisplay() {
 
     display::writeStaticText_P(0, 9, PSTR("OCTOGLOW"));
 
-    display::writeScrollingText_P(1, 10, 10, PSTR("2016-2025 Michał Słomkowski slomkowski.eu"));
+    display::writeScrollingText_P(1, 10, 10, PSTR("2018-2025 Michał Słomkowski slomkowski.eu"));
 
     display::writeStaticText_P(21, 19, PSTR("Controller boot..."));
 }

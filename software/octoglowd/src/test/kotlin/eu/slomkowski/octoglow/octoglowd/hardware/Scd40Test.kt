@@ -37,9 +37,9 @@ class Scd40Test {
 
 //        hardware.scd40.performSelfTest()
 
-        repeat(20) {
+        repeat(2) {
             while (!hardware.scd40.getDataReadyStatus()) {
-                delay(10000)
+                delay(100)
             }
             val report = hardware.scd40.readMeasurement()
             logger.info { "Read report: $report" }

@@ -15,4 +15,6 @@ namespace octoglow::front_display::i2c {
     void onReceive(uint8_t value);
 
     void init();
+
+    uint8_t crc8ccittUpdate(uint8_t inCrc, uint8_t inData);
 }

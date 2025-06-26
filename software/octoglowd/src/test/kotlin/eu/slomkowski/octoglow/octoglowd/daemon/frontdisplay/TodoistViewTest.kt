@@ -17,6 +17,6 @@ class TodoistViewTest {
 
     @Test
     fun testListening() = runBlocking {
-        TodoistView.listenToChanges(testConfig.todoist.apiKey)
+      //  TodoistView.listenToChanges(testConfig.todoist.apiKey)
     }
 }

@@ -36,9 +36,9 @@ static inline __attribute((always_inline)) void ckPulse() {
     PORT(CK_PORT) |= _BV(CK_PIN);
 }
 
-static void iterateOverPositionsAscending(const uint8_t startInclusive,
-                                          const uint8_t stopInclusive,
-                                          const uint8_t validPosition) {
+static inline void iterateOverPositionsAscending(const uint8_t startInclusive,
+                                                 const uint8_t stopInclusive,
+                                                 const uint8_t validPosition) {
     for (uint8_t p = startInclusive; p != stopInclusive + 1; ++p) {
         PORT(CK_PORT) &= ~_BV(CK_PIN);
         if (p == validPosition) {
@@ -53,9 +53,12 @@ static void iterateOverPositionsAscending(const uint8_t startInclusive,
 static void iterateOverPositionsDescending(const uint8_t startInclusive,
                                            const uint8_t stopInclusive,
                                            const uint8_t validPosition) {
-    for (uint8_t p = startInclusive; p != stopInclusive - 1; --p) {
+    const uint8_t span = startInclusive - stopInclusive + 1;
+    const uint8_t match = validPosition - stopInclusive + 1;
+
+    for (uint8_t p = span; p != 0; --p) {
         PORT(CK_PORT) &= ~_BV(CK_PIN);
-        if (p == validPosition) {
+        if (p == match) {
             PORT(S_IN_PORT) |= _BV(S_IN_PIN);
         } else {
             PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
@@ -64,8 +67,9 @@ static void iterateOverPositionsDescending(const uint8_t startInclusive,
     }
 }
 
-static void setOutputPin(const uint8_t *characterBuffer, const int8_t column, const int8_t row) {
-    if (const uint8_t go = characterBuffer[column]; go & 1 << row) {
+static inline __attribute((always_inline)) void setOutputPin(const uint8_t *characterBuffer, const int8_t column,
+                                                             const int8_t row) {
+    if (const uint8_t go = characterBuffer[column]; go & (1 << row)) {
         PORT(S_IN_PORT) |= _BV(S_IN_PIN);
     } else {
         PORT(S_IN_PORT) &= ~_BV(S_IN_PIN);
@@ -73,7 +77,7 @@ static void setOutputPin(const uint8_t *characterBuffer, const int8_t column, co
 }
 
 //__attribute__((optimize("unroll-loops")))
-static void holdCharacterOnDisplayInputs(uint8_t position) {
+static inline void __attribute__((optimize("O3"), hot, always_inline)) holdCharacterOnDisplayInputs(uint8_t position) {
     PORT(STB_PORT) &= ~_BV(STB_PIN);
 
     if (_brightness == 0) {
@@ -82,12 +86,14 @@ static void holdCharacterOnDisplayInputs(uint8_t position) {
         PORT(CL_PORT) |= _BV(CL_PIN);
     }
 
-    const uint8_t *characterPtr = &_frameBuffer[COLUMNS_IN_CHARACTER * position %
-                                                (NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER)];
+    const uint8_t *characterPtr = &_frameBuffer[(COLUMNS_IN_CHARACTER * position) % (
+                                                    NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER)];
 
-    if (position >= 10 and position <= 19) {
+    if ((position >= 10) and (position <= 19)) {
         position += 20;
-    } else if ((position >= 20 and position <= 29) or position >= 30) {
+    } else if ((position >= 20) and (position <= 29)) {
+        position -= 10;
+    } else if (position >= 30) {
         position -= 10;
     }
 
@@ -218,6 +224,7 @@ static void holdCharacterOnDisplayInputs(uint8_t position) {
 
     PORT(STB_PORT) |= _BV(STB_PIN);
 }
+
 
 void hd::displayPool() {
     holdCharacterOnDisplayInputs(currentPosition);

@@ -1,8 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
-import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport.Companion.calculateCcittCrc8
-import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport.Companion.verifyThatBufferHasValidCrc
 import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
 import eu.slomkowski.octoglow.octoglowd.toIntArray
 import io.dvlopt.linux.i2c.I2CBuffer
@@ -59,39 +57,9 @@ data class RemoteSensorReport(
             return csum == checksum
         }
 
-        // todo move something else
-        fun calculateCcittCrc8(data: IntArray, range: ClosedRange<Int>): Int {
-            var crcValue = 0x00
-
-            var i = range.start
-            while (i <= range.endInclusive) {
-                crcValue = 0xff and (crcValue xor data[i])
-                repeat(8) {
-                    crcValue = if (crcValue and 0x80 != 0) {
-                        (crcValue shl 1) xor 0x07
-                    } else {
-                        crcValue shl 1
-                    } and 0xff
-                }
-                i++
-            }
-
-            return crcValue
-        }
-
-        fun verifyThatBufferHasValidCrc(buff: IntArray) {
-            require(buff.size >= 2)
-            val calculatedLocally = calculateCcittCrc8(buff, 0..buff.size - 2)
-            val received = buff.last()
-            check(calculatedLocally == received) {
-                "CRC mismatch, received data: ${buff.joinToString(" ", prefix = "[", postfix = "]")}, calculated CRC8 = $calculatedLocally, received = $received"
-            }
-        }
-
         fun parse(buff: IntArray): RemoteSensorReport? {
             require(buff.size == 8) { "invalid buffer length: 8" }
             require(buff[0] == 4) { "invalid sensor report type: ${buff[0]}" }
-            verifyThatBufferHasValidCrc(buff)
 
             if ((buff[1] and VALID_MEASUREMENT_FLAG) == 0) {
                 return null
@@ -165,9 +133,10 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
 
     // todo optimize?
     private suspend fun sendCommand(vararg cmd: Int) {
-        val returned = doTransaction(createCommandWithCrc(*cmd), 2).toIntArray()
+        val request = createCommandWithCrc(*cmd).toI2CBuffer()
+        val returned = doTransaction(request, 2).toIntArray()
         check(returned.size == 2)
-        verifyThatBufferHasValidCrc(returned)
+        verifyResponse(request, returned, false)
     }
 
     override suspend fun setBrightness(brightness: Int) {
@@ -190,7 +159,7 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
 
     suspend fun retrieveRemoteSensorReport(): RemoteSensorReport? {
         val readBuffer = doTransaction(retrieveRemoteSensorReportCmd, 8).toIntArray()
-        check(readBuffer[0] == 4) { "invalid read command type: ${readBuffer[0]}" }
+        verifyResponse(retrieveRemoteSensorReportCmd, readBuffer, false)
         return RemoteSensorReport.parse(readBuffer)
     }
 
