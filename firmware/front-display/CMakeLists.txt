@@ -5,7 +5,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 SET(FREQ "16000000")
 
-SET(LIBRARY_SOURCES ../noarch/protocol.hpp
+SET(LIBRARY_SOURCES ../noarch/protocol.hpp ../noarch/eeprom.hpp
         ../noarch/display.cpp ../noarch/display.hpp
         ../noarch/Font5x7.cpp ../noarch/Font5x7.hpp
         ../noarch/encoder.cpp ../noarch/encoder.hpp

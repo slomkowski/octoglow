@@ -1,5 +1,6 @@
 #include "i2c-slave.hpp"
 #include "display.hpp"
+#include "eeprom.hpp"
 
 #include <gtest/gtest.h>
 #include <iostream>
@@ -20,6 +21,16 @@ static void assertFramebufferIsEmpty() {
     for (int i = 0; i < display::NUM_OF_CHARACTERS * display::COLUMNS_IN_CHARACTER; ++i) {
         ASSERT_EQ(0, display::_frameBuffer[i]);
     }
+}
+
+static uint8_t endYearOfConstruction = 77;
+
+uint8_t eeprom::readEndYearOfConstruction() {
+    return endYearOfConstruction;
+}
+
+void eeprom::saveEndYearOfConstruction(const uint8_t year) {
+    endYearOfConstruction = year;
 }
 
 uint8_t i2c::crc8ccittUpdate(const uint8_t inCrc, const uint8_t inData) {
@@ -223,4 +234,37 @@ TEST(I2C, WriteScrollingText) {
     onStart();
     assertReadIs(27);
     assertReadIs(5);
+}
+
+TEST(I2C, EndYearOfConstruction) {
+    onStart();
+    onReceive(209);
+    onReceive(9);
+    onReceive(20);
+
+    ASSERT_EQ(20, endYearOfConstruction);
+
+    onStart();
+    assertReadIs(63);
+    assertReadIs(9);
+
+    onStart();
+    onReceive(214);
+    onReceive(9);
+    onReceive(21);
+
+    ASSERT_EQ(21, endYearOfConstruction);
+
+    onStart();
+    assertReadIs(63);
+    assertReadIs(9);
+
+    onStart();
+    onReceive(56);
+    onReceive(8);
+
+    onStart();
+    assertReadIs(195);
+    assertReadIs(8);
+    assertReadIs(21);
 }

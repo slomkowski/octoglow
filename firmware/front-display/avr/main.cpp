@@ -2,16 +2,21 @@
 #include "encoder.hpp"
 #include "i2c-slave.hpp"
 #include "main.hpp"
+#include "eeprom.hpp"
 
 #include <avr/wdt.h>
-#include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
+
+#include <stdlib.h>
 
 constexpr bool WATCHDOG_ENABLE = true;
 
 using namespace octoglow::front_display;
 
-static void showDemoOnDisplay() {
+constexpr char aboutStaticString[] PROGMEM = "2016-20xx Michał Słomkowski slomkowski.eu";
+
+static inline void showDemoOnDisplay() {
     display::clear();
     display::setBrightness(3);
 
@@ -19,13 +24,27 @@ static void showDemoOnDisplay() {
 
     display::writeStaticText_P(0, 9, PSTR("OCTOGLOW"));
 
-    display::writeScrollingText_P(1, 10, 10, PSTR("2018-2025 Michał Słomkowski slomkowski.eu"));
+    const uint8_t year = eeprom::readEndYearOfConstruction();
+
+    static_assert(sizeof(aboutStaticString) > 12);
+    char buffer[sizeof(aboutStaticString) + 2];
+    char yearBuffer[3] = {' '};
+    memcpy_P(buffer, aboutStaticString, sizeof(aboutStaticString));
+    itoa(year, yearBuffer, 10);
+    buffer[7] = yearBuffer[0];
+    buffer[8] = yearBuffer[1];
+
+    display::writeScrollingText(1, 10, 10, buffer);
 
     display::writeStaticText_P(21, 19, PSTR("Controller boot..."));
 }
 
 [[noreturn]] int main() {
-    //todo pull-up all unused pins
+    // pull-up all unused pins
+    PORTB |= _BV(PB3) | _BV(PB4) | _BV(PB5);
+    PORTC |= _BV(PC0) | _BV(PC1) | _BV(PC2) | _BV(PC3) | _BV(PC6);
+    PORTD |= _BV(PD0) | _BV(PD4);
+    DDRD |= _BV(PD5);
 
     encoder::init();
     display::init();
@@ -37,8 +56,6 @@ static void showDemoOnDisplay() {
     }
 
     sei();
-
-    display::clear();
 
     showDemoOnDisplay();
 

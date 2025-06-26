@@ -2,6 +2,7 @@
 #include "protocol.hpp"
 #include "display.hpp"
 #include "encoder.hpp"
+#include "eeprom.hpp"
 
 using namespace octoglow::front_display::protocol;
 using namespace octoglow::front_display;
@@ -43,6 +44,14 @@ static inline void setCrcForSimpleCommand() {
     buffer[0] = i2c::crc8ccittUpdate(0, buffer[1]);
 }
 
+static void setCrcForComplexCommand(const uint8_t payloadLength) {
+    uint8_t crcValue = 0;
+    for (uint8_t i = 1; i < payloadLength + 2; ++i) {
+        crcValue = i2c::crc8ccittUpdate(crcValue, buffer[i]);
+    }
+    buffer[0] = crcValue;
+}
+
 __attribute__((optimize("O3"), hot))
 void i2c::onReceive(const uint8_t value) {
     if (bytesProcessed == sizeof(buffer)) {
@@ -70,18 +79,28 @@ void i2c::onReceive(const uint8_t value) {
             btnState->buttonValue = encoder::getButtonStateAndClear();
             btnState->encoderValue = encoder::getValueAndClear();
 
-            uint8_t crcValue = 0;
-            for (uint8_t i = 1; i < static_cast<uint8_t>(sizeof(EncoderState)) + 2; ++i) {
-                crcValue = crc8ccittUpdate(crcValue, buffer[i]);
+            setCrcForComplexCommand(sizeof(EncoderState));
+        } else if (cmd == Command::READ_END_YEAR_OF_CONSTRUCTION) {
+            if (checkCrc8fails()) {
+                return;
             }
-            buffer[0] = crcValue;
+            buffer[2] = eeprom::readEndYearOfConstruction();
+            setCrcForComplexCommand(1);
         }
-    } else if (cmd == Command::SET_BRIGHTNESS && bytesProcessed == 3) {
-        if (checkCrc8fails()) {
-            return;
+    } else if (bytesProcessed == 3) {
+        if (cmd == Command::SET_BRIGHTNESS) {
+            if (checkCrc8fails()) {
+                return;
+            }
+            display::setBrightness(buffer[2]);
+            setCrcForSimpleCommand();
+        } else if (cmd == Command::WRITE_END_YEAR_OF_CONSTRUCTION) {
+            if (checkCrc8fails()) {
+                return;
+            }
+            eeprom::saveEndYearOfConstruction(buffer[2]);
+            setCrcForSimpleCommand();
         }
-        display::setBrightness(buffer[2]);
-        setCrcForSimpleCommand();
     } else if (cmd == Command::WRITE_STATIC_TEXT && value == 0 && bytesProcessed >= 4) {
         if (checkCrc8fails()) {
             return;

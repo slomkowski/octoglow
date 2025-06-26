@@ -5,6 +5,9 @@ import eu.slomkowski.octoglow.octoglowd.toIntArray
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
@@ -46,6 +49,17 @@ interface FrontDisplay {
     suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T)
 
     suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T)
+
+    suspend fun setEndOfConstructionYear(year: Int) {
+        require(year in 2016..2099) { "year is in 2016..2099" }
+        setEndOfConstructionYearInternal((year - 2000).toByte())
+    }
+
+    suspend fun getEndOfConstructionYear(): Int = 2000 + getEndOfConstructionYearInternal()
+
+    suspend fun getEndOfConstructionYearInternal(): Byte
+
+    suspend fun setEndOfConstructionYearInternal(lastDigitsOfYear: Byte)
 
     suspend fun setUpperBar(c: Int)
 
@@ -125,6 +139,9 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
     override suspend fun initDevice() {
         clear()
         setBrightness(3)
+
+        val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+        setEndOfConstructionYear(currentYear)
     }
 
     override suspend fun closeDevice() {
@@ -152,6 +169,17 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
         textBytes.forEachIndexed { idx, b -> writeBuffer[idx + header.size] = b.toInt() }
         writeBuffer[header.size + textBytes.size] = 0
         sendCommand(*writeBuffer)
+    }
+
+    override suspend fun getEndOfConstructionYearInternal(): Byte {
+        val getEndOfConstructionYearCmd = createCommandWithCrc(8).toI2CBuffer() // todo move to class
+        val readBuffer = doTransaction(getEndOfConstructionYearCmd, 3).toIntArray()
+        verifyResponse(getEndOfConstructionYearCmd, readBuffer, true)
+        return readBuffer[2].toByte()
+    }
+
+    override suspend fun setEndOfConstructionYearInternal(lastDigitsOfYear: Byte) {
+        sendCommand(9, lastDigitsOfYear.toInt())
     }
 
     override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
@@ -235,7 +263,7 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
     }
 
     override suspend fun getButtonReport(): ButtonReport {
-        val getButtonReportCmd = createCommandWithCrc(1).toI2CBuffer()
+        val getButtonReportCmd = createCommandWithCrc(1).toI2CBuffer() // todo move to class
         val readBuffer = doTransaction(getButtonReportCmd, 4).toIntArray()
         verifyResponse(getButtonReportCmd, readBuffer, true)
 

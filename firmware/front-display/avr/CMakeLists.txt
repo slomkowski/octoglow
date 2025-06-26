@@ -19,7 +19,8 @@ SET(SOURCES
         main.cpp main.hpp
         i2c-slave_hd.cpp
         display_hd.cpp
-        encoder_hd.cpp)
+        encoder_hd.cpp
+        eeprom_hd.cpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 

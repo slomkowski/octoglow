@@ -24,6 +24,8 @@ class FrontDisplayMock : FrontDisplay {
             }
         }
 
+    private var constructionYearByte: Byte = 66
+
     val line1content: String
         get() = displayContent.copyOfRange(0, 20).joinToString("")
 
@@ -58,6 +60,14 @@ class FrontDisplayMock : FrontDisplay {
         text.forEachIndexed { index, char ->
             displayContent[position + index] = char
         }
+    }
+
+    override suspend fun getEndOfConstructionYearInternal(): Byte {
+        return constructionYearByte
+    }
+
+    override suspend fun setEndOfConstructionYearInternal(lastDigitsOfYear: Byte) {
+        constructionYearByte = lastDigitsOfYear
     }
 
     override suspend fun setScrollingText(slot: Slot, position: Int, length: Int, text: String) {

@@ -4,6 +4,10 @@ import com.thedeanda.lorem.LoremIpsum
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -130,6 +134,18 @@ class FrontDisplayTest {
                 listOf(0, null, null, 6, 8, 10, null, 14, 16, 18, 20, 22, 24, 26, 28, 26, 24, 22, 20, 18, 16, 14),
                 2
             )
+        }
+    }
+
+    @Test
+    fun testConstructionYear(hardware: Hardware): Unit = runBlocking {
+        val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+        val firstReadYear = hardware.frontDisplay.getEndOfConstructionYear()
+        logger.info { "Read year from device is: $firstReadYear." }
+        for (year in listOf(2020, 2020, 2021, 2030, 2033, currentYear, 2077)) {
+            hardware.frontDisplay.setEndOfConstructionYear(year)
+            val readYear = hardware.frontDisplay.getEndOfConstructionYear()
+            assertThat(readYear).isEqualTo(year)
         }
     }
 }

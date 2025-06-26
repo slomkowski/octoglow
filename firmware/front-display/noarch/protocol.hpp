@@ -6,7 +6,6 @@
 
 
 namespace octoglow::front_display::protocol {
-
     enum class Command : uint8_t {
         NONE,
         GET_ENCODER_STATE = 1,
@@ -15,13 +14,16 @@ namespace octoglow::front_display::protocol {
         WRITE_STATIC_TEXT,
         WRITE_SCROLLING_TEXT,
         DRAW_GRAPHICS,
-        SET_UPPER_BAR
+        SET_UPPER_BAR,
+        READ_END_YEAR_OF_CONSTRUCTION,
+        WRITE_END_YEAR_OF_CONSTRUCTION,
     };
 
     struct EncoderState {
         int8_t encoderValue;
         encoder::ButtonState buttonValue;
     }__attribute__((packed));
+
     static_assert(sizeof(EncoderState) == 2, "invalid size");
 
     namespace text {
@@ -29,7 +31,6 @@ namespace octoglow::front_display::protocol {
     }
 
     namespace scroll {
-
         constexpr uint8_t NUMBER_OF_SLOTS = 3;
 
         constexpr uint8_t MODE = 's';
