@@ -57,10 +57,10 @@ fun main() {
     )
 
     val demons = listOf(
+        FrontDisplayDaemon(config, workerScope, hardware, frontDisplayViews, menus),
         AnalogGaugeDaemon(hardware),
         RealTimeClockDaemon(hardware),
         brightnessDaemon,
-        FrontDisplayDaemon(config, workerScope, hardware, frontDisplayViews, menus)
     )
 
     runBlocking {

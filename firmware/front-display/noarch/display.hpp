@@ -19,7 +19,7 @@ namespace octoglow::front_display::display {
 
     void writeStaticText(uint8_t position,
                          uint8_t maxLength,
-                         char *text,
+                         const char *text,
                          bool textInProgramSpace = false);
 
     inline void writeStaticText_P(const uint8_t position,
@@ -31,7 +31,7 @@ namespace octoglow::front_display::display {
     void writeScrollingText(uint8_t slotNumber,
                             uint8_t position,
                             uint8_t windowLength,
-                            char *text,
+                            const char *text,
                             bool textInProgramSpace = false);
 
     inline void writeScrollingText_P(const uint8_t slotNumber,
@@ -44,7 +44,7 @@ namespace octoglow::front_display::display {
     void drawGraphics(uint8_t columnPosition,
                       uint8_t columnLength,
                       bool sumWithText,
-                      uint8_t *columnBuffer,
+                      const uint8_t *columnBuffer,
                       bool bufferInProgramSpace = false);
 
     inline void drawGraphics_P(const uint8_t columnPosition,

@@ -145,7 +145,7 @@ void octoglow::front_display::display::_forEachUtf8character(const char *str,
 
 void octoglow::front_display::display::writeStaticText(const uint8_t position,
                                                        const uint8_t maxLength,
-                                                       char *const text,
+                                                       const char *const text,
                                                        const bool textInProgramSpace) {
     struct LocalData {
         uint8_t startPosition;
@@ -153,7 +153,7 @@ void octoglow::front_display::display::writeStaticText(const uint8_t position,
     } local{position, 0};
 
     _forEachUtf8character(text, textInProgramSpace, maxLength, &local,
-                         [](void *s, uint8_t curPos, uint8_t code) -> void {
+                         [](void *s, const uint8_t curPos, const uint8_t code) -> void {
                              const auto ld = static_cast<LocalData *>(s);
 
                              memcpy_P(_frameBuffer +
@@ -174,7 +174,7 @@ void octoglow::front_display::display::writeStaticText(const uint8_t position,
 void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumber,
                                                           const uint8_t position,
                                                           const uint8_t windowLength,
-                                                          char *const text,
+                                                          const char *const text,
                                                           const bool textInProgramSpace) {
 
     _ScrollingSlot &slot = _scrollingSlots[slotNumber % scroll::NUMBER_OF_SLOTS];
@@ -183,13 +183,13 @@ void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumb
     slot.currentShift = 0;
 
     _forEachUtf8character(text, textInProgramSpace, slot.maxTextLength, &slot,
-                         [](void *s, uint8_t curPos, uint8_t code) -> void {
+                         [](void *s, const uint8_t curPos, const uint8_t code) -> void {
                              static_cast<_ScrollingSlot *>(s)->convertedText[curPos] = code;
                              static_cast<_ScrollingSlot *>(s)->textLength = curPos + 1;
                          });
 
     if (slot.textLength <= slot.length) {
-        // if text is shorter than the window, fall back to static mode
+        // if the text is shorter than the window, fall back to static mode
         writeStaticText(slot.startPosition, slot.length, text, textInProgramSpace);
 
         // disable slot
@@ -227,14 +227,14 @@ void octoglow::front_display::display::pool() {
     hd::displayPool();
 }
 
-void octoglow::front_display::display::setBrightness(const uint8_t b) {
-    _brightness = b > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : b;
+void octoglow::front_display::display::setBrightness(const uint8_t brightness) {
+    _brightness = brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness;
 }
 
 void octoglow::front_display::display::drawGraphics(const uint8_t columnPosition,
                                                     const uint8_t columnLength,
                                                     const bool sumWithText,
-                                                    uint8_t *const columnBuffer,
+                                                    const uint8_t *const columnBuffer,
                                                     const bool bufferInProgramSpace) {
     for (uint8_t p = 0; p < columnLength; ++p) {
         const uint8_t columnContent = bufferInProgramSpace
@@ -249,6 +249,6 @@ void octoglow::front_display::display::drawGraphics(const uint8_t columnPosition
     }
 }
 
-void octoglow::front_display::display::setUpperBarContent(uint32_t content) {
+void octoglow::front_display::display::setUpperBarContent(const uint32_t content) {
     _upperBarBuffer = 0b11111111111111111111ul & content;
 }

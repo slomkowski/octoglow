@@ -28,11 +28,10 @@ static inline void showDemoOnDisplay() {
 
     static_assert(sizeof(aboutStaticString) > 12);
     char buffer[sizeof(aboutStaticString) + 2];
-    char yearBuffer[3] = {' '};
     memcpy_P(buffer, aboutStaticString, sizeof(aboutStaticString));
-    itoa(year, yearBuffer, 10);
-    buffer[7] = yearBuffer[0];
-    buffer[8] = yearBuffer[1];
+
+    buffer[7] = '0' + (year / 10);
+    buffer[8] = '0' + (year % 10);
 
     display::writeScrollingText(1, 10, 10, buffer);
 

@@ -7,12 +7,9 @@ import io.dvlopt.linux.i2c.I2CBus
 import io.dvlopt.linux.i2c.I2CFunctionality
 import io.dvlopt.linux.i2c.I2CTransaction
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import java.io.IOException
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -83,7 +80,14 @@ class Hardware(
 
     val bme280 = Bme280(this)
 
-    private val allDevices = listOf(clockDisplay, frontDisplay, geiger, dac, scd40, bme280)
+    private val allDevices = listOf(
+        frontDisplay,
+        clockDisplay,
+        geiger,
+        dac,
+        scd40,
+        bme280,
+    )
 
     private val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
 
@@ -93,12 +97,13 @@ class Hardware(
 
         try {
             runBlocking {
-                allDevices.forEach { it.initDevice() }
-
                 frontDisplay.apply {
+                    initDevice()
                     clear()
                     setStaticText(0, "Initializing...")
                 }
+
+                allDevices.minus(frontDisplay).forEach { launch { it.initDevice() } }
             }
         } catch (e: Exception) {
             logger.error(e) { "Error during hardware initialization;" }
@@ -107,8 +112,8 @@ class Hardware(
 
     constructor(config: Config) : this(I2CBus(config.i2cBus))
 
-    suspend fun setBrightness(brightness: Int) {
-        brightnessDevices.forEach { it.setBrightness(brightness) }
+    suspend fun setBrightness(brightness: Int): Unit = coroutineScope {
+        brightnessDevices.forEach { launch { it.setBrightness(brightness) } }
     }
 
     override fun close() {
@@ -156,7 +161,7 @@ class Hardware(
         i2cAddress: Int,
         writeBuffer: I2CBuffer,
         bytesToRead: Int,
-        delayBetweenWriteAndRead : Duration,
+        delayBetweenWriteAndRead: Duration,
     ): I2CBuffer {
         require(bytesToRead in 1..100)
         val numberOfTries = 3
@@ -183,7 +188,7 @@ class Hardware(
                     }
 
                     if (e.message?.contains("errno 6", ignoreCase = true) == true && tryNo < numberOfTries) {
-                        logger.warn {"errno 6 happened, retrying ($tryNo/$numberOfTries)." }
+                        logger.warn { "errno 6 happened, retrying ($tryNo/$numberOfTries)." }
                         continue
                     } else {
                         logger.error(e) { "Error in bus transaction ($tryNo/$numberOfTries)" }
