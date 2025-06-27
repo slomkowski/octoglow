@@ -2,7 +2,7 @@
 #include "magiceye.hpp"
 #include "geiger-counter.hpp"
 
-#include <cstring>
+#include <string.h>
 
 constexpr uint8_t BUFFER_SIZE = 10;
 
@@ -15,7 +15,7 @@ static volatile uint8_t bytesProcessed;
 static volatile uint8_t *transmittedDataPointer = nullptr;
 static uint8_t numberOfBytesToTransmit = 0;
 
-void ::octoglow::geiger::i2c::onTransmit(uint8_t volatile *value) {
+void i2c::onTransmit(uint8_t volatile *value) {
     *value = *transmittedDataPointer;
     ++transmittedDataPointer;
     --numberOfBytesToTransmit;
@@ -25,11 +25,11 @@ void ::octoglow::geiger::i2c::onTransmit(uint8_t volatile *value) {
     }
 }
 
-void ::octoglow::geiger::i2c::onStart() {
+void i2c::onStart() {
     bytesProcessed = 0;
 }
 
-void ::octoglow::geiger::i2c::onReceive(uint8_t value) {
+void i2c::onReceive(const uint8_t value) {
 
     buffer[bytesProcessed] = value;
     ++bytesProcessed;
@@ -42,17 +42,17 @@ void ::octoglow::geiger::i2c::onReceive(uint8_t value) {
         } else if (cmd == Command::GET_GEIGER_STATE) {
             setClockToHigh();
             auto *state = &geiger_counter::getState();
-            static_assert(sizeof(buffer) >= sizeof(protocol::GeigerState), "buffer has to contain whole GeigerState structure");
+            static_assert(sizeof(buffer) >= sizeof(GeigerState), "buffer has to contain whole GeigerState structure");
 
-            std::memcpy(buffer, state, sizeof(protocol::GeigerState));
+            memcpy(buffer, state, sizeof(GeigerState));
 
             transmittedDataPointer = buffer;
-            numberOfBytesToTransmit = sizeof(protocol::GeigerState);
+            numberOfBytesToTransmit = sizeof(GeigerState);
             state->hasNewCycleStarted = false;
         } else if (cmd == Command::GET_DEVICE_STATE) {
             setClockToHigh();
             transmittedDataPointer = reinterpret_cast<uint8_t *>(&hd::getDeviceState());
-            numberOfBytesToTransmit = sizeof(protocol::DeviceState);
+            numberOfBytesToTransmit = sizeof(DeviceState);
         }
     } else if (bytesProcessed == 2) {
         if (cmd == Command::SET_EYE_DISPLAY_VALUE) {
@@ -62,9 +62,9 @@ void ::octoglow::geiger::i2c::onReceive(uint8_t value) {
         }
     } else if (bytesProcessed == 3) {
         if (cmd == Command::SET_GEIGER_CONFIGURATION) {
-            geiger_counter::configure(*reinterpret_cast<protocol::GeigerConfiguration *>(buffer + 1));
+            geiger_counter::configure(*reinterpret_cast<GeigerConfiguration *>(buffer + 1));
         } else if (cmd == Command::SET_EYE_CONFIGURATION) {
-            magiceye::configure(*reinterpret_cast<protocol::EyeConfiguration *>(buffer + 1));
+            magiceye::configure(*reinterpret_cast<EyeConfiguration *>(buffer + 1));
         }
     }
 

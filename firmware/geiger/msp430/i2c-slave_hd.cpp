@@ -9,17 +9,17 @@
 
 using namespace octoglow::geiger;
 
-void ::octoglow::geiger::i2c::setClockToHigh() {
+void i2c::setClockToHigh() {
     BCSCTL1 = XT2OFF | XTS | DIVA_2 | (0x0f & CALBC1_16MHZ);
     DCOCTL = CALDCO_16MHZ;
 }
 
-void ::octoglow::geiger::i2c::setClockToLow() {
+void i2c::setClockToLow() {
     BCSCTL1 = XT2OFF | XTS | DIVA_2 | (0x0f & CALBC1_8MHZ);
     DCOCTL = CALDCO_8MHZ;
 }
 
-void octoglow::geiger::i2c::init() {
+void i2c::init() {
     P1SEL |= SDA_PIN + SCL_PIN;               // Assign I2C pins to USCI_B0
     P1SEL2 |= SDA_PIN + SCL_PIN;              // Assign I2C pins to USCI_B0
     UCB0CTL1 |= UCSWRST;                      // Enable SW reset
@@ -43,7 +43,7 @@ __attribute__ ((interrupt(USCIAB0RX_VECTOR))) void USCIAB0RX_ISR() {
     i2c::onStart();
 }
 
-protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
+protocol::DeviceState &i2c::hd::getDeviceState() {
     static protocol::DeviceState state;
 
     state.eyeState = magiceye::state;

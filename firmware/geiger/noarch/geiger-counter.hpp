@@ -2,33 +2,28 @@
 
 #include "protocol.hpp"
 
-namespace octoglow {
-    namespace geiger {
-        namespace geiger_counter {
+namespace octoglow::geiger::geiger_counter {
+    constexpr uint16_t GEIGER_CYCLE_DEFAULT_LENGTH = 300; // seconds
 
-            constexpr uint16_t GEIGER_CYCLE_DEFAULT_LENGTH = 300; // seconds
+    void init();
 
-            void init();
+    void resetCounters();
 
-            void resetCounters();
+    void configure(const volatile protocol::GeigerConfiguration &configuration);
 
-            void configure(volatile protocol::GeigerConfiguration &configuration);
-
-            /**
+    /**
              * @return GeigerState structure is statically initialized, it's always available
              */
-            protocol::GeigerState &getState();
+    protocol::GeigerState &getState();
 
-            extern protocol::GeigerState _state;
+    extern protocol::GeigerState _state;
 
-            /**
+    /**
              * This should be called TICK_TIMER_FREQ.
              */
-            void tick();
+    void tick();
 
-            namespace hd {
-                extern volatile uint16_t numOfCountsCurrentCycle;
-            }
-        }
+    namespace hd {
+        extern volatile uint16_t numOfCountsCurrentCycle;
     }
 }

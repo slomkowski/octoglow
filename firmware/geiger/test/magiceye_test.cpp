@@ -14,22 +14,22 @@ using namespace octoglow::geiger::protocol;
 
 uint8_t currentAdcValue;
 
-void octoglow::geiger::magiceye::hd::enableHeater1(bool enabled) {
+void hd::enableHeater1(const bool enabled) {
     cout << "heater1 " << enabled << endl;
 }
 
-void octoglow::geiger::magiceye::hd::enableHeater2(bool enabled) {
+void hd::enableHeater2(const bool enabled) {
     cout << "heater2 " << enabled << endl;
 }
 
-void octoglow::geiger::magiceye::setAdcValue(uint8_t v) {
-    cout << "ADC set to " << (int) v << endl;
+void magiceye::setAdcValue(const uint8_t v) {
+    cout << "ADC set to " << static_cast<int>(v) << endl;
     currentAdcValue = v;
 }
 
 TEST(MagicEye, HeatingProcedure) {
     cout << endl;
-    magiceye::animationMode = EyeDisplayMode::FIXED_VALUE;
+    animationMode = EyeDisplayMode::FIXED_VALUE;
 
     setEnabled(false);
     ASSERT_EQ(EyeInverterState::DISABLED, magiceye::state);
@@ -100,6 +100,4 @@ TEST(MagicEye, HeatingProcedure) {
 
 TEST(MagicEye, Animation) {
     cout << endl;
-
-
 }

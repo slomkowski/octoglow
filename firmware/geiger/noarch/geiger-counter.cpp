@@ -7,7 +7,7 @@ namespace octoglow::geiger::geiger_counter::hd {
 }
 
 namespace octoglow::geiger::geiger_counter {
-    octoglow::geiger::protocol::GeigerState _state;
+    protocol::GeigerState _state;
 }
 
 static uint16_t numberOfTicks = 0;
@@ -15,7 +15,7 @@ static uint16_t numberOfTicks = 0;
 using namespace octoglow::geiger;
 using namespace octoglow::geiger::geiger_counter;
 
-void octoglow::geiger::geiger_counter::tick() {
+void geiger_counter::tick() {
     if (numberOfTicks == _state.cycleLength * TICK_TIMER_FREQ) {
         _state.numOfCountsCurrentCycle = 0;
         _state.numOfCountsPreviousCycle = hd::numOfCountsCurrentCycle;
@@ -30,13 +30,13 @@ void octoglow::geiger::geiger_counter::tick() {
     }
 }
 
-octoglow::geiger::protocol::GeigerState &octoglow::geiger::geiger_counter::getState() {
+protocol::GeigerState &geiger_counter::getState() {
     _state.numOfCountsCurrentCycle = hd::numOfCountsCurrentCycle;
     _state.currentCycleProgress = numberOfTicks / TICK_TIMER_FREQ;
     return _state;
 }
 
-void ::octoglow::geiger::geiger_counter::resetCounters() {
+void geiger_counter::resetCounters() {
     numberOfTicks = 0;
     hd::numOfCountsCurrentCycle = 0;
 
@@ -46,7 +46,7 @@ void ::octoglow::geiger::geiger_counter::resetCounters() {
     _state.numOfCountsPreviousCycle = 0;
 }
 
-void ::octoglow::geiger::geiger_counter::configure(volatile protocol::GeigerConfiguration &configuration) {
+void geiger_counter::configure(const volatile protocol::GeigerConfiguration &configuration) {
     _state.cycleLength = configuration.cycleLength;
     resetCounters();
 }

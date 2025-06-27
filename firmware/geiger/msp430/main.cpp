@@ -9,24 +9,19 @@
 
 using namespace octoglow::geiger;
 
-namespace octoglow {
-    namespace geiger {
-        volatile bool timerTicked = false;
-    }
+
+namespace octoglow::geiger {
+    volatile bool timerTicked = false;
 }
 
-/**
- * Sets clock source for MCLK and SMCLK to external oscillator. Waits for oscillator fault flag to clear.
- */
 static inline void configureClockSystem() {
-    volatile uint16_t i;
-
     BCSCTL3 = LFXT1S_3 | XCAP_0;
 
     do {
         IFG1 &= ~OFIFG;
-        i = 250;
-        while (--i) {}
+        volatile uint16_t i = 250;
+        while (--i) {
+        }
     } while (IFG1 & OFIFG);
 
     BCSCTL2 = SELM_0 | DIVM_0 | SELS | DIVS_0;
@@ -34,9 +29,7 @@ static inline void configureClockSystem() {
     i2c::setClockToLow();
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
-int main() {
+[[noreturn]] int main() {
     volatile uint16_t i;
 
     inverter::setPwmOutputsToSafeState();
@@ -81,5 +74,3 @@ int main() {
         WDTCTL = WDTPW + WDTCNTCL;
     }
 }
-
-#pragma clang diagnostic pop

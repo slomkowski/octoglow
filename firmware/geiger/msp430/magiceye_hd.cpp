@@ -11,7 +11,7 @@
 #define HEATING_2 BIT4
 
 
-void ::octoglow::geiger::magiceye::hd::enableHeater1(bool enabled) {
+void octoglow::geiger::magiceye::hd::enableHeater1(const bool enabled) {
     if (enabled) {
         P1OUT &= ~HEATING_1;
     } else {
@@ -19,7 +19,7 @@ void ::octoglow::geiger::magiceye::hd::enableHeater1(bool enabled) {
     }
 }
 
-void ::octoglow::geiger::magiceye::hd::enableHeater2(bool enabled) {
+void octoglow::geiger::magiceye::hd::enableHeater2(const bool enabled) {
     if (enabled) {
         P1OUT |= HEATING_2;
     } else {
@@ -27,7 +27,7 @@ void ::octoglow::geiger::magiceye::hd::enableHeater2(bool enabled) {
     }
 }
 
-void ::octoglow::geiger::magiceye::init() {
+void octoglow::geiger::magiceye::init() {
 
     // init heater
     P1DIR |= HEATING_1 | HEATING_2;

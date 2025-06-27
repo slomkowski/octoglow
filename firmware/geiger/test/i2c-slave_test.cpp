@@ -13,15 +13,15 @@ using namespace octoglow::geiger::i2c;
 
 static protocol::DeviceState deviceState;
 
-void ::octoglow::geiger::i2c::setClockToHigh() {
+void i2c::setClockToHigh() {
     cout << "system clock set to high\n";
 }
 
-void ::octoglow::geiger::i2c::setClockToLow() {
+void i2c::setClockToLow() {
     cout << "system clock set to low\n";
 }
 
-protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
+protocol::DeviceState &hd::getDeviceState() {
     cout << "get device state\n";
     deviceState.geigerVoltage = 0x5678;
     deviceState.geigerPwmValue = 25;
@@ -34,7 +34,7 @@ protocol::DeviceState &octoglow::geiger::i2c::hd::getDeviceState() {
     return deviceState;
 }
 
-static void assertReadIs(uint8_t expected) {
+static void assertReadIs(const uint8_t expected) {
     uint8_t readValue;
     onTransmit(&readValue);
     ASSERT_EQ(expected, readValue);
@@ -63,7 +63,7 @@ TEST(I2C, ReadCommands) {
     geiger_counter::getState().numOfCountsPreviousCycle = 1231;
     geiger_counter::getState().currentCycleProgress = 289;
     geiger_counter::getState().cycleLength = 300;
-    octoglow::geiger::geiger_counter::hd::numOfCountsCurrentCycle = 52;
+    geiger_counter::hd::numOfCountsCurrentCycle = 52;
 
     onStart();
     onReceive(0x2);
@@ -73,7 +73,7 @@ TEST(I2C, ReadCommands) {
     assertReadIs(0);
     assertReadIs(0xcf);
     assertReadIs(0x04);
-    assertReadIs(0); // number of ticks is driven by hardware
+    assertReadIs(0); // hardware drives the number of ticks
     assertReadIs(0);
     assertReadIs(0x2c);
     assertReadIs(0x1);

@@ -2,29 +2,25 @@
 
 #include "protocol.hpp"
 
-#include <cstdint>
+#include <inttypes.h>
 
-namespace octoglow {
-    namespace geiger {
-        namespace i2c {
 
-            constexpr uint8_t SLAVE_ADDRESS = 0x12;
+namespace octoglow::geiger::i2c {
+    constexpr uint8_t SLAVE_ADDRESS = 0x12;
 
-            void setClockToHigh();
+    void setClockToHigh();
 
-            void setClockToLow();
+    void setClockToLow();
 
-            void onStart();
+    void onStart();
 
-            void onTransmit(uint8_t volatile *value);
+    void onTransmit(uint8_t volatile *value);
 
-            void onReceive(uint8_t value);
+    void onReceive(uint8_t value);
 
-            void init();
+    void init();
 
-            namespace hd {
-                protocol::DeviceState &getDeviceState();
-            }
-        }
+    namespace hd {
+        protocol::DeviceState &getDeviceState();
     }
 }

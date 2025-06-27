@@ -12,26 +12,33 @@ constexpr int16_t CYCLES_TO_GO_TO_MAX = 7;
 constexpr int16_t CYCLES_TO_STAY_AT_MAX = 30;
 constexpr int16_t CYCLES_TO_BACK_TO_NORMAL = 50;
 
-inline fix16_t limitedTriangleWave(int16_t cycle) {
+static inline fix16_t limitedTriangleWave(const int16_t cycle) {
     fix16_t outputValue;
     if (cycle < (OSCILLATION_PERIOD / 4)) {
         outputValue = -fix16_div(fix16_from_int(4 * OSCILLATION_AMPLITUDE * cycle), F16(OSCILLATION_PERIOD));
     } else if (cycle < (3 * OSCILLATION_PERIOD / 4)) {
-        outputValue = fix16_sub(fix16_div(fix16_from_int(4 * (cycle - (OSCILLATION_PERIOD / 4)) * OSCILLATION_AMPLITUDE), F16(OSCILLATION_PERIOD)), F16(OSCILLATION_AMPLITUDE));
+        outputValue = fix16_sub(
+            fix16_div(fix16_from_int(4 * (cycle - (OSCILLATION_PERIOD / 4)) * OSCILLATION_AMPLITUDE),
+                      F16(OSCILLATION_PERIOD)), F16(OSCILLATION_AMPLITUDE));
     } else {
         outputValue = fix16_sub(F16(OSCILLATION_AMPLITUDE),
-                                fix16_div(fix16_mul(F16(4 * OSCILLATION_AMPLITUDE), fix16_from_int(cycle - (3 * OSCILLATION_PERIOD / 4))), F16(OSCILLATION_PERIOD)));
+                                fix16_div(
+                                    fix16_mul(
+                                        F16(4 * OSCILLATION_AMPLITUDE),
+                                        fix16_from_int(cycle - (3 * OSCILLATION_PERIOD / 4))),
+                                    F16(OSCILLATION_PERIOD)));
     }
 
     outputValue = fix16_mul(outputValue, GAIN);
 
     if (outputValue > F16(OSCILLATION_AMPLITUDE)) {
         return F16(OSCILLATION_AMPLITUDE);
-    } else if (outputValue < F16(-OSCILLATION_AMPLITUDE)) {
-        return F16(-OSCILLATION_AMPLITUDE);
-    } else {
-        return outputValue;
     }
+    if (outputValue < F16(-OSCILLATION_AMPLITUDE)) {
+        return F16(-OSCILLATION_AMPLITUDE);
+    }
+
+    return outputValue;
 }
 
 enum class CurrentMode {
@@ -48,8 +55,7 @@ static fix16_t previousValue;
 static fix16_t step;
 static fix16_t base = F16(NOMINAL_BASE_VALUE);
 
-uint8_t octoglow::geiger::magiceye::_animate(bool hasBeenGeigerCountInLastCycle) {
-
+uint8_t octoglow::geiger::magiceye::_animate(const bool hasBeenGeigerCountInLastCycle) {
     if (hasBeenGeigerCountInLastCycle) {
         if (currentMode != CurrentMode::NORMAL and base < F16(NOMINAL_BASE_VALUE + 4 * BASE_STEP)) {
             base = fix16_add(base, F16(BASE_STEP));
@@ -61,7 +67,6 @@ uint8_t octoglow::geiger::magiceye::_animate(bool hasBeenGeigerCountInLastCycle)
     }
 
     if (currentMode == CurrentMode::NORMAL) {
-
         if (cycleCounter == OSCILLATION_PERIOD) {
             cycleCounter = 0;
         }
@@ -72,7 +77,6 @@ uint8_t octoglow::geiger::magiceye::_animate(bool hasBeenGeigerCountInLastCycle)
 
         previousValue = fix16_add(base, limitedTriangleWave(cycleCounter));
         ++cycleCounter;
-
     } else if (currentMode == CurrentMode::RAISING_TO_MAX) {
         if (cycleCounter < CYCLES_TO_GO_TO_MAX) {
             ++cycleCounter;
@@ -101,4 +105,3 @@ uint8_t octoglow::geiger::magiceye::_animate(bool hasBeenGeigerCountInLastCycle)
 
     return fix16_to_int(previousValue);
 }
-

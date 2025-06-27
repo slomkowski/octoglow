@@ -1,15 +1,13 @@
 #pragma once
 
-#include <cstdint>
+#include <inttypes.h>
 
-namespace octoglow {
-    namespace geiger {
-        /**
-         * Defines, how often main tick call is called. tick() functions of various modules assume
+namespace octoglow::geiger {
+    /**
+         * Defines how often the main tick call is called. tick() functions of various modules assume
          * that they are called this often.
          */
-        constexpr uint16_t TICK_TIMER_FREQ = 100; // 50 Hz
+    constexpr uint16_t TICK_TIMER_FREQ = 100; // 50 Hz
 
-        extern volatile bool timerTicked;
-    }
+    extern volatile bool timerTicked;
 }

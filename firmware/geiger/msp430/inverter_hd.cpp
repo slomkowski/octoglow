@@ -6,14 +6,14 @@
 #define PWM_BIT_EYE BIT1
 
 
-static uint16_t readAdcValue(uint16_t inch) {
+static uint16_t readAdcValue(const uint16_t inch) {
     ADC10CTL0 &= (~ENC);
     ADC10CTL1 = inch | SHS_0 | ADC10DIV_7 | ADC10SSEL_3 | CONSEQ_0;
 
     ADC10CTL0 |= ENC;
     ADC10CTL0 |= ADC10SC;
 
-    while (ADC10CTL1 & ADC10BUSY);
+    while (ADC10CTL1 & ADC10BUSY) { }
 
     return ADC10MEM;
 }
@@ -30,7 +30,7 @@ __attribute__ ((interrupt(TIMER0_A0_VECTOR))) void TIMER0_A0_ISR() {
     }
 }
 
-void ::octoglow::geiger::inverter::setPwmOutputsToSafeState() {
+void octoglow::geiger::inverter::setPwmOutputsToSafeState() {
     // set eye to level high
     P2OUT |= PWM_BIT_EYE;
     P2SEL &= ~PWM_BIT_EYE;
@@ -82,7 +82,7 @@ void octoglow::geiger::inverter::tick() {
     TA0CCR1 = geigerPwmValue;
 }
 
-void octoglow::geiger::inverter::setEyeEnabled(bool enabled) {
+void octoglow::geiger::inverter::setEyeEnabled(const bool enabled) {
     if (enabled) {
         P2SEL |= PWM_BIT_EYE;
     } else {

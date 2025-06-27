@@ -19,8 +19,7 @@ namespace octoglow::geiger::magiceye {
 
 static uint16_t cyclesCounter = UINT16_MAX;
 
-void octoglow::geiger::magiceye::tick() {
-
+void magiceye::tick() {
     if (state == EyeInverterState::HEATING_LIMITED and cyclesCounter >= PREHEAT_TIME_SECONDS * TICK_TIMER_FREQ) {
         hd::enableHeater2(true);
         state = EyeInverterState::HEATING_FULL;
@@ -45,8 +44,7 @@ void octoglow::geiger::magiceye::tick() {
     }
 }
 
-void octoglow::geiger::magiceye::setEnabled(bool enabled) {
-
+void magiceye::setEnabled(const bool enabled) {
     if (enabled and state == EyeInverterState::DISABLED) {
         if (cyclesCounter < MAX_SECONDS_WITHOUT_PREHEAT * TICK_TIMER_FREQ) {
             hd::enableHeater1(true);
@@ -66,12 +64,12 @@ void octoglow::geiger::magiceye::setEnabled(bool enabled) {
     }
 }
 
-void octoglow::geiger::magiceye::configure(volatile protocol::EyeConfiguration &configuration) {
+void magiceye::configure(const volatile EyeConfiguration &configuration) {
     setEnabled(configuration.enabled);
     animationMode = configuration.mode;
 }
 
-void octoglow::geiger::magiceye::setBrightness(uint8_t brightness) {
-    auto limitedBrightness = (brightness > protocol::MAX_BRIGHTNESS ? protocol::MAX_BRIGHTNESS : brightness);
+void magiceye::setBrightness(const uint8_t brightness) {
+    const auto limitedBrightness = (brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness);
     inverter::desiredEyeAdcValue = _private::desiredAdcValues[limitedBrightness];
 }

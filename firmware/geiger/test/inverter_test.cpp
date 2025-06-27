@@ -10,7 +10,7 @@ using namespace std;
 using namespace octoglow::geiger::inverter;
 
 
-void ::octoglow::geiger::inverter::setEyeEnabled(bool enabled) {
+void octoglow::geiger::inverter::setEyeEnabled(const bool enabled) {
     cout << "eye inverter " << enabled << endl;
     eyeInverterEnabled = enabled;
 
@@ -24,7 +24,7 @@ TEST(Inverter, AdcValues) {
 TEST(Inverter, EyeRegulation) {
     cout << endl;
 
-    uint16_t adcValue = 134;
+    constexpr uint16_t adcValue = 134;
     uint16_t pwmValue = 100;
     _private::regulateEyeInverter(adcValue, &pwmValue);
 

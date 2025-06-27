@@ -21,7 +21,7 @@ constexpr tuple<uint8_t, uint8_t, uint8_t, uint8_t> STRIPE_COLOR(0x42, 0xf4, 0xd
 
 int main(int, char *[]) {
 
-    cout << "Magic eye animation test - Michał Słomkowski 2018.\n\nPress space to trigger Geiger count.\n";
+    cout << "Magic eye animation test - Michał Słomkowski 2018.\n\nPress space to trigger the Geiger count.\n";
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << endl;
@@ -35,8 +35,8 @@ int main(int, char *[]) {
         return 2;
     }
 
-    auto inPx = [&dpi](double inMm) -> int {
-        return (int) round(inMm * dpi / 25.4f);
+    auto inPx = [&dpi](const double inMm) -> int {
+        return static_cast<int>(round(inMm * dpi / 25.4f));
     };
 
     SDL_Window *window = SDL_CreateWindow("MagicEye", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, inPx(WINDOW_WIDTH), inPx(WINDOW_HEIGHT), SDL_WINDOW_SHOWN);
@@ -50,7 +50,6 @@ int main(int, char *[]) {
     bool quit = false;
     bool triggerGeigerCount = false;
     unsigned int lastTime = 0;
-    unsigned int currentTime;
 
     while (!quit) {
         SDL_Event e;
@@ -62,9 +61,9 @@ int main(int, char *[]) {
             }
         }
 
-        currentTime = SDL_GetTicks();
+        const unsigned int currentTime = SDL_GetTicks();
         if (currentTime > lastTime + (1000.0 / octoglow::geiger::TICK_TIMER_FREQ)) {
-            uint8_t adcValue = octoglow::geiger::magiceye::_animate(triggerGeigerCount);
+            const uint8_t adcValue = octoglow::geiger::magiceye::_animate(triggerGeigerCount);
             triggerGeigerCount = false;
 
             SDL_Rect stripeLower;
@@ -75,7 +74,7 @@ int main(int, char *[]) {
 
             stripeUpper.y = inPx((WINDOW_HEIGHT - STRIPE_MAX_HEIGHT_BOTH) / 2.0);
 
-            stripeUpper.h = stripeLower.h = inPx((((double) adcValue) / 255.0) * (STRIPE_MAX_HEIGHT_BOTH - 2 * STRIPE_MIN_HEIGHT) / 2.0 + STRIPE_MIN_HEIGHT);
+            stripeUpper.h = stripeLower.h = inPx((static_cast<double>(adcValue) / 255.0) * (STRIPE_MAX_HEIGHT_BOTH - 2 * STRIPE_MIN_HEIGHT) / 2.0 + STRIPE_MIN_HEIGHT);
 
             stripeLower.y = inPx((WINDOW_HEIGHT + STRIPE_MAX_HEIGHT_BOTH) / 2.0) - stripeLower.h;
 
