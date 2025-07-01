@@ -1,8 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
-import eu.slomkowski.octoglow.octoglowd.hardware.ClockDisplay.Companion.createCommandWithCrc
 import eu.slomkowski.octoglow.octoglowd.hardware.I2CDevice.Companion.calculateCcittCrc8
+import eu.slomkowski.octoglow.octoglowd.hardware.I2CDevice.Companion.createCommandWithCrc
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -24,25 +24,25 @@ class ClockDisplayTest {
 
     @Test
     fun testCalculateChecksum() {
-        val i2CBuffer = intArrayOf(4, 6, 183, 160, 103, 51, 33)
+        val i2CBuffer = intArrayOf(0, 4, 6, 183, 160, 103, 51, 33) // first byte = 0 is dummy, this function doesn't check the whole message CRC
         logger.info { i2CBuffer.contentToBitString() }
         logger.info { "${RemoteSensorReport.toBitArray(i2CBuffer)}" }
 
-        assertTrue(RemoteSensorReport.calculateChecksum(i2CBuffer))
+        assertThat(RemoteSensorReport.calculateChecksum(i2CBuffer)).isTrue()
     }
 
     @Test
     fun testCalculateCrc8() {
-        val buff = intArrayOf(4, 2, 137, 20, 104, 132, 19, 251)
-        val result = calculateCcittCrc8(buff, 0..buff.size - 2)
-        assertThat(result).isEqualTo(buff.last())
+        val buff = intArrayOf(251, 4, 2, 137, 20, 104, 132, 19)
+        val result = calculateCcittCrc8(buff, 1..<buff.size)
+        assertThat(result).isEqualTo(buff.first())
     }
 
     @Test
     fun testCreateCommandWithCrc() {
         val buff = intArrayOf(1, 49, 50, 51, 52)
         val result = createCommandWithCrc(*buff)
-        assertThat(result).isEqualTo(intArrayOf(1, 49, 50, 51, 52, 160))
+        assertThat(result).isEqualTo(intArrayOf(160, 1, 49, 50, 51, 52))
     }
 
     @Test
@@ -75,12 +75,12 @@ class ClockDisplayTest {
             RemoteSensorReport.parse(intArrayOf(3))
         }
 
-        assertNull(RemoteSensorReport.parse(intArrayOf(4, 43, 34, 43, 43, 0, 0, 49)))
+        assertNull(RemoteSensorReport.parse(intArrayOf(49, 4, 43, 34, 43, 43, 0, 0)))
     }
 
     @Test
     fun testGetOutdoorWeatherReportParse() {
-        assertParsing(23.9, 32.0, 4, 6, 183, 160, 103, 51, 33, 102)
+        assertParsing(23.9, 32.0, 102, 4, 6, 183, 160, 103, 51, 33)
 
         //todo more positive temp
     }

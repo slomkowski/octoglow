@@ -2,7 +2,6 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlin.time.ExperimentalTime
 
 data class RemoteSensorReport(
     val sensorId: Int,
@@ -20,7 +19,7 @@ data class RemoteSensorReport(
 
         fun toBitArray(i2CBuffer: IntArray) = BooleanArray(40).apply {
             for (i in 0..39) {
-                this[i] = i2CBuffer[2 + i / 8] and (0b10000000 shr (i % 8)) != 0
+                this[i] = i2CBuffer[3 + i / 8] and (0b10000000 shr (i % 8)) != 0
             }
         }
 
@@ -35,7 +34,7 @@ data class RemoteSensorReport(
                 .plus(msg.copyOfRange(36, 40))
                 .plus(msg.copyOfRange(12, 36))
 
-            val checksum = (i2CBuffer[3] shr 4) and 0xf
+            val checksum = (i2CBuffer[4] shr 4) and 0xf
 
             for (b in calculationBuffer) {
                 val bit = mask and 0x1
@@ -55,23 +54,23 @@ data class RemoteSensorReport(
         }
 
         fun parse(buff: IntArray): RemoteSensorReport? {
-            require(buff.size == 8) { "invalid buffer length: 8" }
-            require(buff[0] == 4) { "invalid sensor report type: ${buff[0]}" }
+            require(buff.size == 8) { "invalid buffer length: ${buff.size}" }
+            require(buff[1] == 4) { "invalid sensor report type: ${buff[1]}" }
 
-            if ((buff[1] and VALID_MEASUREMENT_FLAG) == 0) {
+            if ((buff[2] and VALID_MEASUREMENT_FLAG) == 0) {
                 return null
             }
 
-            val alreadyRead = (buff[1] and ALREADY_READ_FLAG) != 0
+            val alreadyRead = (buff[2] and ALREADY_READ_FLAG) != 0
 
-            val sensorId = buff[6] and 0b11
-            val manualTx = (buff[3] and 0b1000) != 0
-            val weakBattery = (buff[3] and 0b100) != 0
+            val sensorId = buff[7] and 0b11
+            val manualTx = (buff[4] and 0b1000) != 0
+            val weakBattery = (buff[4] and 0b100) != 0
 
-            val temperatureBits = (buff[4] shl 4) + ((buff[5] shr 4) and 0b1111)
+            val temperatureBits = (buff[5] shl 4) + ((buff[6] shr 4) and 0b1111)
             val temperature = (temperatureBits.toDouble() - 1220.0) * 1.0 / 18.0 + 0.0
 
-            val humidity = 10.0 * (buff[5] and 0b1111) + ((buff[6] shr 4) and 0b1111)
+            val humidity = 10.0 * (buff[6] and 0b1111) + ((buff[7] shr 4) and 0b1111)
 
             val areValuesValid = (sensorId in (1..3)) && (temperature in -40.0..60.0) && (humidity in 0.0..100.0)
 
@@ -109,7 +108,6 @@ data class RemoteSensorReport(
     }
 }
 
-@OptIn(ExperimentalTime::class)
 class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasBrightness {
 
     companion object {
@@ -117,13 +115,6 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
 
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
-
-        fun createCommandWithCrc(vararg cmd: Int): IntArray {
-            val buff = IntArray(cmd.size + 1) { 0 }
-            cmd.copyInto(buff, 0, 0, cmd.size)
-            buff[cmd.size] = calculateCcittCrc8(cmd, cmd.indices)
-            return buff
-        }
 
         private val retrieveRemoteSensorReportCmd: IntArray = createCommandWithCrc(4)
     }
@@ -133,7 +124,7 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
         val request = createCommandWithCrc(*cmd)
         val returned = doTransaction(request, 2)
         check(returned.size == 2)
-        verifyResponse(request, returned, false)
+        verifyResponse(request, returned)
     }
 
     override suspend fun setBrightness(brightness: Int) {
@@ -156,7 +147,7 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
 
     suspend fun retrieveRemoteSensorReport(): RemoteSensorReport? {
         val readBuffer = doTransaction(retrieveRemoteSensorReportCmd, 8)
-        verifyResponse(retrieveRemoteSensorReportCmd, readBuffer, false)
+        verifyResponse(retrieveRemoteSensorReportCmd, readBuffer)
         return RemoteSensorReport.parse(readBuffer)
     }
 

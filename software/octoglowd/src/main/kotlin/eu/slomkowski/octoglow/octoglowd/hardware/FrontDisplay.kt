@@ -124,13 +124,6 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
         // we assume last value as pivot
         private const val MAX_VALUES_IN_CHART = 5 * 20
 
-        fun createCommandWithCrc(vararg cmd: Int): IntArray {
-            val buff = IntArray(cmd.size + 1) { 0 }
-            cmd.copyInto(buff, 1, 0, cmd.size)
-            buff[0] = calculateCcittCrc8(cmd, cmd.indices)
-            return buff
-        }
-
         private val getButtonReportCmd = createCommandWithCrc(1)
     }
 
@@ -172,7 +165,7 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
     override suspend fun getEndOfConstructionYearInternal(): Byte {
         val getEndOfConstructionYearCmd = createCommandWithCrc(8)
         val readBuffer = doTransaction(getEndOfConstructionYearCmd, 3)
-        verifyResponse(getEndOfConstructionYearCmd, readBuffer, true)
+        verifyResponse(getEndOfConstructionYearCmd, readBuffer)
         return readBuffer[2].toByte()
     }
 
@@ -257,12 +250,12 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
         val writeBuffer = createCommandWithCrc(*cmd)
         val readBuffer = doTransaction(writeBuffer, 2)
 
-        verifyResponse(writeBuffer, readBuffer, true)
+        verifyResponse(writeBuffer, readBuffer)
     }
 
     override suspend fun getButtonReport(): ButtonReport {
         val readBuffer = doTransaction(getButtonReportCmd, 4)
-        verifyResponse(getButtonReportCmd, readBuffer, true)
+        verifyResponse(getButtonReportCmd, readBuffer)
 
         return ButtonReport(
             when (readBuffer[3]) {

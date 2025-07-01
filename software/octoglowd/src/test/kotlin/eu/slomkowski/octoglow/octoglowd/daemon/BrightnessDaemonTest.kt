@@ -16,10 +16,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalTime::class)
 class BrightnessDaemonTest {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -60,7 +58,7 @@ class BrightnessDaemonTest {
             bd.pool()
 
             coVerify(exactly = 1) { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, "3") }
-            coVerify(exactly = 2) { hardwareMock.setBrightness(3) }
+            coVerify(exactly = 3) { hardwareMock.setBrightness(3) }
         }
     }
 

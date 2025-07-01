@@ -29,10 +29,10 @@ static bool checkCrc8(const uint8_t dataPayloadLength) {
     }
 
     uint8_t calculatedCrcValue = 0;
-    for (uint8_t i = 0; i < dataPayloadLength + 1; i++) {
+    for (uint8_t i = 1; i < dataPayloadLength + 2; ++i) {
         calculatedCrcValue = _crc8_ccitt_update(calculatedCrcValue, i2c_wrbuf[i]);
     }
-    return i2c_wrbuf[dataPayloadLength + 1] == calculatedCrcValue;
+    return i2c_wrbuf[0] == calculatedCrcValue;
 }
 
 static void processI2cReadCommands() {
@@ -42,27 +42,34 @@ static void processI2cReadCommands() {
 
     using namespace octoglow::vfd_clock::protocol;
 
-    i2c_rdbuf[0] = i2c_wrbuf[0];
+    i2c_rdbuf[1] = i2c_wrbuf[1];
 
     static_assert(sizeof(WeatherSensorState) + 2 <= sizeof(i2c_rdbuf));
 
-    if (currentCommand == Command::GET_WEATHER_SENSOR_STATE) {
-        for (uint8_t i = sizeof(WeatherSensorState); i != 0; --i) {
-            i2c_rdbuf[i] = reinterpret_cast<uint8_t *>(&receiver433::currentWeatherSensorState)[i - 1];
-        }
-        receiver433::currentWeatherSensorState.flags |= ALREADY_READ_FLAG;
+    switch (currentCommand) {
+        case Command::GET_WEATHER_SENSOR_STATE: {
+            for (uint8_t i = sizeof(WeatherSensorState) + 1; i != 1; --i) {
+                i2c_rdbuf[i] = reinterpret_cast<uint8_t *>(&receiver433::currentWeatherSensorState)[i - 2];
+            }
+            receiver433::currentWeatherSensorState.flags |= ALREADY_READ_FLAG;
 
-        uint8_t crcValue = 0;
-        for (uint8_t i = 0; i < static_cast<uint8_t>(sizeof(WeatherSensorState)) + 1; ++i) {
-            crcValue = _crc8_ccitt_update(crcValue, i2c_rdbuf[i]);
+            uint8_t crcValue = 0;
+            for (uint8_t i = 1; i < static_cast<uint8_t>(sizeof(WeatherSensorState)) + 2; ++i) {
+                crcValue = _crc8_ccitt_update(crcValue, i2c_rdbuf[i]);
+            }
+            i2c_rdbuf[0] = crcValue;
+            i2c_reply_done(sizeof(WeatherSensorState) + 2);
+            break;
         }
-        i2c_rdbuf[sizeof(WeatherSensorState) + 1] = crcValue;
-        i2c_reply_done(sizeof(WeatherSensorState) + 2);
-    } else if (currentCommand == Command::SET_BRIGHTNESS
-               || currentCommand == Command::SET_RELAY
-               || currentCommand == Command::SET_DISPLAY_CONTENT) {
-        i2c_rdbuf[1] = _crc8_ccitt_update(0, i2c_rdbuf[0]);
-        i2c_reply_done(2);
+        case Command::SET_BRIGHTNESS:
+        case Command::SET_RELAY:
+        case Command::SET_DISPLAY_CONTENT: {
+            i2c_rdbuf[0] = _crc8_ccitt_update(0, i2c_rdbuf[1]);
+            i2c_reply_done(2);
+            break;
+        }
+        default:
+            break;
     }
 
     currentCommand = Command::NONE;
@@ -76,12 +83,12 @@ static void processI2cWriteCommands() {
     static_assert(sizeof(DisplayContent) + 2 <= sizeof(i2c_wrbuf));
     static_assert(sizeof(RelayState) + 2 <= sizeof(i2c_wrbuf));
 
-    switch (static_cast<Command>(i2c_wrbuf[0])) {
+    switch (static_cast<Command>(i2c_wrbuf[1])) {
         case Command::SET_DISPLAY_CONTENT: {
             if (!checkCrc8(sizeof(DisplayContent))) {
                 break;
             }
-            const auto *dc = reinterpret_cast<volatile DisplayContent *>(&i2c_wrbuf[1]);
+            const auto *dc = reinterpret_cast<volatile DisplayContent *>(&i2c_wrbuf[2]);
             display::setDots(dc->dotState, false);
             display::setAllCharacters(dc->characters);
             currentCommand = Command::SET_DISPLAY_CONTENT;
@@ -91,7 +98,7 @@ static void processI2cWriteCommands() {
             if (!checkCrc8(sizeof(RelayState))) {
                 break;
             }
-            const auto *rs = reinterpret_cast<volatile RelayState *>(&i2c_wrbuf[1]);
+            const auto *rs = reinterpret_cast<volatile RelayState *>(&i2c_wrbuf[2]);
             relay::setState(relay::Relay::RELAY_1, rs->relay1enabled);
             relay::setState(relay::Relay::RELAY_2, rs->relay2enabled);
             currentCommand = Command::SET_RELAY;
@@ -101,7 +108,7 @@ static void processI2cWriteCommands() {
             if (!checkCrc8(1)) {
                 break;
             }
-            display::setBrightness(i2c_wrbuf[1]);
+            display::setBrightness(i2c_wrbuf[2]);
             currentCommand = Command::SET_BRIGHTNESS;
             break;
         case Command::GET_WEATHER_SENSOR_STATE:

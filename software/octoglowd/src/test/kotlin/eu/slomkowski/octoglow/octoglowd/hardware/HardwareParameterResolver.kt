@@ -1,7 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.testConfig
-import io.dvlopt.linux.i2c.I2CBus
+import io.helins.linux.i2c.I2CBus
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver

@@ -31,20 +31,22 @@ abstract class I2CDevice(
             return crcValue
         }
 
-        // todo zamienić na I2CBuffer?
-        fun verifyResponse(reqBuff: IntArray, respBuff: IntArray, crcAtTheFront: Boolean) {
+        fun createCommandWithCrc(vararg cmd: Int): IntArray {
+            val buff = IntArray(cmd.size + 1) { 0 }
+            cmd.copyInto(buff, 1, 0, cmd.size)
+            buff[0] = calculateCcittCrc8(cmd, cmd.indices)
+            return buff
+        }
+
+        fun verifyResponse(reqBuff: IntArray, respBuff: IntArray) {
             try {
                 require(respBuff.size >= 2) { "response has to be at least 2 bytes" }
 
-                val (received, range, commandBytePosition) = when (crcAtTheFront) {
-                    true -> Triple(respBuff.first(), 1..<respBuff.size, 1)
-                    false -> Triple(respBuff.last(), 0..respBuff.size - 2, 0)
-                }
-
-                val calculatedLocally = calculateCcittCrc8(respBuff, range)
+                val received = respBuff.first()
+                val calculatedLocally = calculateCcittCrc8(respBuff, 1..<respBuff.size)
 
                 check(calculatedLocally == received) { "CRC mismatch, calculated CRC8 = $calculatedLocally, received = $received" }
-                check(reqBuff[commandBytePosition] == respBuff[commandBytePosition]) { "invalid response, request number was ${reqBuff[commandBytePosition]}, got ${respBuff[commandBytePosition]}" }
+                check(reqBuff[1] == respBuff[1]) { "invalid response, request number was ${reqBuff[1]}, got ${respBuff[1]}" }
             } catch (e: Exception) {
                 error("problem with following request: ${reqBuff.contentToString()}, response: ${respBuff.contentToString()}: ${e.message}")
             }
