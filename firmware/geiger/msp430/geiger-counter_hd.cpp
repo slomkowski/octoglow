@@ -15,7 +15,8 @@ void octoglow::geiger::geiger_counter::init() {
     resetCounters();
 }
 
-__attribute__ ((interrupt(PORT2_VECTOR))) void PORT2_ISR() {
+// todo czy to nie jest pomijane, jak są wyłączone przerwania?
+__interrupt_vec(PORT2_VECTOR) void PORT2_ISR() {
     ++hd::numOfCountsCurrentCycle;
     P2IFG &= ~BIT2;
 }

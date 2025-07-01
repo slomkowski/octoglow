@@ -10,8 +10,19 @@ SET(CMAKE_C_COMPILER msp430-elf-gcc)
 SET(CMAKE_CXX_COMPILER msp430-elf-g++)
 SET(SUPPORT_FILE_DIRECTORY /opt/ti/mspgcc/include/)
 
-SET(CMAKE_C_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -std=c11 -Wl,--gc-sections -Wall -Wextra -pedantic")
-SET(CMAKE_CXX_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -DFIXMATH_OPTIMIZE_8BIT -std=c++17 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
+SET(COMMON_GCC_FLAGS "-O2 \
+     -mmcu=${DEVICE} \
+     -DF_CPU=${FREQ}UL \
+     -DFIXMATH_OPTIMIZE_8BIT \
+     -ffunction-sections \
+     -fdata-sections \
+     -Wl,--gc-sections \
+     -Wall \
+     -Wextra \
+     -pedantic")
+
+SET(CMAKE_C_FLAGS "${COMMON_GCC_FLAGS} -std=c11")
+SET(CMAKE_CXX_FLAGS "${COMMON_GCC_FLAGS} -std=c++17 -fno-exceptions -fno-rtti")
 SET(CMAKE_EXE_LINKER_FLAGS "-L${SUPPORT_FILE_DIRECTORY}")
 include_directories(../noarch)
 include_directories(../../lib/libfixmath/libfixmath)

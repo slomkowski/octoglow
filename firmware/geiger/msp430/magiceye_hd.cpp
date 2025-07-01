@@ -39,7 +39,7 @@ void octoglow::geiger::magiceye::init() {
 
     setBrightness(3);
 
-    setAdcValue(127); // set to half value
+    setAdcValue(127); // set to middle value
 }
 
 void ::octoglow::geiger::magiceye::setAdcValue(uint8_t v) {

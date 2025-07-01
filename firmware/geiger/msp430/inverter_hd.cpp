@@ -20,7 +20,7 @@ static uint16_t readAdcValue(const uint16_t inch) {
 
 static volatile uint16_t ta0cycles = 0;
 
-__attribute__ ((interrupt(TIMER0_A0_VECTOR))) void TIMER0_A0_ISR() {
+__interrupt_vec(TIMER0_A0_VECTOR) void TIMER0_A0_ISR() {
 
     ++ta0cycles;
 

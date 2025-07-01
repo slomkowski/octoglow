@@ -20,26 +20,32 @@ void i2c::setClockToLow() {
 }
 
 void i2c::init() {
-    P1SEL |= SDA_PIN + SCL_PIN;               // Assign I2C pins to USCI_B0
-    P1SEL2 |= SDA_PIN + SCL_PIN;              // Assign I2C pins to USCI_B0
-    UCB0CTL1 |= UCSWRST;                      // Enable SW reset
-    UCB0CTL0 = UCMODE_3 + UCSYNC;             // I2C Slave, synchronous mode
-    UCB0I2COA = SLAVE_ADDRESS;                // set own (slave) address
-    UCB0CTL1 &= ~UCSWRST;                     // Clear SW reset, resume operation
-    IE2 |= UCB0TXIE + UCB0RXIE;               // Enable TX interrupt
-    UCB0I2CIE |= UCSTTIE;                     // Enable STT interrupt
+    P1SEL |= SDA_PIN + SCL_PIN; // Assign I2C pins to USCI_B0
+    P1SEL2 |= SDA_PIN + SCL_PIN; // Assign I2C pins to USCI_B0
+    UCB0CTL1 |= UCSWRST; // Enable SW reset
+    UCB0CTL0 = UCMODE_3 + UCSYNC; // I2C Slave, synchronous mode
+    UCB0I2COA = SLAVE_ADDRESS; // set own (slave) address
+    UCB0CTL1 &= ~UCSWRST; // Clear SW reset, resume operation
+    IE2 |= UCB0TXIE + UCB0RXIE; // Enable TX and RX interrupt
+    UCB0I2CIE |= UCSTTIE; // Enable interrupt on I2C start
 }
 
-__attribute__ ((interrupt(USCIAB0TX_VECTOR))) void USCIAB0TX_ISR() {
+/**
+ * Interrupt called on both send and receive data. TI's naming is confusing.
+ */
+__interrupt_vec(USCIAB0TX_VECTOR) void USCIAB0TX_ISR() {
     if (IFG2 & UCB0TXIFG) {
         i2c::onTransmit(&UCB0TXBUF);
-    } else {
+    } else if (IFG2 & UCB0RXIFG) {
         i2c::onReceive(UCB0RXBUF);
     }
 }
 
-__attribute__ ((interrupt(USCIAB0RX_VECTOR))) void USCIAB0RX_ISR() {
-    UCB0STAT &= ~UCSTTIFG;                    // Clear start condition int flag
+/**
+ * State machine interrupt. Called on I2C start, stop, nack etc. TI's naming is confusing.
+ */
+__interrupt_vec(USCIAB0RX_VECTOR) void USCIAB0RX_ISR() {
+    UCB0STAT &= ~(UCSTPIFG + UCSTTIFG + UCNACKIFG + UCALIFG); // Clear interrupt flags
     i2c::onStart();
 }
 
