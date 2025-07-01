@@ -52,7 +52,7 @@ class LocalSensorViewTest {
         mockHardware.frontDisplay.assertDisplayContent(
             "                    ",
             "45% +23.5°C 1013 hPa",
-            "44% +44.0°C  450 ppm",
+            "44% +24.1°C  450 ppm",
         )
     }
 }

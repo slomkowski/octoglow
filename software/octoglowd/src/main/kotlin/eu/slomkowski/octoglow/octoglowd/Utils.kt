@@ -1,6 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd
 
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KLogger
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -127,13 +126,13 @@ fun formatPpmConcentration(t: Double?): String = when (t) {
 }
 
 
-
 /**
- * Used to calculate which segment to light of the upper progress bar on front display.
+ * Used to calculate which segment to light of the upper progress bar on the front display.
  */
 fun getSegmentNumber(currentTime: kotlin.time.Duration, maxTime: kotlin.time.Duration): Int =
     floor(20.0 * (currentTime.toDouble(DurationUnit.MILLISECONDS) / maxTime.toDouble(DurationUnit.MILLISECONDS))).roundToInt().coerceIn(0, 19)
 
+//todo pewnie wywalić, bo będzie try robione w Hardware
 suspend fun <T : Any> trySeveralTimes(
     numberOfTries: Int,
     logger: KLogger,
@@ -158,23 +157,12 @@ suspend fun <T : Any> trySeveralTimes(
     error("cannot be ever called")
 }
 
-fun IntArray.toI2CBuffer(): I2CBuffer = I2CBuffer(this.size).apply {
-    require(this@toI2CBuffer.isNotEmpty())
-    this@toI2CBuffer.forEachIndexed { index, value -> this.set(index, value) }
-}
-
-fun I2CBuffer.set(index: Int, v: Byte): I2CBuffer = this.set(index, v.toInt())
-
-fun I2CBuffer.contentToString(): String =
-    (0 until this.length).map { this[it] }.joinToString(" ", prefix = "[", postfix = "]")
 
 fun IntArray.contentToBitString(): String =
     this.joinToString(" ") { it.toString(2).padStart(8, '0') }
 
 
-fun I2CBuffer.toIntArray(): IntArray = (0 until this.length).map { this[it] }.toIntArray()
-
-fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).readText()
+fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
 
 fun LocalDateTime.toLocalDate() = LocalDate(year, month, dayOfMonth)
 fun LocalDateTime.toLocalTime() = LocalTime(hour, minute, second, nanosecond)

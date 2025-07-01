@@ -11,8 +11,9 @@ internal class AirQualityViewTest {
     fun testRetrieveAirQualityData() {
         // https://api.gios.gov.pl/pjp-api/rest/station/findAll - all stations
 
-        runBlocking { AirQualityView.retrieveAirQualityData(952) }.let {
-            assertNotNull(it.stIndexLevel.levelName)
+        //todo testy
+        runBlocking { AirQualityView.retrieveAirQualityData(52) }.let {
+            assertNotNull(it.aqIndex.level)
         }
     }
 }

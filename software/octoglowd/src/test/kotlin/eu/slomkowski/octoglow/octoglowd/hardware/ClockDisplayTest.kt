@@ -3,8 +3,6 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
 import eu.slomkowski.octoglow.octoglowd.hardware.ClockDisplay.Companion.createCommandWithCrc
 import eu.slomkowski.octoglow.octoglowd.hardware.I2CDevice.Companion.calculateCcittCrc8
-import eu.slomkowski.octoglow.octoglowd.toIntArray
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -14,9 +12,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.*
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class ClockDisplayTest {
 
@@ -76,7 +72,7 @@ class ClockDisplayTest {
     @Test
     fun testParseInvalid() {
         assertFails {
-            RemoteSensorReport.parse(I2CBuffer(3).toIntArray())
+            RemoteSensorReport.parse(intArrayOf(3))
         }
 
         assertNull(RemoteSensorReport.parse(intArrayOf(4, 43, 34, 43, 43, 0, 0, 49)))

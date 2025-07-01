@@ -1,7 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
-import eu.slomkowski.octoglow.octoglowd.toIntArray
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -12,7 +10,6 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
 import kotlin.math.roundToInt
-import kotlin.time.ExperimentalTime
 
 enum class Slot(val capacity: Int) {
     SLOT0(148), // should be 150, but probably firmware bug
@@ -119,7 +116,6 @@ interface FrontDisplay {
     }
 }
 
-@OptIn(ExperimentalTime::class)
 class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasBrightness, FrontDisplay {
 
     companion object {
@@ -134,6 +130,8 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
             buff[0] = calculateCcittCrc8(cmd, cmd.indices)
             return buff
         }
+
+        private val getButtonReportCmd = createCommandWithCrc(1)
     }
 
     override suspend fun initDevice() {
@@ -172,8 +170,8 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
     }
 
     override suspend fun getEndOfConstructionYearInternal(): Byte {
-        val getEndOfConstructionYearCmd = createCommandWithCrc(8).toI2CBuffer() // todo move to class
-        val readBuffer = doTransaction(getEndOfConstructionYearCmd, 3).toIntArray()
+        val getEndOfConstructionYearCmd = createCommandWithCrc(8)
+        val readBuffer = doTransaction(getEndOfConstructionYearCmd, 3)
         verifyResponse(getEndOfConstructionYearCmd, readBuffer, true)
         return readBuffer[2].toByte()
     }
@@ -256,15 +254,14 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
 
     //todo
     private suspend fun sendCommand(vararg cmd: Int) {
-        val writeBuffer = createCommandWithCrc(*cmd).toI2CBuffer()
-        val readBuffer = doTransaction(writeBuffer, 2).toIntArray()
+        val writeBuffer = createCommandWithCrc(*cmd)
+        val readBuffer = doTransaction(writeBuffer, 2)
 
         verifyResponse(writeBuffer, readBuffer, true)
     }
 
     override suspend fun getButtonReport(): ButtonReport {
-        val getButtonReportCmd = createCommandWithCrc(1).toI2CBuffer() // todo move to class
-        val readBuffer = doTransaction(getButtonReportCmd, 4).toIntArray()
+        val readBuffer = doTransaction(getButtonReportCmd, 4)
         verifyResponse(getButtonReportCmd, readBuffer, true)
 
         return ButtonReport(

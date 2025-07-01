@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.hardware.Bme280.Companion.checkNot00andNotFF
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -27,18 +26,14 @@ class Bme280Test {
     @Test
     fun testCheckNot00andNotFF() {
         assertFails {
-            checkNot00andNotFF(I2CBuffer(3).set(0, 0).set(1, 0).set(2, 0))
+            checkNot00andNotFF(intArrayOf(0, 0, 0))
         }
 
         assertFails {
-            checkNot00andNotFF(I2CBuffer(3).set(0, 255).set(1, 255).set(2, 255))
+            checkNot00andNotFF(intArrayOf(255, 255, 255))
         }
 
-        checkNot00andNotFF(
-            I2CBuffer(3)
-                .set(0, 0xff)
-                .set(1, 0xff)
-        )
+        checkNot00andNotFF(intArrayOf(0xff, 0xff, 0))
     }
 
     @Test

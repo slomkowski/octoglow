@@ -46,7 +46,7 @@ class MqttEmiter(
                 "Ciśnienie atmosferyczne",
                 "atmospheric_pressure",
                 "hPa",
-                "{{ value_json.pressure | round(0) }}",
+                "{{ value_json.pressure | round(1) }}",
                 null,
             ) { SensorPayload.PressurePayload(it) },
             SendableToHomeassistant(

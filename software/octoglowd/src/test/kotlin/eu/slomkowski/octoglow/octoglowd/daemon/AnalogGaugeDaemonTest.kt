@@ -2,21 +2,25 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 
 import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDaemon.Companion.parseProcNetWirelessFile
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.HardwareParameterResolver
+import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
-import kotlin.time.ExperimentalTime
+import kotlin.time.Duration.Companion.milliseconds
 
 
-@OptIn(ExperimentalTime::class)
+@ExtendWith(HardwareParameterResolver::class)
 class AnalogGaugeDaemonTest {
 
     companion object {
@@ -32,13 +36,51 @@ class AnalogGaugeDaemonTest {
 
         val dacValueSlot = slot<Int>()
         coEvery { hardware.dac.setValue(any(), capture(dacValueSlot)) } answers {
-            assertTrue(dacValueSlot.captured in (0..255))
+            assertThat(dacValueSlot.captured).isBetween(0, 255)
         }
 
         runBlocking {
             repeat(20) {
                 d.pool()
             }
+        }
+    }
+
+    @Test
+    fun testBasicRealHardware(hardware: Hardware) {
+        val d = AnalogGaugeDaemon(hardware)
+
+        runBlocking {
+            repeat(20) {
+                d.pool()
+                delay(200.milliseconds)
+            }
+        }
+    }
+
+    @Test
+    fun testParseProcStat() {
+        val agd = AnalogGaugeDaemon(HardwareMock())
+
+        fun getMeasurement(t: String): Double =
+            javaClass.getResourceAsStream("/proc-stat/$t").use { inputStream ->
+                agd.parseProcStatFile(BufferedReader(InputStreamReader(inputStream, StandardCharsets.US_ASCII)))
+            }
+
+        getMeasurement("1.txt").apply {
+            assertThat(this).isNotNull
+            assertThat(this).isCloseTo(0.08, within(DELTA))
+        }
+
+        getMeasurement("2.txt").apply {
+            assertThat(this).isNotNull
+            assertThat(this).isCloseTo(0.07, within(DELTA))
+
+        }
+
+        getMeasurement("2.txt").apply {
+            assertThat(this).isNotNull
+            assertThat(this).isEqualTo(0.0)
         }
     }
 
@@ -50,24 +92,24 @@ class AnalogGaugeDaemonTest {
             }
 
         getList("1.txt").apply {
-            Assert.assertEquals(1, size)
+            assertThat(size).isEqualTo(1)
             get(0).apply {
-                Assert.assertEquals("wlp3s0", ifName)
-                Assert.assertEquals(68.57, linkQuality, DELTA)
-                Assert.assertEquals(-62.0, signalStrength, DELTA)
+                assertThat(ifName).isEqualTo("wlp3s0")
+                assertThat(linkQuality).isCloseTo(68.57, within(DELTA))
+                assertThat(signalStrength).isCloseTo(-62.0, within(DELTA))
             }
         }
 
         getList("2.txt").apply {
-            assertTrue(isEmpty())
+            assertThat(this).isEmpty()
         }
 
         getList("3.txt").apply {
-            Assert.assertEquals(1, size)
+            assertThat(size).isEqualTo(1)
             get(0).apply {
-                Assert.assertEquals("wlan0", ifName)
-                Assert.assertEquals(84.29, linkQuality, DELTA)
-                Assert.assertEquals(-51.0, signalStrength, DELTA)
+                assertThat(ifName).isEqualTo("wlan0")
+                assertThat(linkQuality).isCloseTo(84.29, within(DELTA))
+                assertThat(signalStrength).isCloseTo(-51.0, within(DELTA))
             }
         }
 

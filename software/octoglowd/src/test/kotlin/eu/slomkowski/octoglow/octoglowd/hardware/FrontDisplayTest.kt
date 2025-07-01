@@ -13,10 +13,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.system.measureTimeMillis
 import kotlin.test.assertEquals
-import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class FrontDisplayTest {
 

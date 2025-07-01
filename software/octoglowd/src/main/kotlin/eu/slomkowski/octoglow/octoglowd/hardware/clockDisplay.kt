@@ -1,9 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
-import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
-import eu.slomkowski.octoglow.octoglowd.toIntArray
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.time.ExperimentalTime
 
@@ -128,13 +125,13 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
             return buff
         }
 
-        private val retrieveRemoteSensorReportCmd: I2CBuffer = createCommandWithCrc(4).toI2CBuffer()
+        private val retrieveRemoteSensorReportCmd: IntArray = createCommandWithCrc(4)
     }
 
     // todo optimize?
     private suspend fun sendCommand(vararg cmd: Int) {
-        val request = createCommandWithCrc(*cmd).toI2CBuffer()
-        val returned = doTransaction(request, 2).toIntArray()
+        val request = createCommandWithCrc(*cmd)
+        val returned = doTransaction(request, 2)
         check(returned.size == 2)
         verifyResponse(request, returned, false)
     }
@@ -158,7 +155,7 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
     }
 
     suspend fun retrieveRemoteSensorReport(): RemoteSensorReport? {
-        val readBuffer = doTransaction(retrieveRemoteSensorReportCmd, 8).toIntArray()
+        val readBuffer = doTransaction(retrieveRemoteSensorReportCmd, 8)
         verifyResponse(retrieveRemoteSensorReportCmd, readBuffer, false)
         return RemoteSensorReport.parse(readBuffer)
     }

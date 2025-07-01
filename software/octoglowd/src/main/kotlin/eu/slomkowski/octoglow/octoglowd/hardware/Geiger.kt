@@ -1,9 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.contentToString
-import eu.slomkowski.octoglow.octoglowd.toIntArray
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -34,9 +31,8 @@ data class GeigerCounterState(
 
         const val SIZE_IN_BYTES = 9
 
-        fun parse(readBuffer: I2CBuffer): GeigerCounterState {
-            require(readBuffer.length == SIZE_IN_BYTES)
-            val buff = readBuffer.toIntArray()
+        fun parse(buff: IntArray): GeigerCounterState {
+            require(buff.size == SIZE_IN_BYTES)
 
             check(!buff.sliceArray(1 until buff.size).contentEquals(invalidBufferContent)) { "read buffer has characteristic invalid pattern" }
 
@@ -75,9 +71,8 @@ data class GeigerDeviceState(
 
         private const val EYE_ADC_SCALING_FACTOR: Double = 2.5 / 1024 / (4.7 / (4.7 + 3 * 180))
 
-        fun parse(readBuffer: I2CBuffer): GeigerDeviceState {
-            require(readBuffer.length == SIZE_IN_BYTES)
-            val buff = readBuffer.toIntArray()
+        fun parse(buff: IntArray): GeigerDeviceState {
+            require(buff.size == SIZE_IN_BYTES)
 
             check(!buff.sliceArray(1 until buff.size).contentEquals(invalidBufferContent)) { "read buffer has characteristic invalid pattern" }
 

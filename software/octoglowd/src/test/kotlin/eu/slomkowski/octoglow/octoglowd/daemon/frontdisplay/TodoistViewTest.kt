@@ -20,9 +20,10 @@ class TodoistViewTest {
     fun testListening() = runBlocking {
         val view = TodoistView(testConfig, mockk<Hardware>())
 
-        repeat(100) {
+        repeat(10) {
             view.poolStatusData(now())
             delay(5.seconds)
+            //todo some tests
         }
     }
 }

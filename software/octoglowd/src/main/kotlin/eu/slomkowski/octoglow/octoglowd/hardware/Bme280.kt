@@ -1,8 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.toIntArray
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -102,7 +100,6 @@ data class CompensationData(
     val h6: Int,
 )
 
-@OptIn(ExperimentalTime::class)
 class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76, logger) {
 
     companion object {
@@ -110,14 +107,13 @@ class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76, logger) {
 
         private val uninitializedSensorReport = intArrayOf(128, 0, 0, 128, 0, 0, 128, 0)
 
-        fun checkNot00andNotFF(buffer: I2CBuffer) {
-            val list = buffer.toIntArray()
+        fun checkNot00andNotFF(list: IntArray) {
 
             check(!list.all { it == 0 }) { "data is all zeroes" }
             check(!list.all { it == 0xff }) { "data is all 0xff" }
         }
 
-        fun toSignedShort(ba: I2CBuffer, offset: Int): Int = toUnsignedShort(ba, offset).let { orig ->
+        fun toSignedShort(ba: IntArray, offset: Int): Int = toUnsignedShort(ba, offset).let { orig ->
             if (orig > 32767) {
                 orig - 65536
             } else {
@@ -125,7 +121,7 @@ class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76, logger) {
             }
         }
 
-        fun toUnsignedShort(ba: I2CBuffer, offset: Int): Int {
+        fun toUnsignedShort(ba: IntArray, offset: Int): Int {
             val bYounger = ba[offset].apply { check(this in 0..255) { "young byte: $this" } }
             val bOlder = ba[offset + 1].apply { check(this in 0..255) { "old byte: $this" } }
             return bYounger + 256 * bOlder
@@ -147,7 +143,7 @@ class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76, logger) {
 
         delay(100)
 
-        val id = doTransaction(intArrayOf(0xd0), 1).get(0)
+        val id = doTransaction(intArrayOf(0xd0), 1)[0]
         check(id == 0x60) { String.format("this is not BME280 chip, it has ID 0x%x", id) }
 
         withTimeout(2000) {
@@ -197,7 +193,7 @@ class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76, logger) {
     private suspend fun isReadingCalibration(): Boolean = doTransaction(intArrayOf(0xf3), 1)[0] and 0x1 != 0
 
     suspend fun readReport(): Bme280measurements = trySeveralTimes(3, logger, "read BME280 report") {
-        val buf = doTransaction(intArrayOf(0xf7), 8).toIntArray()
+        val buf = doTransaction(intArrayOf(0xf7), 8)
 
         check(!buf.contentEquals(uninitializedSensorReport)) { "sensor is not initialized" }
 

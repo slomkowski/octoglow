@@ -1,7 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -13,9 +11,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertFails
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class Scd40Test {
 
@@ -26,8 +22,8 @@ class Scd40Test {
         val hardwareMock = mockk<Hardware>()
         val scd40 = spyk(Scd40(hardwareMock))
 
-        val mockedBuffer = intArrayOf(0x4c, 0x02, 0xde, 0xe3, 0x07, 0x4d, 0x3b, 0xe8, 0x51).toI2CBuffer()
-        coEvery { scd40.doTransaction(any<I2CBuffer>(), any()) } returns mockedBuffer
+        val mockedBuffer = intArrayOf(0x4c, 0x02, 0xde, 0xe3, 0x07, 0x4d, 0x3b, 0xe8, 0x51)
+        coEvery { scd40.doTransaction(any<IntArray>(), any()) } returns mockedBuffer
 
         val result = scd40.readSerialNumber()
         assertThat(result).isEqualTo(0x4c02e3073be8)
@@ -95,23 +91,23 @@ class Scd40Test {
         val mockHardware = mockk<Hardware>()
         val scd40 = spyk(Scd40(mockHardware))
 
-        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(128, 0, 162).toI2CBuffer()
+        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(128, 0, 162)
         assertThat(scd40.getDataReadyStatus()).isFalse()
 
-        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(128, 6, 4).toI2CBuffer()
+        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(128, 6, 4)
         assertThat(scd40.getDataReadyStatus()).isTrue()
 
-        coEvery { scd40.doTransaction(eq(intArrayOf(236, 5)), eq(9)) } returns intArrayOf(2, 10, 131, 107, 206, 150, 114, 241, 208).toI2CBuffer()
+        coEvery { scd40.doTransaction(eq(intArrayOf(236, 5)), eq(9)) } returns intArrayOf(2, 10, 131, 107, 206, 150, 114, 241, 208)
         val measurement = scd40.readMeasurement()
         assertThat(measurement.co2).isCloseTo(522.0, within(0.1))
         assertThat(measurement.temperature).isCloseTo(28.69, within(0.1))
         assertThat(measurement.humidity).isCloseTo(44.89, within(0.1))
 
-        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(129, 6, 4).toI2CBuffer() // failed checksum
+        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(129, 6, 4) // failed checksum
         assertFails {
             scd40.getDataReadyStatus()
         }.also {
-            assertThat(it.message).isEqualTo("CRC8 mismatch when reading 0-th word, calculated: 0xf0, read: 0x4, request: [228, 184], read data: [129 6 4]")
+            assertThat(it.message).isEqualTo("CRC8 mismatch when reading 0-th word, calculated: 0xf0, read: 0x4, request: [228, 184], read data: [129, 6, 4]")
         }
     }
 }

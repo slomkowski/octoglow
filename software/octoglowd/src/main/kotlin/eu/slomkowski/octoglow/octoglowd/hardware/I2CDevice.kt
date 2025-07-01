@@ -1,14 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.contentToString
-import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KLogger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
 abstract class I2CDevice(
     private val hardware: Hardware,
     private val i2cAddress: Int,
@@ -37,7 +32,7 @@ abstract class I2CDevice(
         }
 
         // todo zamienić na I2CBuffer?
-        fun verifyResponse(reqBuff: I2CBuffer, respBuff: IntArray, crcAtTheFront: Boolean) {
+        fun verifyResponse(reqBuff: IntArray, respBuff: IntArray, crcAtTheFront: Boolean) {
             try {
                 require(respBuff.size >= 2) { "response has to be at least 2 bytes" }
 
@@ -64,26 +59,13 @@ abstract class I2CDevice(
 
     abstract suspend fun closeDevice()
 
-    suspend fun doWrite(vararg bytes: Int) {
-        doWrite(bytes.toI2CBuffer())
-    }
-
-    @OptIn(ExperimentalTime::class)
-    suspend fun doWrite(writeBuffer: I2CBuffer) = hardware.doWrite(i2cAddress, writeBuffer)
+    suspend fun doWrite(vararg writeBuffer: Int) = hardware.doWrite(i2cAddress, writeBuffer)
 
     suspend fun doTransaction(
-        command: IntArray,
+        writeBuffer: IntArray,
         bytesToRead: Int,
         delayBetweenWriteAndRead: Duration = defaultDelayBetweenWriteAndRead,
-    ): I2CBuffer {
-        return doTransaction(command.toI2CBuffer(), bytesToRead, delayBetweenWriteAndRead)
+    ): IntArray {
+        return hardware.doTransaction(i2cAddress, writeBuffer, bytesToRead, delayBetweenWriteAndRead)
     }
-
-    @OptIn(ExperimentalTime::class)
-    suspend fun doTransaction(
-        writeBuffer: I2CBuffer,
-        bytesToRead: Int,
-        delayBetweenWriteAndRead: Duration = defaultDelayBetweenWriteAndRead,
-    ): I2CBuffer =
-        hardware.doTransaction(i2cAddress, writeBuffer, bytesToRead, delayBetweenWriteAndRead)
 }

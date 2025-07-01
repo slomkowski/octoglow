@@ -3,6 +3,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.readToString
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -22,7 +23,7 @@ internal class NetworkViewTest {
     }
 
     @Test
-    fun testPingAddress() {
+    fun testPingAddress(): Unit = runBlocking {
         val pingBinary = defaultTestConfig.networkInfo.pingBinary
 
         val active = checkNotNull(NetworkView.getActiveInterfaceInfo())
@@ -39,7 +40,7 @@ internal class NetworkViewTest {
                 active.name,
                 "254.254.254.254",
                 3.seconds,
-                2
+                2,
             )
         }
     }

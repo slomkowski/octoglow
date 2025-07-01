@@ -117,7 +117,7 @@ class NetworkView(
             )
         }.collect(Collectors.toList())
 
-        fun pingAddressAndGetRtt(
+        suspend fun pingAddressAndGetRtt(
             pingBinary: Path,
             iface: String,
             address: String,
@@ -138,18 +138,31 @@ class NetworkView(
                 address
             )
 
-            val process = pb.start()
             val output = StringBuilder()
 
-            while (process.isAlive) {
-                output.append(process.inputStream.readToString())
-            }
+            withContext(Dispatchers.IO) {
+                val process = pb.start()
+                val reader = process.inputStream.bufferedReader()
 
-            process.waitFor(timeout.inWholeMilliseconds + 2000, TimeUnit.MILLISECONDS)
+                while (process.isAlive) {
+                    while (reader.ready()) {
+                        output.append(reader.readLine())
+                        output.append("\n")
+                    }
+                    delay(20)
+                }
 
-            check(output.isNotBlank()) {
-                val errorMsg = process.errorStream.readToString()
-                "ping returned no output, error is: $errorMsg"
+                while (reader.ready()) {
+                    output.append(reader.readLine())
+                    output.append("\n")
+                }
+
+                process.waitFor(timeout.inWholeMilliseconds + 2000, TimeUnit.MILLISECONDS)
+
+                check(output.isNotBlank()) {
+                    val errorMsg = process.errorStream.readToString()
+                    "ping returned no output, error is: $errorMsg"
+                }
             }
 
             return parsePingOutput(output.toString())
@@ -241,15 +254,13 @@ class NetworkView(
             } + ")."
         }
 
-        val pingInfo = withContext(Dispatchers.IO) {
-            pingAddressAndGetRtt(
-                config.networkInfo.pingBinary,
-                interfaceInfo.name,
-                address,
-                4.seconds,
-                3
-            )
-        }
+        val pingInfo = pingAddressAndGetRtt(
+            config.networkInfo.pingBinary,
+            interfaceInfo.name,
+            address,
+            4.seconds,
+            3,
+        )
 
         val pingTime = pingInfo.rttAvg
 

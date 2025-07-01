@@ -26,13 +26,12 @@ repositories {
 
 dependencies {
     implementation(libs.org.jetbrains.kotlin.kotlin.stdlib.jdk8)
-//    implementation(libs.org.jetbrains.kotlin.kotlin.reflect)
 
     implementation(libs.org.jetbrains.kotlinx.kotlinx.coroutines.core)
     implementation(libs.org.jetbrains.kotlinx.kotlinx.datetime.jvm)
     implementation(libs.org.jetbrains.kotlinx.kotlinx.serialization.json.jvm)
 
-    implementation(libs.io.dvlopt.linux.i2c)
+    implementation(libs.io.helins.linux.i2c)
 
     implementation(libs.io.github.oshai.kotlin.logging.jvm)
 

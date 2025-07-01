@@ -1,6 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.contentToString
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
@@ -8,7 +7,6 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 data class Scd40measurements(
     val co2: Double,
@@ -36,7 +34,6 @@ data class Scd40measurements(
     }
 }
 
-@OptIn(ExperimentalTime::class)
 class Scd40(hardware: Hardware) : I2CDevice(hardware, 0x62, logger) {
 
     companion object {
@@ -132,7 +129,7 @@ class Scd40(hardware: Hardware) : I2CDevice(hardware, 0x62, logger) {
         val bufferLen = numberOfWords * 3
         val commandBytes = splitToBytes(command)
         val readBuffer = doTransaction(commandBytes, bufferLen, delay)
-        check(readBuffer.length == bufferLen) { "invalid number of bytes read, expected $bufferLen, got ${readBuffer.length}" }
+        check(readBuffer.size == bufferLen) { "invalid number of bytes read, expected $bufferLen, got ${readBuffer.size}" }
 
         return (0 until numberOfWords).map { idx ->
             val offset = 3 * idx

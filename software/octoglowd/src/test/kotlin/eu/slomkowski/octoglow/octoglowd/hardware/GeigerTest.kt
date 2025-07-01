@@ -1,7 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.toI2CBuffer
-import io.dvlopt.linux.i2c.I2CBuffer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -12,10 +10,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class GeigerTest {
 
@@ -34,18 +30,7 @@ class GeigerTest {
                 currentCycleProgress = 50.seconds,
                 cycleLength = 200.seconds,
             ),
-            GeigerCounterState.parse(
-                I2CBuffer(9)
-                    .set(0, 0)
-                    .set(1, 23)
-                    .set(2, 0)
-                    .set(3, 32)
-                    .set(4, 0)
-                    .set(5, 50)
-                    .set(6, 0)
-                    .set(7, 200)
-                    .set(8, 0)
-            )
+            GeigerCounterState.parse(intArrayOf(0, 23, 0, 32, 0, 50, 0, 200, 0))
         )
 
         assertEquals(
@@ -57,22 +42,11 @@ class GeigerTest {
                 currentCycleProgress = 50.seconds,
                 cycleLength = 5.minutes,
             ),
-            GeigerCounterState.parse(
-                I2CBuffer(9)
-                    .set(0, 3)
-                    .set(1, 23)
-                    .set(2, 0)
-                    .set(3, 92)
-                    .set(4, 0)
-                    .set(5, 50)
-                    .set(6, 0)
-                    .set(7, 44)
-                    .set(8, 1)
-            )
+            GeigerCounterState.parse(intArrayOf(3, 23, 0, 92, 0, 50, 0, 44, 1))
         )
 
         assertFails {
-            val invalid = intArrayOf(0, 255, 255, 255, 255, 255, 255, 255, 255).toI2CBuffer()
+            val invalid = intArrayOf(0, 255, 255, 255, 255, 255, 255, 255, 255)
             GeigerCounterState.parse(invalid)
         }
     }

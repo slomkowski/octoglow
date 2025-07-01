@@ -6,7 +6,9 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.call.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
+import io.ktor.http.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -16,10 +18,8 @@ import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalTime::class)
 class AirQualityView(
     private val config: Config,
     private val database: DatabaseLayer,
@@ -42,36 +42,41 @@ class AirQualityView(
     }
 
     @Serializable
-    data class StIndexLevel(
-        @SerialName("id")
-        val id: Int,
-
-        @SerialName("indexLevelName")
-        val levelName: String
+    data class AirQualityDto(
+        @SerialName("AqIndex")
+        val aqIndex: AqIndexData,
     ) {
-        val level: AirQualityIndex?
-            get() = when (id) {
-                -1 -> null
-                else -> AirQualityIndex.values()[id]
-            }
+        override fun toString(): String {
+            return "{${aqIndex.stationId}, ${aqIndex.level}, ${aqIndex.criticalPollutantCode}}"
+        }
     }
 
     @Serializable
-    data class AirQualityDto(
-        val id: Long,
+    data class AqIndexData(
+        @SerialName("Identyfikator stacji pomiarowej")
+        val stationId: Long,
+
+        @SerialName("Status indeksu ogólnego dla stacji pomiarowej")
         val stIndexStatus: Boolean,
-        val stIndexCrParam: String,
-        val stIndexLevel: StIndexLevel,
 
-        @Serializable(AirQualityInstantSerializer::class)
-        val stCalcDate: Instant,
+        @SerialName("Nazwa kategorii indeksu")
+        val stLevelName: String,
 
+        @SerialName("Kod zanieczyszczenia krytycznego")
+        val criticalPollutantCode: String,
+
+        @SerialName("Wartość indeksu")
+        val indexLevel: Int,
+
+        @SerialName("Data danych źródłowych, z których policzono wartość indeksu dla wskaźnika st")
         @Serializable(AirQualityInstantSerializer::class)
-        val stSourceDataDate: Instant
+        val sourceDataDate: Instant
     ) {
-        override fun toString(): String {
-            return "{$id, ${stIndexLevel.level}, $stIndexCrParam}"
-        }
+        val level: AirQualityIndex?
+            get() = when (indexLevel) {
+                -1 -> null
+                else -> AirQualityIndex.entries[indexLevel]
+            }
     }
 
     data class AirQualityReport(
@@ -82,7 +87,6 @@ class AirQualityView(
     ) {
         init {
             require(name.isNotBlank())
-            //todo tests for name
         }
     }
 
@@ -108,18 +112,21 @@ class AirQualityView(
 
         private const val HISTORIC_VALUES_LENGTH = 14
 
-        //todo przepisać na nowe API: https://api.gios.gov.pl/pjp-api/swagger-ui/
         suspend fun retrieveAirQualityData(stationId: Long): AirQualityDto {
             require(stationId > 0)
 
-            logger.debug { "Downloading currency rates for station $stationId." }
-            val url = "https://api.gios.gov.pl/pjp-api/rest/aqindex/getIndex/$stationId"
+            logger.debug { "Downloading air quality data for station $stationId." }
+            val url = "https://api.gios.gov.pl/pjp-api/v1/rest/aqindex/getIndex/$stationId"
 
             try {
-                val resp: AirQualityDto = httpClient.get(url).body()
+                val resp: AirQualityDto = httpClient.get(url) {
+                    header(HttpHeaders.Accept, "application/ld+json")
+                    timeout {
+                        requestTimeoutMillis = 10_000
+                    }
+                }.body()
 
-                check(resp.stIndexStatus) { "no air quality index for station ${resp.id}" }
-                checkNotNull(resp.stIndexLevel.level) { "no air quality index for station ${resp.id}" }
+                check(resp.aqIndex.stIndexStatus && resp.aqIndex.level != null) { "no air quality index for station ${resp.aqIndex.stationId}" }
                 logger.debug { "Air quality is $resp." }
 
                 return resp
@@ -133,13 +140,13 @@ class AirQualityView(
     private suspend fun createStationReport(now: Instant, station: ConfSingleAirStation) = try {
         val dto = retrieveAirQualityData(station.id)
         val dbKey = AirQuality(station.id)
-        val value = dto.stIndexLevel.id.toDouble()
-        database.insertHistoricalValueAsync(dto.stSourceDataDate, dbKey, value)
+        val value = dto.aqIndex.indexLevel.toDouble()
+        database.insertHistoricalValueAsync(dto.aqIndex.sourceDataDate, dbKey, value)
 
         val history =
             database.getLastHistoricalValuesByHourAsync(now, dbKey, HISTORIC_VALUES_LENGTH).await()
 
-        AirQualityReport(station.name, checkNotNull(dto.stIndexLevel.level), value, history)
+        AirQualityReport(station.name, checkNotNull(dto.aqIndex.level), value, history)
     } catch (e: Exception) {
         logger.error(e) { "Failed to update air quality of station ${station.id}." }
         null
@@ -149,6 +156,7 @@ class AirQualityView(
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
 
+        // todo zrobić partial success
         val rep1 = async { createStationReport(now, config.airQuality.station1) }
         val rep2 = async { createStationReport(now, config.airQuality.station2) }
 

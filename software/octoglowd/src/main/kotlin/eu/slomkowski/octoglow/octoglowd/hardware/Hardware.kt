@@ -1,12 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.Config
-import eu.slomkowski.octoglow.octoglowd.contentToString
-import io.dvlopt.linux.i2c.I2CBuffer
-import io.dvlopt.linux.i2c.I2CBus
-import io.dvlopt.linux.i2c.I2CFunctionality
-import io.dvlopt.linux.i2c.I2CTransaction
+
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.helins.linux.i2c.I2CBuffer
+import io.helins.linux.i2c.I2CBus
+import io.helins.linux.i2c.I2CFunctionality
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,14 +29,14 @@ interface Hardware : AutoCloseable {
 
     suspend fun setBrightness(brightness: Int)
 
-    suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer)
+    suspend fun doWrite(i2cAddress: Int, writeData: IntArray)
 
     suspend fun doTransaction(
         i2cAddress: Int,
-        writeBuffer: I2CBuffer,
+        writeData: IntArray,
         bytesToRead: Int,
         delayBetweenWriteAndRead: Duration,
-    ): I2CBuffer
+    ): IntArray
 }
 
 @ExperimentalTime
@@ -64,12 +63,16 @@ class HardwareReal(
     }
 
     private val busMutex = Mutex()
+    private val writeI2cBuffer = I2CBuffer(I2C_BUFFER_MAX_SIZE)
+    private val readI2cBuffer = I2CBuffer(I2C_BUFFER_MAX_SIZE)
 
     @Volatile
     private var lastHardwareCallEnded: Instant = Clock.System.now()
 
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        private const val I2C_BUFFER_MAX_SIZE = 500
 
         private val minWaitTimeBetweenSubsequentCalls = 2.milliseconds
 
@@ -93,7 +96,7 @@ class HardwareReal(
 
     override val clockDisplay = ClockDisplay(this)
 
-    override val frontDisplay = FrontDisplayReal(this) // todo change with mock in HardwareMock
+    override val frontDisplay = FrontDisplayReal(this)
 
     override val geiger = Geiger(this)
 
@@ -112,7 +115,7 @@ class HardwareReal(
         bme280,
     )
 
-    val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
+    private val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
 
     init {
         require(bus.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
@@ -151,15 +154,18 @@ class HardwareReal(
         }
     }
 
-    override suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = withContext(Dispatchers.IO) {
+    private fun fillWriteBuffer(writeArray: IntArray) {
+        require(writeArray.isNotEmpty()) { "array with data do write cannot be empty" }
+        require(writeArray.size <= writeI2cBuffer.length) { "write array size ${writeArray.size} exceeds buffer length ${writeI2cBuffer.length}" }
+        writeArray.forEachIndexed { index, value -> writeI2cBuffer[index] = value }
+    }
+
+    override suspend fun doWrite(i2cAddress: Int, writeData: IntArray) = withContext(Dispatchers.IO) {
         try {
             executeExclusivelyAndWaitIfRequired {
-                bus.doTransaction(I2CTransaction(1).apply {
-                    getMessage(0).apply {
-                        address = i2cAddress
-                        buffer = writeBuffer
-                    }
-                })
+                fillWriteBuffer(writeData)
+                bus.selectSlave(i2cAddress)
+                bus.write(writeI2cBuffer, writeData.size)
             }
         } catch (e: Exception) {
             throw handleI2cException(e)
@@ -182,23 +188,28 @@ class HardwareReal(
 
     override suspend fun doTransaction(
         i2cAddress: Int,
-        writeBuffer: I2CBuffer,
+        writeData: IntArray,
         bytesToRead: Int,
         delayBetweenWriteAndRead: Duration,
-    ): I2CBuffer {
+    ): IntArray {
         require(bytesToRead in 1..100)
         val numberOfTries = 3
 
-        val readBuffer = I2CBuffer(bytesToRead)
+        val resultArray = IntArray(bytesToRead)
 
         withContext(Dispatchers.IO) {
             for (tryNo in 1..numberOfTries) {
                 try {
                     executeExclusivelyAndWaitIfRequired {
+                        fillWriteBuffer(writeData)
                         bus.selectSlave(i2cAddress)
-                        bus.write(writeBuffer)
+                        bus.write(writeI2cBuffer, writeData.size)
                         delay(delayBetweenWriteAndRead)
-                        bus.read(readBuffer)
+                        bus.read(readI2cBuffer, bytesToRead)
+
+                        for (i in 0 until bytesToRead) {
+                            resultArray[i] = readI2cBuffer.get(i)
+                        }
                     }
 
                     break
@@ -206,8 +217,8 @@ class HardwareReal(
                     logger.debug {
                         "doTransaction error. " +
                                 "Address 0x${i2cAddress.toString(16)}. " +
-                                "Write buffer: ${writeBuffer.contentToString()}, " +
-                                "read buffer: ${readBuffer.contentToString()};"
+                                "Write buffer: ${writeData.contentToString()}, " +
+                                "read buffer: ${resultArray.contentToString()}."
                     }
 
                     if (e.message?.contains("errno 6", ignoreCase = true) == true && tryNo < numberOfTries) {
@@ -221,6 +232,6 @@ class HardwareReal(
             }
         }
 
-        return readBuffer
+        return resultArray
     }
 }
