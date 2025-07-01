@@ -56,7 +56,15 @@ class MqttEmiter(
                 "µSv/h",
                 "{{ value_json.radioactivity | round(2) }}",
                 "mdi:radioactive",
-            ) { SensorPayload.Radioactivity(it) }
+            ) { SensorPayload.Radioactivity(it) },
+            SendableToHomeassistant(
+                IndoorCo2,
+                "Stężenie CO2",
+                "carbon_dioxide",
+                "ppm",
+                "{{ value_json.concentration | round(0) }}",
+                null,
+            ) { SensorPayload.ConcentrationPayload(it) }
         ).associateBy { it.type }
 
         fun createDiscoveryMessageDto(): DeviceConfig {
@@ -183,6 +191,11 @@ class MqttEmiter(
         data class PressurePayload(
             val pressure: Double,
         ) : SensorPayload()
+
+        @Serializable
+        data class ConcentrationPayload(
+            val concentration: Double,
+        ) : SensorPayload()
     }
 
     class HaTemperature(
@@ -232,6 +245,7 @@ class MqttEmiter(
 
         val payloadMsg = sensor.payloadFunc.invoke(value)
         val topic = sensor.topic
+
         logger.debug { "Publishing value $value ${sensor.unitOfMeasurement} to $topic." }
         client.publish(PublishRequest(topic) {
             payload(mqttJsonSerializer.encodeToString(payloadMsg))

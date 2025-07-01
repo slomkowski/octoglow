@@ -5,7 +5,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
-import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.HardwareReal
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import java.nio.file.Paths
@@ -22,7 +22,7 @@ fun main() {
     val workerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     val mqttEmiter = MqttEmiter(config, workerScope)
-    val hardware = Hardware(config)
+    val hardware = HardwareReal(config)
     val database = DatabaseLayer(config.databaseFile, mqttEmiter)
     val closeable = listOf(database, hardware)
 

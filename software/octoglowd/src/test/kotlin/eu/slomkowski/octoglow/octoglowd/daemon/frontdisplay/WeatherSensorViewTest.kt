@@ -20,7 +20,6 @@ import kotlin.time.ExperimentalTime
 class WeatherSensorViewTest {
 
     @Test
-    @Tag("hardware")
     fun testRedrawDisplay(hardware: Hardware) {
 
         val config = defaultTestConfig.copy(remoteSensors = ConfRemoteSensors(indoorChannelId = 1, outdoorChannelId = 2))
@@ -30,7 +29,7 @@ class WeatherSensorViewTest {
         runBlocking {
             hardware.frontDisplay.clear()
 
-            v.redrawDisplay(true, true, now())
+            v.redrawDisplay(redrawStatic = true, redrawStatus = true, now = now())
             delay(1_000)
 
             val rr = WeatherSensorView.RemoteReport(
@@ -46,7 +45,7 @@ class WeatherSensorViewTest {
                 null
             )
 
-            v.redrawDisplay(false, true, now())
+            v.redrawDisplay(redrawStatic = false, redrawStatus = true, now = now())
 
             delay(3_000)
 

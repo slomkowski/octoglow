@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import eu.slomkowski.octoglow.octoglowd.hardware.HardwareTest
+import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.HardwareParameterResolver
 import eu.slomkowski.octoglow.octoglowd.jsonSerializer
 import eu.slomkowski.octoglow.octoglowd.now
 import eu.slomkowski.octoglow.octoglowd.readToString
@@ -12,12 +13,11 @@ import kotlinx.datetime.Instant
 import org.apache.commons.lang3.RandomStringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import kotlin.time.ExperimentalTime
+import org.junit.jupiter.api.extension.ExtendWith
 
 
-@OptIn(ExperimentalTime::class)
+@ExtendWith(HardwareParameterResolver::class)
 class SimpleMonitorViewTest {
 
     companion object {
@@ -57,8 +57,7 @@ class SimpleMonitorViewTest {
     }
 
     @Test
-    @Tag("hardware")
-    fun testLongFailedMonitors() {
+    fun testLongFailedMonitors(hardware: Hardware) {
         val report = SimpleMonitorView.CurrentReport(
             Instant.parse("2023-06-19T20:39:18.387530Z"),
             SimpleMonitorView.SimpleMonitorJson(
@@ -78,17 +77,15 @@ class SimpleMonitorViewTest {
                 ).toMap()
             )
         )
-        HardwareTest.createRealHardware().use { hardware ->
-            val view = SimpleMonitorView(testConfig, hardware)
-            view.currentReport = report
-            runBlocking {
-                try {
-                    view.redrawDisplay(redrawStatic = true, redrawStatus = true, now = now())
-                } catch (e: Exception) {
-                    logger.error(e) { "Exception during redraw." }
-                } finally {
-                    delay(10_000)
-                }
+        val view = SimpleMonitorView(testConfig, hardware)
+        view.currentReport = report
+        runBlocking {
+            try {
+                view.redrawDisplay(redrawStatic = true, redrawStatus = true, now = now())
+            } catch (e: Exception) {
+                logger.error(e) { "Exception during redraw." }
+            } finally {
+                delay(10_000)
             }
         }
     }

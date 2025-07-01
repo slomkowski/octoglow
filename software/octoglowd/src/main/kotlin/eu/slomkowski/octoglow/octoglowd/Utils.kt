@@ -121,6 +121,13 @@ fun formatPressure(t: Double?): String = when (t) {
     else -> String.format("%4.0f hPa", t)
 }
 
+fun formatPpmConcentration(t: Double?): String = when (t) {
+    null -> "---- ppm"
+    else -> String.format("%4.0f ppm", t)
+}
+
+
+
 /**
  * Used to calculate which segment to light of the upper progress bar on front display.
  */

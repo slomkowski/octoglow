@@ -57,9 +57,9 @@ class ClockDisplayTest {
                 val report1 = retrieveRemoteSensorReport()
                     ?: fail("Report is invalid. Perhaps no measurement received yet?")
 
-                logger.info("Report 1: {}", report1)
+                logger.info { "Report 1: $report1" }
                 val report2 = retrieveRemoteSensorReport()
-                logger.info("Report 2: {}", report2)
+                logger.info { "Report 2: $report2" }
 
                 assertNotNull(report1)
                 assertNotNull(report2)
@@ -100,7 +100,7 @@ class ClockDisplayTest {
     @Test
     fun testSetBrightness(hardware: Hardware) {
         runBlocking {
-            ClockDisplay(hardware).apply {
+            hardware.clockDisplay.apply {
                 setDisplay(12, 34, upperDot = true, lowerDot = false)
                 for (brightness in 0..5) {
                     setBrightness(brightness)
@@ -112,7 +112,7 @@ class ClockDisplayTest {
 
     @Test
     fun testSetRelay(hardware: Hardware): Unit = runBlocking {
-        ClockDisplay(hardware).apply {
+        hardware.clockDisplay.apply {
             repeat(3) {
                 setRelay(true)
                 delay(100)
@@ -124,7 +124,7 @@ class ClockDisplayTest {
 
     @Test
     fun testSetDisplay(hardware: Hardware): Unit = runBlocking {
-        ClockDisplay(hardware).apply {
+        hardware.clockDisplay.apply {
             setDisplay(3, 58, upperDot = true, lowerDot = false)
             delay(1000)
             setDisplay(21, 2, upperDot = false, lowerDot = true)
@@ -141,7 +141,7 @@ class ClockDisplayTest {
     @Disabled("persistent displaying new reports")
     fun testConstantReportsReceiving(hardware: Hardware) {
         runBlocking {
-            ClockDisplay(hardware).apply {
+            hardware.clockDisplay.apply {
 
                 repeat(100000) {
                     retrieveRemoteSensorReport()

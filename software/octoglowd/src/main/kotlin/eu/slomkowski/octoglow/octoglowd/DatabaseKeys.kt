@@ -20,10 +20,13 @@ object OutdoorWeakBattery : HistoricalValueType()
 object IndoorTemperature : HistoricalValueType()
 object IndoorWeakBattery : HistoricalValueType()
 object IndoorHumidity : HistoricalValueType()
+object IndoorCo2 : HistoricalValueType()
 
 object Bme280Temperature : HistoricalValueType()
-object Bme280Humidity: HistoricalValueType()
+object Bme280Humidity : HistoricalValueType()
 
+object Scd40Temperature : HistoricalValueType()
+object Scd40Humidity : HistoricalValueType()
 
 object RealPressure : HistoricalValueType()
 object MSLPressure : HistoricalValueType() {

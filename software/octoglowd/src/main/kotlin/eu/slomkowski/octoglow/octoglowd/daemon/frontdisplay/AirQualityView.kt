@@ -108,19 +108,25 @@ class AirQualityView(
 
         private const val HISTORIC_VALUES_LENGTH = 14
 
+        //todo przepisać na nowe API: https://api.gios.gov.pl/pjp-api/swagger-ui/
         suspend fun retrieveAirQualityData(stationId: Long): AirQualityDto {
             require(stationId > 0)
 
             logger.debug { "Downloading currency rates for station $stationId." }
             val url = "https://api.gios.gov.pl/pjp-api/rest/aqindex/getIndex/$stationId"
 
-            val resp: AirQualityDto = httpClient.get(url).body()
+            try {
+                val resp: AirQualityDto = httpClient.get(url).body()
 
-            check(resp.stIndexStatus) { "no air quality index for station ${resp.id}" }
-            checkNotNull(resp.stIndexLevel.level) { "no air quality index for station ${resp.id}" }
-            logger.debug { "Air quality is $resp." }
+                check(resp.stIndexStatus) { "no air quality index for station ${resp.id}" }
+                checkNotNull(resp.stIndexLevel.level) { "no air quality index for station ${resp.id}" }
+                logger.debug { "Air quality is $resp." }
 
-            return resp
+                return resp
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to retrieve air quality data from $url" }
+                throw e
+            }
         }
     }
 

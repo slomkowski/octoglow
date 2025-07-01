@@ -12,25 +12,22 @@ import kotlin.time.ExperimentalTime
 class DacTest {
 
     @Test
-    @Tag("hardware")
     fun testOut2Max(hardware: Hardware) {
         testOut2(hardware, (255).toInt())
     }
 
     @Test
-    @Tag("hardware")
     fun testOut2Half(hardware: Hardware) {
         testOut2(hardware, (127).toInt())
     }
 
     @Test
-    @Tag("hardware")
     fun testOut2Zero(hardware: Hardware) {
         testOut2(hardware, 0)
     }
 
     private fun testOut2(hardware: Hardware, v: Int) = runBlocking {
-        Dac(hardware).apply {
+        hardware.dac.apply {
             setValue(DacChannel.C2, v)
             setValue(DacChannel.C1, v)
         }

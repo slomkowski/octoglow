@@ -94,15 +94,3 @@ object UriSerializer : KSerializer<URI> {
         encoder.encodeString(value.normalize().toString())
     }
 }
-
-object RoundedDoubleSerializer : KSerializer<Double> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Double", PrimitiveKind.DOUBLE)
-
-    override fun serialize(encoder: Encoder, value: Double) {
-        encoder.encodeDouble(String.format("%.2f", value).toDouble())
-    }
-
-    override fun deserialize(decoder: Decoder): Double {
-        return decoder.decodeDouble()
-    }
-}

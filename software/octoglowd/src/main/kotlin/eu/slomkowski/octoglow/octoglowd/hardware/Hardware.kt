@@ -17,10 +17,33 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+interface Hardware : AutoCloseable {
+
+    val clockDisplay: ClockDisplay
+    val frontDisplay: FrontDisplay
+    val geiger: Geiger
+    val dac: Dac
+    val scd40: Scd40
+    val bme280: Bme280
+
+    override fun close()
+
+    suspend fun setBrightness(brightness: Int)
+
+    suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer)
+
+    suspend fun doTransaction(
+        i2cAddress: Int,
+        writeBuffer: I2CBuffer,
+        bytesToRead: Int,
+        delayBetweenWriteAndRead: Duration,
+    ): I2CBuffer
+}
+
 @ExperimentalTime
-class Hardware(
+class HardwareReal(
     private val bus: I2CBus,
-) : AutoCloseable {
+) : Hardware {
 
     enum class Errno(
         val code: Int,
@@ -68,17 +91,17 @@ class Hardware(
             } ?: baseException
     }
 
-    val clockDisplay = ClockDisplay(this)
+    override val clockDisplay = ClockDisplay(this)
 
-    val frontDisplay = FrontDisplayReal(this) // todo change with mock
+    override val frontDisplay = FrontDisplayReal(this) // todo change with mock in HardwareMock
 
-    val geiger = Geiger(this)
+    override val geiger = Geiger(this)
 
-    val dac = Dac(this)
+    override val dac = Dac(this)
 
-    val scd40 = Scd40(this)
+    override val scd40 = Scd40(this)
 
-    val bme280 = Bme280(this)
+    override val bme280 = Bme280(this)
 
     private val allDevices = listOf(
         frontDisplay,
@@ -89,7 +112,7 @@ class Hardware(
         bme280,
     )
 
-    private val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
+    val brightnessDevices = allDevices.filterIsInstance<HasBrightness>()
 
     init {
         require(bus.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
@@ -112,7 +135,7 @@ class Hardware(
 
     constructor(config: Config) : this(I2CBus(config.i2cBus))
 
-    suspend fun setBrightness(brightness: Int): Unit = coroutineScope {
+    override suspend fun setBrightness(brightness: Int): Unit = coroutineScope {
         brightnessDevices.forEach { launch { it.setBrightness(brightness) } }
     }
 
@@ -128,7 +151,7 @@ class Hardware(
         }
     }
 
-    suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = withContext(Dispatchers.IO) {
+    override suspend fun doWrite(i2cAddress: Int, writeBuffer: I2CBuffer) = withContext(Dispatchers.IO) {
         try {
             executeExclusivelyAndWaitIfRequired {
                 bus.doTransaction(I2CTransaction(1).apply {
@@ -157,7 +180,7 @@ class Hardware(
         }
     }
 
-    suspend fun doTransaction(
+    override suspend fun doTransaction(
         i2cAddress: Int,
         writeBuffer: I2CBuffer,
         bytesToRead: Int,

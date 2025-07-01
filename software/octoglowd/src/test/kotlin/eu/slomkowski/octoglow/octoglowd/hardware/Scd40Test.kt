@@ -6,12 +6,13 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.spyk
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import kotlin.math.log
+import kotlin.test.assertFails
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -33,16 +34,84 @@ class Scd40Test {
     }
 
     @Test
+    fun testPerformSelfTest(hardware: Hardware): Unit = runBlocking {
+        val d = hardware.scd40
+        d.stopPeriodicMeasurement()
+        d.performSelfTest()
+        d.startPeriodicMeasurement()
+    }
+
+    @Test
     fun testInitAndRead(hardware: Hardware): Unit = runBlocking {
 
-//        hardware.scd40.performSelfTest()
-
-        repeat(2) {
-            while (!hardware.scd40.getDataReadyStatus()) {
-                delay(100)
-            }
-            val report = hardware.scd40.readMeasurement()
+        suspend fun readAndOutputReport() {
+            val report = hardware.scd40.readMeasurementWithWaiting()
             logger.info { "Read report: $report" }
+        }
+
+        repeat(5) { readAndOutputReport() }
+
+        hardware.scd40.setAmbientPressure(1000.0)
+        repeat(2) { readAndOutputReport() }
+
+        hardware.scd40.setAmbientPressure(hardware.bme280.readReport().realPressure)
+        repeat(2) { readAndOutputReport() }
+    }
+
+    @Test
+    fun testParse() {
+        Scd40measurements.parse(intArrayOf(429, 27607, 28842)).apply {
+            assertThat(temperature).isCloseTo(28.72, within(0.1))
+            assertThat(humidity).isCloseTo(44.0, within(0.1))
+            assertThat(co2).isCloseTo(429.0, within(0.1))
+        }
+    }
+
+    @Test
+    fun `test parse with different values`() {
+        Scd40measurements.parse(intArrayOf(857, 27537, 29868)).apply {
+            assertThat(temperature).isCloseTo(28.53, within(0.01))
+            assertThat(humidity).isCloseTo(45.57, within(0.01))
+            assertThat(co2).isCloseTo(857.0, within(0.01))
+        }
+    }
+
+    @Test
+    fun `test parse with zero values`() {
+        assertThrows<IllegalArgumentException> {
+            Scd40measurements.parse(intArrayOf(0, 0, 0))
+        }
+    }
+
+    @Test
+    fun `test parse with invalid array size`() {
+        assertThrows<IllegalArgumentException> {
+            Scd40measurements.parse(intArrayOf(429, 27607))
+        }
+    }
+
+    @Test
+    fun testTransaction(): Unit = runBlocking {
+        val mockHardware = mockk<Hardware>()
+        val scd40 = spyk(Scd40(mockHardware))
+
+        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(128, 0, 162).toI2CBuffer()
+        assertThat(scd40.getDataReadyStatus()).isFalse()
+
+        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(128, 6, 4).toI2CBuffer()
+        assertThat(scd40.getDataReadyStatus()).isTrue()
+
+        coEvery { scd40.doTransaction(eq(intArrayOf(236, 5)), eq(9)) } returns intArrayOf(2, 10, 131, 107, 206, 150, 114, 241, 208).toI2CBuffer()
+        val measurement = scd40.readMeasurement()
+        assertThat(measurement.co2).isCloseTo(522.0, within(0.1))
+        assertThat(measurement.temperature).isCloseTo(28.69, within(0.1))
+        assertThat(measurement.humidity).isCloseTo(44.89, within(0.1))
+
+        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(129, 6, 4).toI2CBuffer() // failed checksum
+        assertFails {
+            scd40.getDataReadyStatus()
+        }.also {
+            assertThat(it.message).isEqualTo("CRC8 mismatch when reading 0-th word, calculated: 0xf0, read: 0x4, request: [228, 184], read data: [129 6 4]")
         }
     }
 }

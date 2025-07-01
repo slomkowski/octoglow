@@ -76,6 +76,14 @@ class UtilsTest {
     }
 
     @Test
+    fun testPpmConcentration() {
+        assertEquals("1234 ppm", formatPpmConcentration(1234.0))
+        assertEquals(" 456 ppm", formatPpmConcentration(456.2))
+        assertEquals("4568 ppm", formatPpmConcentration(4567.99))
+        assertEquals("---- ppm", formatPpmConcentration(null))
+    }
+
+    @Test
     fun testCalculate() {
         5.minutes.let { min5 ->
             assertEquals(0, getSegmentNumber(Duration.ZERO, min5))

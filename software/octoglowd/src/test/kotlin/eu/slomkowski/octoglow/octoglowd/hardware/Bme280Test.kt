@@ -10,7 +10,6 @@ import org.assertj.core.data.Percentage
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertFails
-import kotlin.test.assertNotNull
 import kotlin.time.ExperimentalTime
 
 @ExperimentalTime
@@ -44,18 +43,12 @@ class Bme280Test {
 
     @Test
     fun testInitAndRead(hardware: Hardware): Unit = runBlocking {
-        val bme280 = Bme280(hardware)
-        assertNotNull(bme280)
-        bme280.initDevice()
-
         delay(1_000)
 
         repeat(15) {
-            val report = bme280.readReport()
+            val report = hardware.bme280.readReport()
             logger.info { "Report: $report." }
             delay(500)
         }
-
-        bme280.closeDevice()
     }
 }

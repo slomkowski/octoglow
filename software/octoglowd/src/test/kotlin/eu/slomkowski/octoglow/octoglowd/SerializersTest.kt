@@ -38,18 +38,4 @@ class SerializersTest {
         assertValid("https://example.org", URI("https://example.org"))
         assertValid("https://example.org/hello/world.txt", URI("https://example.org/hello/world.txt"))
     }
-
-    @Test
-    fun `test serialization with two decimal places`() {
-        fun assertValid(result: Double, orig: Double) {
-            val encoderMock = mockk<Encoder>()
-            every { encoderMock.encodeDouble(any()) } returns Unit
-            RoundedDoubleSerializer.serialize(encoderMock, orig)
-            val strSlot = slot<Double>()
-            verify(exactly = 1) { encoderMock.encodeDouble(capture(strSlot)) }
-            assertThat(strSlot.captured).isEqualTo(result)
-        }
-
-        assertValid(12.37, 12.3669420022)
-    }
 }
