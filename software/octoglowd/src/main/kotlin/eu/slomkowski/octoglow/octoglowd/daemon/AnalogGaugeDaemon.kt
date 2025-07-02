@@ -107,14 +107,12 @@ class AnalogGaugeDaemon(
         Files.newBufferedReader(PROC_NET_WIRELESS_PATH).use { parseProcNetWirelessFile(it) }
     }
 
-    private class BufferState(
-        val buffer: DoubleArray,
-        var currentIndex: Int
-    )
-
-    private val valueHistory = DacChannel.entries.associateWith {
-        BufferState(DoubleArray(NUMBER_OF_SAMPLES_TO_AVERAGE), 0)
+    private class BufferState {
+        val buffer: DoubleArray = DoubleArray(NUMBER_OF_SAMPLES_TO_AVERAGE) { 0.5 }
+        var currentIndex: Int = 0
     }
+
+    private val valueHistory = DacChannel.entries.associateWith { BufferState() }
 
     private suspend fun setValue(channel: DacChannel, v: Double) {
         val state = valueHistory.getValue(channel)

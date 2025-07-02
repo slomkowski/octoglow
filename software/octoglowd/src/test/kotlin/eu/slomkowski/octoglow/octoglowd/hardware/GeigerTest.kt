@@ -86,13 +86,13 @@ class GeigerTest {
     }
 
     @Test
-    @Disabled("method used to enable eye manually")
+//    @Disabled("method used to enable eye manually")
     fun enableEye(hardware: Hardware) {
         setEye(hardware, true)
     }
 
     @Test
-    @Disabled("method used to disable eye manually")
+//    @Disabled("method used to disable eye manually")
     fun disableEye(hardware: Hardware) {
         setEye(hardware, false)
     }
@@ -102,7 +102,7 @@ class GeigerTest {
     }
 
     @Test
-    @Disabled("this test should be run only by hand, because of heating cycle")
+//    @Disabled("this test should be run only by hand, because of heating cycle")
     fun testEye(hardware: Hardware): Unit = runBlocking {
         val geiger = hardware.geiger
         geiger.setEyeConfiguration(false)
