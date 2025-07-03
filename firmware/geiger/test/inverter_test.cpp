@@ -24,8 +24,25 @@ TEST(Inverter, AdcValues) {
 TEST(Inverter, EyeRegulation) {
     cout << endl;
 
+    cout << "Min PWM value: " << _private::eyeCycles(_private::EYE_PWM_MIN_DUTY) << endl;
+    cout << "Max PWM value: " << _private::eyeCycles(_private::EYE_PWM_MAX_DUTY) << endl;
+
     constexpr uint16_t adcValue = 134;
     uint16_t pwmValue = 100;
     _private::regulateEyeInverter(adcValue, &pwmValue);
 
+    cout << "PWM value: " << pwmValue << endl;
+}
+
+TEST(Inverter, GeigerRegulation) {
+    cout << endl;
+
+    cout << "Min PWM value: " << _private::geigerCycles(_private::GEIGER_PWM_MIN_DUTY) << endl;
+    cout << "Max PWM value: " << _private::geigerCycles(_private::GEIGER_PWM_MAX_DUTY) << endl;
+
+    constexpr uint16_t adcValue = 134;
+    uint16_t pwmValue = 100;
+    _private::regulateGeigerInverter(adcValue, &pwmValue);
+
+    cout << "PWM value: " << pwmValue << endl;
 }

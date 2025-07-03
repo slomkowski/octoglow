@@ -36,9 +36,10 @@ void magiceye::tick() {
 
     if (animationMode == EyeDisplayMode::ANIMATION) {
         static uint16_t previousValue = UINT16_MAX;
-        const uint16_t currentValue = geiger_counter::getState().numOfCountsCurrentCycle;
+        geiger_counter::updateGeigerState();
+        const uint16_t currentValue = geiger_counter::geigerState.numOfCountsCurrentCycle;
 
-        setAdcValue(_animate(currentValue > previousValue));
+        setDacOutputValue(_animate(currentValue > previousValue));
 
         previousValue = currentValue;
     }

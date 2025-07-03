@@ -120,13 +120,6 @@ class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasB
     }
 
     // todo optimize?
-    private suspend fun sendCommand(vararg cmd: Int) {
-        val request = createCommandWithCrc(*cmd)
-        val returned = doTransaction(request, 2)
-        check(returned.size == 2)
-        verifyResponse(request, returned)
-    }
-
     override suspend fun setBrightness(brightness: Int) {
         sendCommand(3, brightness)
     }

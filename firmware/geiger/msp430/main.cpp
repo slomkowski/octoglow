@@ -26,12 +26,18 @@ static inline void configureClockSystem() {
 
     BCSCTL2 = SELM_0 | DIVM_0 | SELS | DIVS_0;
 
-    i2c::setClockToLow();
+    i2c::setClockToHigh();
+}
+
+__interrupt_vec(TRAPINT_VECTOR) [[noreturn]] void trapHandler() {
+    inverter::setPwmOutputsToSafeState();
+
+    while (true) {
+        __no_operation();
+    }
 }
 
 [[noreturn]] int main() {
-    volatile uint16_t i;
-
     inverter::setPwmOutputsToSafeState();
 
     WDTCTL = WDTPW | WDTHOLD;
@@ -39,7 +45,7 @@ static inline void configureClockSystem() {
     P1DIR |= BIT0;
     P2DIR |= BIT0 + BIT7; // configure unused pins as output
 
-    i = 0xfff0;
+    volatile uint16_t i = 0xfff0;
     do i--;
     while (i != 0);
 
@@ -56,13 +62,16 @@ static inline void configureClockSystem() {
     __enable_interrupt();
     __nop();
 
+    //todo remove
+    magiceye::setEnabled(false);
+
     while (true) {
         if (timerTicked) {
-            P1OUT |= BIT0;
+            P1OUT |= BIT0; // pin no 2
 
             timerTicked = false;
 
-            // code below is executed at frequency TICK_TIMER_FREQ
+            // code below is executed at frequency TICK_TIMER_FREQ = 100 Hz
 
             inverter::tick();
             magiceye::tick();

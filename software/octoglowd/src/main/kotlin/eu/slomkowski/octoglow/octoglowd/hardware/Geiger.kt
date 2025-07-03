@@ -3,8 +3,8 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 enum class EyeDisplayMode {
     ANIMATION,
@@ -27,28 +27,29 @@ data class GeigerCounterState(
     val cycleLength: Duration,
 ) {
     companion object {
-        private val invalidBufferContent = intArrayOf(255, 255, 255, 255, 255, 255, 255, 255)
+        private val invalidBufferContent = intArrayOf(255, 255, 255, 255, 255, 255, 255, 255, 255, 255)
 
-        const val SIZE_IN_BYTES = 9
+        const val SIZE_IN_BYTES = 11
 
         fun parse(buff: IntArray): GeigerCounterState {
             require(buff.size == SIZE_IN_BYTES)
 
             check(!buff.sliceArray(1 until buff.size).contentEquals(invalidBufferContent)) { "read buffer has characteristic invalid pattern" }
+            check(buff[1] == 2) { "invalid command identifier - expected 2 but got ${buff[1]}" }
 
             return GeigerCounterState(
-                when (buff[0] and 0b1) {
+                when (buff[2] and 0b1) {
                     1 -> true
                     else -> false
                 },
-                when (buff[0] and 0b10) {
+                when (buff[2] and 0b10) {
                     0b10 -> true
                     else -> false
                 },
-                (buff[2] shl 8) + buff[1],
                 (buff[4] shl 8) + buff[3],
-                ((buff[6] shl 8) + buff[5]).seconds,
-                ((buff[8] shl 8) + buff[7]).seconds
+                (buff[6] shl 8) + buff[5],
+                ((buff[8] shl 8) + buff[7]).seconds,
+                ((buff[10] shl 8) + buff[9]).seconds
             )
         }
     }
@@ -63,9 +64,9 @@ data class GeigerDeviceState(
     val eyePwmValue: Int,
 ) {
     companion object {
-        private val invalidBufferContent = intArrayOf(255, 255, 255, 255, 255, 255, 255)
+        private val invalidBufferContent = intArrayOf(255, 255, 255, 255, 255, 255, 255, 255, 255)
 
-        const val SIZE_IN_BYTES = 8
+        const val SIZE_IN_BYTES = 10
 
         private const val GEIGER_ADC_SCALING_FACTOR: Double = 2.5 / 1024 / (4.7 / (4.7 + 4 * 470))
 
@@ -74,15 +75,19 @@ data class GeigerDeviceState(
         fun parse(buff: IntArray): GeigerDeviceState {
             require(buff.size == SIZE_IN_BYTES)
 
+            check(buff[1] == 1) { "invalid command identifier - expected 1 but got ${buff[1]}" }
             check(!buff.sliceArray(1 until buff.size).contentEquals(invalidBufferContent)) { "read buffer has characteristic invalid pattern" }
 
+            val geigerAdcReadout = (buff[3] shl 8) + buff[2]
+            val eyeAdcReadout = (buff[8] shl 8) + buff[7]
+
             return GeigerDeviceState(
-                GEIGER_ADC_SCALING_FACTOR * ((buff[1] shl 8) + buff[0]).toDouble(),
-                buff[2],
-                EyeInverterState.entries[buff[3]],
-                EyeDisplayMode.entries[buff[4]],
-                EYE_ADC_SCALING_FACTOR * ((buff[6] shl 8) + buff[5]).toDouble(),
-                buff[7]
+                GEIGER_ADC_SCALING_FACTOR * geigerAdcReadout.toDouble(),
+                buff[4],
+                EyeInverterState.entries[buff[5]],
+                EyeDisplayMode.entries[buff[6]],
+                EYE_ADC_SCALING_FACTOR * eyeAdcReadout.toDouble(),
+                buff[8],
             )
         }
     }
@@ -93,7 +98,6 @@ data class GeigerDeviceState(
     }
 }
 
-@OptIn(ExperimentalTime::class)
 class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightness {
 
     companion object {
@@ -101,7 +105,10 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightn
 
         private val CYCLE_MAX_DURATION: Duration = 0xffff.seconds
 
-        private const val I2C_READ_TRIES = 5
+        private const val I2C_READ_TRIES = 6
+
+        private val getDeviceStateCmd = createCommandWithCrc(1)
+        private val getGeigerStateCmd = createCommandWithCrc(2)
     }
 
     override suspend fun initDevice() {
@@ -114,36 +121,37 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightn
 
     override suspend fun setBrightness(brightness: Int) {
         assert(brightness in 0..MAX_BRIGHTNESS) { "brightness should be in range 0..5" }
-        doWrite(7, brightness)
+        sendCommand(7, brightness)
     }
 
     suspend fun getDeviceState(): GeigerDeviceState = trySeveralTimes(I2C_READ_TRIES, logger, "getDeviceState()") {
-        val readBuffer = doTransaction(intArrayOf(1), GeigerDeviceState.SIZE_IN_BYTES)
+        val readBuffer = doTransaction(getDeviceStateCmd, GeigerDeviceState.SIZE_IN_BYTES, delayBetweenWriteAndRead = 1.milliseconds) //todo poprawić delay
         logger.trace { "Device state buffer: ${readBuffer.contentToString()}." }
+        verifyResponse(getDeviceStateCmd, readBuffer)
         GeigerDeviceState.parse(readBuffer)
     }
 
     suspend fun getCounterState(): GeigerCounterState = trySeveralTimes(I2C_READ_TRIES, logger, "getCounterState()") {
-        val readBuffer = doTransaction(intArrayOf(2), GeigerCounterState.SIZE_IN_BYTES)
+        val readBuffer = doTransaction(getGeigerStateCmd, GeigerCounterState.SIZE_IN_BYTES, delayBetweenWriteAndRead = 1.milliseconds) //todo poprawić delay
         logger.trace { "Counter state buffer: ${readBuffer.contentToString()}." }
+        verifyResponse(getGeigerStateCmd, readBuffer)
         GeigerCounterState.parse(readBuffer)
     }
 
     suspend fun setCycleLength(duration: Duration) {
-
         assert(duration > Duration.ZERO) { "duration has to be non-zero" }
         assert(duration < CYCLE_MAX_DURATION) { "duration can be max $CYCLE_MAX_DURATION" }
         val seconds = duration.inWholeSeconds.toInt()
 
-        doWrite(3, 0xff and seconds, 0xff and (seconds shr 8))
+        sendCommand(3, 0xff and seconds, 0xff and (seconds shr 8))
     }
 
     suspend fun reset() {
-        doWrite(4)
+        sendCommand(4)
     }
 
     suspend fun setEyeConfiguration(enabled: Boolean, mode: EyeDisplayMode = EyeDisplayMode.ANIMATION) {
-        doWrite(
+        sendCommand(
             5, when (enabled) {
                 true -> 1
                 else -> 0
@@ -153,6 +161,6 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightn
 
     suspend fun setEyeValue(value: Int) {
         require(value in 0..255)
-        doWrite(6, value)
+        sendCommand(6, value)
     }
 }

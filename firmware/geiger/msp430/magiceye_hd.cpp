@@ -39,12 +39,12 @@ void octoglow::geiger::magiceye::init() {
 
     setBrightness(3);
 
-    setAdcValue(127); // set to middle value
+    setDacOutputValue(127); // set to middle value
 }
 
-void ::octoglow::geiger::magiceye::setAdcValue(uint8_t v) {
+void ::octoglow::geiger::magiceye::setDacOutputValue(uint8_t v) {
 
-    const uint8_t order[] = {0, 1, 2, 3, 4, 5, 7, 6};
+    constexpr uint8_t order[] = {0, 1, 2, 3, 4, 5, 7, 6};
 
     for (uint8_t i = 0; i != 8; ++i) {
 

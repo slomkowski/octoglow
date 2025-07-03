@@ -5,7 +5,7 @@
 using namespace octoglow::geiger::geiger_counter;
 
 void octoglow::geiger::geiger_counter::init() {
-    _state.cycleLength = GEIGER_CYCLE_DEFAULT_LENGTH;
+    geigerState.cycleLength = GEIGER_CYCLE_DEFAULT_LENGTH;
 
     // P2.2
     P2SEL &= ~BIT2;
@@ -15,8 +15,7 @@ void octoglow::geiger::geiger_counter::init() {
     resetCounters();
 }
 
-// todo czy to nie jest pomijane, jak są wyłączone przerwania?
 __interrupt_vec(PORT2_VECTOR) void PORT2_ISR() {
-    ++hd::numOfCountsCurrentCycle;
+    hd::numOfCountsCurrentCycle++;
     P2IFG &= ~BIT2;
 }

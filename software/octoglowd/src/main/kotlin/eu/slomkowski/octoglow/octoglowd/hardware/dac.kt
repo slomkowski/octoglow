@@ -8,7 +8,6 @@ enum class DacChannel(val number: Int) {
     C2(0b01)
 }
 
-@OptIn(ExperimentalTime::class)
 class Dac(hardware: Hardware) : I2CDevice(hardware, 0x4f, logger) {
 
     companion object {

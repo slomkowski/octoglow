@@ -11,7 +11,7 @@ using namespace std;
 using namespace octoglow::geiger;
 using namespace octoglow::geiger::i2c;
 
-static protocol::DeviceState deviceState;
+static volatile protocol::DeviceState deviceState;
 
 void i2c::setClockToHigh() {
     cout << "system clock set to high\n";
@@ -21,7 +21,7 @@ void i2c::setClockToLow() {
     cout << "system clock set to low\n";
 }
 
-protocol::DeviceState &hd::getDeviceState() {
+volatile protocol::DeviceState &hd::getDeviceState() {
     cout << "get device state\n";
     deviceState.geigerVoltage = 0x5678;
     deviceState.geigerPwmValue = 25;
@@ -41,7 +41,6 @@ static void assertReadIs(const uint8_t expected) {
 }
 
 TEST(I2C, ReadCommands) {
-
     // get device state
     onStart();
     onReceive(0x1);
@@ -58,11 +57,12 @@ TEST(I2C, ReadCommands) {
 
     // get geiger state
 
-    geiger_counter::getState().hasNewCycleStarted = true;
-    geiger_counter::getState().hasCycleEverCompleted = false;
-    geiger_counter::getState().numOfCountsPreviousCycle = 1231;
-    geiger_counter::getState().currentCycleProgress = 289;
-    geiger_counter::getState().cycleLength = 300;
+    geiger_counter::updateGeigerState();
+    geiger_counter::geigerState.hasNewCycleStarted = true;
+    geiger_counter::geigerState.hasCycleEverCompleted = false;
+    geiger_counter::geigerState.numOfCountsPreviousCycle = 1231;
+    geiger_counter::geigerState.currentCycleProgress = 289;
+    geiger_counter::geigerState.cycleLength = 300;
     geiger_counter::hd::numOfCountsCurrentCycle = 52;
 
     onStart();
@@ -112,7 +112,6 @@ TEST(I2C, ReadCommands) {
 }
 
 TEST(I2C, WriteCommands) {
-
     // set eye configuration
     onStart();
     onReceive(0x5);
@@ -153,8 +152,11 @@ TEST(I2C, WriteCommands) {
     onReceive(0x3);
     onReceive(0x12);
     onReceive(0x34);
-    ASSERT_EQ(0x3412, geiger_counter::getState().cycleLength);
-    ASSERT_TRUE(geiger_counter::getState().hasNewCycleStarted);
+    geiger_counter::updateGeigerState();
+    const uint16_t cycleLength = geiger_counter::geigerState.cycleLength;
+    ASSERT_EQ(0x3412, cycleLength);
+    const bool hasNewCycleStarted = geiger_counter::geigerState.hasNewCycleStarted;
+    ASSERT_TRUE(hasNewCycleStarted);
 
     onStart();
     onReceive(0x6);

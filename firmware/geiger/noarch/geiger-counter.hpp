@@ -11,12 +11,9 @@ namespace octoglow::geiger::geiger_counter {
 
     void configure(const volatile protocol::GeigerConfiguration &configuration);
 
-    /**
-             * @return GeigerState structure is statically initialized, it's always available
-             */
-    protocol::GeigerState &getState();
+    void updateGeigerState();
 
-    extern protocol::GeigerState _state;
+    extern volatile protocol::GeigerState geigerState;
 
     /**
              * This should be called TICK_TIMER_FREQ.

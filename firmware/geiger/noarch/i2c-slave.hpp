@@ -21,6 +21,6 @@ namespace octoglow::geiger::i2c {
     void init();
 
     namespace hd {
-        protocol::DeviceState &getDeviceState();
+        volatile protocol::DeviceState &getDeviceState();
     }
 }

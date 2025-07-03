@@ -245,14 +245,6 @@ class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), 
         sendCommand(*writeBuffer)
     }
 
-    //todo
-    private suspend fun sendCommand(vararg cmd: Int) {
-        val writeBuffer = createCommandWithCrc(*cmd)
-        val readBuffer = doTransaction(writeBuffer, 2)
-
-        verifyResponse(writeBuffer, readBuffer)
-    }
-
     override suspend fun getButtonReport(): ButtonReport {
         val readBuffer = doTransaction(getButtonReportCmd, 4)
         verifyResponse(getButtonReportCmd, readBuffer)

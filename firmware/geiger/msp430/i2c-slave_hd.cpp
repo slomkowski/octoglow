@@ -49,8 +49,8 @@ __interrupt_vec(USCIAB0RX_VECTOR) void USCIAB0RX_ISR() {
     i2c::onStart();
 }
 
-protocol::DeviceState &i2c::hd::getDeviceState() {
-    static protocol::DeviceState state;
+volatile protocol::DeviceState &i2c::hd::getDeviceState() {
+    static volatile protocol::DeviceState state;
 
     state.eyeState = magiceye::state;
     state.eyeAnimationMode = magiceye::animationMode;

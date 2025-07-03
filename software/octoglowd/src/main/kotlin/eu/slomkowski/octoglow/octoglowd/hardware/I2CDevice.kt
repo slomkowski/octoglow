@@ -70,4 +70,12 @@ abstract class I2CDevice(
     ): IntArray {
         return hardware.doTransaction(i2cAddress, writeBuffer, bytesToRead, delayBetweenWriteAndRead)
     }
+
+    // move to class like CustomI2cDevice?
+    suspend fun sendCommand(vararg cmd: Int) {
+        val request = createCommandWithCrc(*cmd)
+        val returned = doTransaction(request, 2)
+        check(returned.size == 2)
+        verifyResponse(request, returned)
+    }
 }
