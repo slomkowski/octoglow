@@ -22,7 +22,7 @@ void hd::enableHeater2(const bool enabled) {
     cout << "heater2 " << enabled << endl;
 }
 
-void magiceye::setAdcValue(const uint8_t v) {
+void magiceye::setDacOutputValue(const uint8_t v) {
     cout << "ADC set to " << static_cast<int>(v) << endl;
     currentAdcValue = v;
 }

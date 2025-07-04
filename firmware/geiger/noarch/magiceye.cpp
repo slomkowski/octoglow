@@ -69,8 +69,3 @@ void magiceye::configure(const volatile EyeConfiguration &configuration) {
     setEnabled(configuration.enabled);
     animationMode = configuration.mode;
 }
-
-void magiceye::setBrightness(const uint8_t brightness) {
-    const auto limitedBrightness = (brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness);
-    inverter::desiredEyeAdcValue = _private::desiredAdcValues[limitedBrightness];
-}

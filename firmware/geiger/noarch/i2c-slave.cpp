@@ -1,5 +1,6 @@
 #include "i2c-slave.hpp"
 #include "magiceye.hpp"
+#include "inverter.hpp"
 #include "geiger-counter.hpp"
 
 using namespace octoglow::geiger::protocol;
@@ -128,7 +129,7 @@ void i2c::onReceive(const uint8_t value) {
             if (checkCrc8fails()) {
                 return;
             }
-            magiceye::setBrightness(buffer[2]);
+            inverter::setBrightness(buffer[2]);
             setCrcForSimpleCommand();
         }
     } else if (bytesProcessed == 4) {

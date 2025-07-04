@@ -6,21 +6,7 @@
 #define PWM_BIT_EYE BIT1
 
 
-static int16_t readAdcValue(const uint16_t inch) {
-    ADC10CTL0 &= (~ENC);
-    ADC10CTL1 = inch | SHS_0 | ADC10DIV_7 | ADC10SSEL_3 | CONSEQ_0;
-
-    ADC10CTL0 |= ENC;
-    ADC10CTL0 |= ADC10SC;
-
-    while (ADC10CTL1 & ADC10BUSY) {
-    }
-
-    return ADC10MEM;
-}
-
 static volatile uint16_t ta0cycles = 0;
-
 __interrupt_vec(TIMER0_A0_VECTOR) void TIMER0_A0_ISR() {
     ++ta0cycles;
 
@@ -44,12 +30,34 @@ void octoglow::geiger::inverter::setPwmOutputsToSafeState() {
     P1SEL2 &= ~BIT2;
 }
 
+
+__interrupt_vec(ADC10_VECTOR) void ADC10_ISR() {
+    static volatile uint8_t bufferIndex = 0;
+
+    ADC10CTL0 &= (~ENC);
+
+    octoglow::geiger::inverter::_private::adcBuffer[bufferIndex] = ADC10MEM;
+    bufferIndex = (bufferIndex + 1) % octoglow::geiger::inverter::_private::ADC_TOTAL_SAMPLES_SIZE;
+
+    uint16_t inch;
+    if (bufferIndex % 2) {
+        inch = INCH_1; // geiger
+    } else {
+        inch = INCH_5; // eye
+    }
+
+    ADC10CTL1 = inch | SHS_0 | ADC10DIV_7 | ADC10SSEL_0 | CONSEQ_0;
+    ADC10CTL0 |= ENC | ADC10SC;
+}
+
 void ::octoglow::geiger::inverter::init() {
     using namespace _private;
 
-    ADC10AE0 = BIT1 | BIT5;
     ADC10CTL0 &= (~ENC);
-    ADC10CTL0 = SREF_1 | ADC10SHT_3 | REF2_5V | REFON | ADC10ON;
+    ADC10AE0 = BIT1 | BIT5;
+    ADC10CTL0 = SREF_1 | ADC10SHT_3 | REF2_5V | REFON | ADC10ON | ADC10IE; // 2.5 V ref, sample-and-hold 64 cycles
+    ADC10CTL1 = INCH_5 | SHS_0 | ADC10DIV_7 | ADC10SSEL_0 | CONSEQ_0;
+    ADC10CTL0 |= ENC | ADC10SC;
 
     TA0CCR0 = GEIGER_PWM_PERIOD;
     TA0CCR1 = GEIGER_MIDDLE_PWM_DUTY_CYCLES;
@@ -81,14 +89,15 @@ void ::octoglow::geiger::inverter::init() {
 }
 
 void octoglow::geiger::inverter::tick() {
-    eyeAdcReadout = readAdcValue(INCH_5);
+    using namespace _private;
+    eyeAdcReadout = readAdcValue(EYE_ADC_CHANNEL);
     uint16_t eyePwmValue = TA1CCR1;
-    _private::regulateEyeInverter(eyeAdcReadout, &eyePwmValue);
+    regulateEyeInverter(eyeAdcReadout, &eyePwmValue);
     TA1CCR1 = eyePwmValue;
 
-    geigerAdcReadout = readAdcValue(INCH_1);
+    geigerAdcReadout = readAdcValue(GEIGER_ADC_CHANNEL);
     uint16_t geigerPwmValue = TA0CCR1;
-    _private::regulateGeigerInverter(geigerAdcReadout, &geigerPwmValue);
+    regulateGeigerInverter(geigerAdcReadout, &geigerPwmValue);
     TA0CCR1 = geigerPwmValue;
 }
 

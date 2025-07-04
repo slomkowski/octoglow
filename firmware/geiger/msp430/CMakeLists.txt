@@ -12,7 +12,7 @@ SET(SUPPORT_FILE_DIRECTORY /opt/ti/mspgcc/include/)
 
 SET(COMMON_GCC_FLAGS "-O2 \
      -mmcu=${DEVICE} \
-     -DF_CPU=${FREQ}UL \
+     -DTIMER_CLOCK_SOURCE_FREQ=${TIMER_CLOCK_SOURCE_FREQ}UL \
      -DFIXMATH_OPTIMIZE_8BIT \
      -ffunction-sections \
      -fdata-sections \

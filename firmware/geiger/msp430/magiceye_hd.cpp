@@ -37,7 +37,7 @@ void octoglow::geiger::magiceye::init() {
     // init DAC
     P2DIR |= DAC_LATCH | DAC_IN | DAC_CLK;
 
-    setBrightness(3);
+    inverter::setBrightness(3);
 
     setDacOutputValue(127); // set to middle value
 }
