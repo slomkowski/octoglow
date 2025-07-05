@@ -80,12 +80,6 @@ void ::octoglow::geiger::inverter::init() {
     P1SEL |= BIT2;
 
     setEyeEnabled(false);
-
-    // todo remove, it shuts the geiger down
-    P1OUT &= ~BIT2;
-    P1SEL &= ~BIT2;
-    P1SEL2 &= ~BIT2;
-    // remove
 }
 
 void octoglow::geiger::inverter::tick() {
@@ -104,6 +98,7 @@ void octoglow::geiger::inverter::tick() {
 void octoglow::geiger::inverter::setEyeEnabled(const bool enabled) {
     if (enabled) {
         P2SEL |= PWM_BIT_EYE;
+        _private::clearEyePid();
     } else {
         P2SEL &= ~PWM_BIT_EYE;
         P2OUT |= PWM_BIT_EYE;

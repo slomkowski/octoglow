@@ -16,7 +16,7 @@
 
 
 namespace fastpid {
-    constexpr uint32_t floatToParam(const float in) {
+    constexpr static inline uint32_t floatToParam(const float in) {
         if (in > PARAM_MAX || in < 0) {
             return 0;
         }

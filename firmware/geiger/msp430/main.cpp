@@ -62,9 +62,6 @@ __interrupt_vec(TRAPINT_VECTOR) [[noreturn]] void trapHandler() {
     __enable_interrupt();
     __nop();
 
-    //todo remove
-    magiceye::setEnabled(false);
-
     while (true) {
         if (timerTicked) {
             P1OUT |= BIT0; // pin no 2

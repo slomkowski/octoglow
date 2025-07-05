@@ -13,8 +13,8 @@ using namespace octoglow::geiger::magiceye;
 using namespace octoglow::geiger::protocol;
 
 namespace octoglow::geiger::magiceye {
-    EyeInverterState state = EyeInverterState::DISABLED;
-    EyeDisplayMode animationMode = EyeDisplayMode::ANIMATION;
+    volatile EyeInverterState state = EyeInverterState::DISABLED;
+    volatile EyeDisplayMode animationMode = EyeDisplayMode::ANIMATION;
 }
 
 static uint16_t cyclesCounter = UINT16_MAX;

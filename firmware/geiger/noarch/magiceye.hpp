@@ -1,12 +1,8 @@
 #pragma once
 
 #include "protocol.hpp"
-#include "inverter.hpp"
-
-#include <inttypes.h>
 
 namespace octoglow::geiger::magiceye {
-
     void init();
 
     void tick();
@@ -17,8 +13,8 @@ namespace octoglow::geiger::magiceye {
 
     void setEnabled(bool enabled);
 
-    extern protocol::EyeInverterState state;
-    extern protocol::EyeDisplayMode animationMode;
+    extern volatile protocol::EyeInverterState state;
+    extern volatile protocol::EyeDisplayMode animationMode;
 
     namespace hd {
         void enableHeater1(bool enabled);

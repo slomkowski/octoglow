@@ -6,7 +6,7 @@
 
 
 namespace octoglow::geiger::i2c {
-    constexpr uint8_t SLAVE_ADDRESS = 0x12;
+    constexpr uint8_t SLAVE_ADDRESS = 0x18;
 
     void setClockToHigh();
 

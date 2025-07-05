@@ -2,10 +2,6 @@
 
 #include <inttypes.h>
 
-namespace octoglow {
-    namespace geiger {
-        namespace magiceye {
-            uint8_t _animate(bool hasBeenGeigerCountInLastCycle);
-        }
-    }
+namespace octoglow::geiger::magiceye {
+    uint8_t _animate(bool hasBeenGeigerCountInLastCycle);
 }
