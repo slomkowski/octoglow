@@ -1,17 +1,11 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-
 enum class DacChannel(val number: Int) {
     C1(0b00),
-    C2(0b01)
+    C2(0b01),
 }
 
-class Dac(hardware: Hardware) : I2cDevice(hardware, 0x4f, logger) {
-
-    companion object {
-        private val logger = KotlinLogging.logger {}
-    }
+class Dac(hardware: Hardware) : FactoryMadeI2cDevice(hardware, 0x4f) {
 
     override suspend fun initDevice() {
         setToMiddle()

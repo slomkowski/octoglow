@@ -58,7 +58,7 @@ class BrightnessDaemonTest {
             bd.pool()
 
             coVerify(exactly = 1) { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, "3") }
-            coVerify(exactly = 3) { hardwareMock.setBrightness(3) }
+            coVerify(exactly = 2) { hardwareMock.setBrightness(3) }
         }
     }
 

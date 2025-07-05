@@ -15,10 +15,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalTime::class)
 class TodoistView(
     private val config: Config,
     hardware: Hardware,

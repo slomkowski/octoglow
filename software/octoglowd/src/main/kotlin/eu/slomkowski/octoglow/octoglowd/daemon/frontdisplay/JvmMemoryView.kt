@@ -14,10 +14,8 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalTime::class)
 class JvmMemoryView(
     hardware: Hardware,
 ) : FrontDisplayView(

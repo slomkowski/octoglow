@@ -1,13 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalTime::class)
 @ExtendWith(HardwareParameterResolver::class)
 class DacTest {
 

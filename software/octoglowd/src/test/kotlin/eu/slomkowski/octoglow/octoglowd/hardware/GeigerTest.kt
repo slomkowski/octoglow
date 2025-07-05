@@ -3,11 +3,12 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.math.sqrt
-import kotlin.test.assertEquals
-import kotlin.test.assertFails
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -22,7 +23,7 @@ class GeigerTest {
 
     @Test
     fun testGeigerCounterStateParse() {
-        assertEquals(
+        assertThat(GeigerCounterState.parse(intArrayOf(255, 2, 0, 23, 0, 32, 0, 50, 0, 200, 0))).isEqualTo(
             GeigerCounterState(
                 hasNewCycleStarted = false,
                 hasCycleEverCompleted = false,
@@ -30,11 +31,10 @@ class GeigerTest {
                 numOfCountsInPreviousCycle = 32,
                 currentCycleProgress = 50.seconds,
                 cycleLength = 200.seconds,
-            ),
-            GeigerCounterState.parse(intArrayOf(0, 23, 0, 32, 0, 50, 0, 200, 0))
+            )
         )
 
-        assertEquals(
+        assertThat(GeigerCounterState.parse(intArrayOf(255, 2, 3, 23, 0, 92, 0, 50, 0, 44, 1))).isEqualTo(
             GeigerCounterState(
                 hasNewCycleStarted = true,
                 hasCycleEverCompleted = true,
@@ -42,42 +42,68 @@ class GeigerTest {
                 numOfCountsInPreviousCycle = 92,
                 currentCycleProgress = 50.seconds,
                 cycleLength = 5.minutes,
-            ),
-            GeigerCounterState.parse(intArrayOf(3, 23, 0, 92, 0, 50, 0, 44, 1))
+            )
         )
 
-        assertFails {
+        assertThatThrownBy {
             val invalid = intArrayOf(0, 255, 255, 255, 255, 255, 255, 255, 255)
             GeigerCounterState.parse(invalid)
         }
     }
 
     @Test
+    fun testResetAndSetCycleLength(hardware: Hardware): Unit = runBlocking {
+        hardware.geiger.reset()
+        hardware.geiger.getCounterState().apply {
+            assertThat(hasCycleEverCompleted).isFalse()
+            assertThat(numOfCountsInCurrentCycle).isZero()
+        }
+
+        val testLength = 138.seconds
+        hardware.geiger.setCycleLength(testLength)
+
+        hardware.geiger.getCounterState().apply {
+            assertThat(cycleLength).isEqualTo(testLength)
+        }
+
+        hardware.geiger.setCycleLength(5.minutes)
+        hardware.geiger.getCounterState().apply {
+            assertThat(cycleLength).isEqualTo(5.minutes)
+        }
+    }
+
+    @Test
+    @Tag("hardware-geiger-eye")
     fun testSetBrightnessTo1(hardware: Hardware): Unit = runBlocking {
         hardware.geiger.setBrightness(1) // 110
     }
 
     @Test
+    @Tag("hardware-geiger-eye")
     fun testSetBrightnessTo2(hardware: Hardware): Unit = runBlocking {
         hardware.geiger.setBrightness(2) // 140
     }
 
     @Test
+    @Tag("hardware-geiger-eye")
     fun testSetBrightnessTo3(hardware: Hardware): Unit = runBlocking {
         hardware.geiger.setBrightness(3) // 180
     }
 
     @Test
+    @Tag("hardware-geiger-eye")
     fun testSetBrightnessTo4(hardware: Hardware): Unit = runBlocking {
         hardware.geiger.setBrightness(4) // 210
     }
 
     @Test
+    @Tag("hardware-geiger-eye")
     fun testSetBrightnessTo5(hardware: Hardware): Unit = runBlocking {
         hardware.geiger.setBrightness(5) // 250
     }
 
     @Test
+    @Tag("hardware-geiger-eye")
     fun testGeigerVoltage(hardware: Hardware): Unit = runBlocking {
         val voltages = mutableListOf<Double>()
 
@@ -87,7 +113,7 @@ class GeigerTest {
             delay(100.milliseconds)
         }
         logger.info { "Measured voltages: $voltages" }
-        assert(voltages.average() in 380.0..420.0)
+        assertThat(voltages.average()).isBetween(380.0, 420.0)
     }
 
     @Test
@@ -111,11 +137,10 @@ class GeigerTest {
             delay(50)
         }
     }
-    
-    
 
     @Test
-    fun testEyeVoltages(hardware: Hardware) : Unit = runBlocking {
+    @Tag("hardware-geiger-eye")
+    fun testEyeVoltages(hardware: Hardware): Unit = runBlocking {
         hardware.geiger.setEyeConfiguration(true)
         val voltages = listOf(110.0, 140.0, 180.0, 210.0, 250.0)
 
@@ -153,13 +178,13 @@ class GeigerTest {
     }
 
     @Test
-//    @Disabled("method used to enable eye manually")
+    @Tag("hardware-geiger-eye")
     fun enableEye(hardware: Hardware) {
         setEye(hardware, true)
     }
 
     @Test
-//    @Disabled("method used to disable eye manually")
+    @Tag("hardware-geiger-eye")
     fun disableEye(hardware: Hardware) {
         setEye(hardware, false)
     }
@@ -168,40 +193,41 @@ class GeigerTest {
         hardware.geiger.setEyeConfiguration(v)
     }
 
+
     @Test
-//    @Disabled("this test should be run only by hand, because of heating cycle")
+    @Tag("hardware-geiger-eye")
     fun testEye(hardware: Hardware): Unit = runBlocking {
         val geiger = hardware.geiger
         geiger.setEyeConfiguration(false)
         geiger.getDeviceState().apply {
-            assertEquals(EyeInverterState.DISABLED, eyeState)
+            assertThat(eyeState).isEqualTo(EyeInverterState.DISABLED)
         }
 
         geiger.setEyeConfiguration(true, EyeDisplayMode.ANIMATION)
         geiger.getDeviceState().apply {
-            assertEquals(EyeInverterState.HEATING_LIMITED, eyeState)
-            assertEquals(EyeDisplayMode.ANIMATION, eyeAnimationState)
+            assertThat(eyeState).isEqualTo(EyeInverterState.HEATING_LIMITED)
+            assertThat(eyeAnimationState).isEqualTo(EyeDisplayMode.ANIMATION)
         }
 
         delay(1000)
 
         geiger.getDeviceState().apply {
-            assertEquals(EyeInverterState.HEATING_LIMITED, eyeState)
-            assertEquals(EyeDisplayMode.ANIMATION, eyeAnimationState)
+            assertThat(eyeState).isEqualTo(EyeInverterState.HEATING_LIMITED)
+            assertThat(eyeAnimationState).isEqualTo(EyeDisplayMode.ANIMATION)
         }
 
         delay(8000)
 
         geiger.getDeviceState().apply {
-            assertEquals(EyeInverterState.HEATING_FULL, eyeState)
-            assertEquals(EyeDisplayMode.ANIMATION, eyeAnimationState)
+            assertThat(eyeState).isEqualTo(EyeInverterState.HEATING_FULL)
+            assertThat(eyeAnimationState).isEqualTo(EyeDisplayMode.ANIMATION)
         }
 
         delay(5000)
 
         geiger.getDeviceState().apply {
-            assertEquals(EyeInverterState.RUNNING, eyeState)
-            assertEquals(EyeDisplayMode.ANIMATION, eyeAnimationState)
+            assertThat(eyeAnimationState).isEqualTo(EyeDisplayMode.ANIMATION)
+            assertThat(eyeState).isEqualTo(EyeInverterState.RUNNING)
         }
 
         delay(2000)
@@ -212,8 +238,8 @@ class GeigerTest {
 
         geiger.setEyeConfiguration(true, EyeDisplayMode.FIXED_VALUE)
         geiger.getDeviceState().apply {
-            assertEquals(EyeInverterState.RUNNING, eyeState)
-            assertEquals(EyeDisplayMode.FIXED_VALUE, eyeAnimationState)
+            assertThat(eyeState).isEqualTo(EyeInverterState.RUNNING)
+            assertThat(eyeAnimationState).isEqualTo(EyeDisplayMode.FIXED_VALUE)
         }
         for (i in 0..15) {
             geiger.setEyeValue(10 * i)
@@ -228,14 +254,14 @@ class GeigerTest {
         geiger.setEyeConfiguration(true, EyeDisplayMode.ANIMATION)
         geiger.setBrightness(3)
         geiger.getDeviceState().apply {
-            assertEquals(EyeInverterState.RUNNING, eyeState)
-            assertEquals(EyeDisplayMode.ANIMATION, eyeAnimationState)
+            assertThat(eyeState).isEqualTo(EyeInverterState.RUNNING)
+            assertThat(eyeAnimationState).isEqualTo(EyeDisplayMode.ANIMATION)
         }
 
         geiger.setEyeConfiguration(false)
         geiger.getDeviceState().apply {
-            assertEquals(EyeInverterState.DISABLED, eyeState)
-            assertEquals(EyeDisplayMode.ANIMATION, eyeAnimationState)
+            assertThat(eyeState).isEqualTo(EyeInverterState.DISABLED)
+            assertThat(eyeAnimationState).isEqualTo(EyeDisplayMode.ANIMATION)
         }
     }
 

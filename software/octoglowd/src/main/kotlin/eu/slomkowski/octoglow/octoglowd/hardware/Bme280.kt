@@ -99,7 +99,7 @@ data class CompensationData(
     val h6: Int,
 )
 
-class Bme280(hardware: Hardware) : I2cDevice(hardware, 0x76, logger) {
+class Bme280(hardware: Hardware) : FactoryMadeI2cDevice(hardware, 0x76) {
 
     companion object {
         private val logger = KotlinLogging.logger {}

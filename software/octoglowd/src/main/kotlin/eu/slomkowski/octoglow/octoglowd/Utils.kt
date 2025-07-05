@@ -132,7 +132,6 @@ fun formatPpmConcentration(t: Double?): String = when (t) {
 fun getSegmentNumber(currentTime: kotlin.time.Duration, maxTime: kotlin.time.Duration): Int =
     floor(20.0 * (currentTime.toDouble(DurationUnit.MILLISECONDS) / maxTime.toDouble(DurationUnit.MILLISECONDS))).roundToInt().coerceIn(0, 19)
 
-//todo pewnie wywalić, bo będzie try robione w Hardware
 suspend fun <T : Any> trySeveralTimes(
     numberOfTries: Int,
     logger: KLogger,

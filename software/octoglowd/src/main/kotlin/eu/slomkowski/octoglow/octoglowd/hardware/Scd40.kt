@@ -34,7 +34,7 @@ data class Scd40measurements(
     }
 }
 
-class Scd40(hardware: Hardware) : I2cDevice(hardware, 0x62, logger) {
+class Scd40(hardware: Hardware) : FactoryMadeI2cDevice(hardware, 0x62) {
 
     companion object {
         private val logger = KotlinLogging.logger {}

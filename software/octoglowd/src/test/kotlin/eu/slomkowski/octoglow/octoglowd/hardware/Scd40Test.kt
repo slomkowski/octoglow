@@ -20,10 +20,11 @@ class Scd40Test {
     @Test
     fun `test readSerialNumber from mock`(): Unit = runBlocking {
         val hardwareMock = mockk<Hardware>()
+
         val scd40 = spyk(Scd40(hardwareMock))
 
         val mockedBuffer = intArrayOf(0x4c, 0x02, 0xde, 0xe3, 0x07, 0x4d, 0x3b, 0xe8, 0x51)
-        coEvery { scd40.doTransaction(any<IntArray>(), any()) } returns mockedBuffer
+        coEvery { hardwareMock.doTransaction(0x62, any<IntArray>(), any(), any()) } returns mockedBuffer
 
         val result = scd40.readSerialNumber()
         assertThat(result).isEqualTo(0x4c02e3073be8)
@@ -91,19 +92,19 @@ class Scd40Test {
         val mockHardware = mockk<Hardware>()
         val scd40 = spyk(Scd40(mockHardware))
 
-        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(128, 0, 162)
+        coEvery { mockHardware.doTransaction(0x62, eq(intArrayOf(228, 184)), eq(3), any()) } returns intArrayOf(128, 0, 162)
         assertThat(scd40.getDataReadyStatus()).isFalse()
 
-        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(128, 6, 4)
+        coEvery { mockHardware.doTransaction(0x62, eq(intArrayOf(228, 184)), eq(3), any()) } returns intArrayOf(128, 6, 4)
         assertThat(scd40.getDataReadyStatus()).isTrue()
 
-        coEvery { scd40.doTransaction(eq(intArrayOf(236, 5)), eq(9)) } returns intArrayOf(2, 10, 131, 107, 206, 150, 114, 241, 208)
+        coEvery { mockHardware.doTransaction(0x62, eq(intArrayOf(236, 5)), eq(9), any()) } returns intArrayOf(2, 10, 131, 107, 206, 150, 114, 241, 208)
         val measurement = scd40.readMeasurement()
         assertThat(measurement.co2).isCloseTo(522.0, within(0.1))
         assertThat(measurement.temperature).isCloseTo(28.69, within(0.1))
         assertThat(measurement.humidity).isCloseTo(44.89, within(0.1))
 
-        coEvery { scd40.doTransaction(eq(intArrayOf(228, 184)), eq(3)) } returns intArrayOf(129, 6, 4) // failed checksum
+        coEvery { mockHardware.doTransaction(0x62, eq(intArrayOf(228, 184)), eq(3), any()) } returns intArrayOf(129, 6, 4) // failed checksum
         assertFails {
             scd40.getDataReadyStatus()
         }.also {

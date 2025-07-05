@@ -8,9 +8,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
 class RealTimeClockDaemon(
     private val hardware: Hardware,
 ) : Daemon(logger, 200.milliseconds) {

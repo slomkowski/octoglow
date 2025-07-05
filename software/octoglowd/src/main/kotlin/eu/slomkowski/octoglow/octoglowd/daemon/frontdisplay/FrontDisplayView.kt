@@ -8,7 +8,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
-import kotlin.time.ExperimentalTime
 
 enum class UpdateStatus {
     NO_NEW_DATA,
@@ -23,7 +22,6 @@ enum class UpdateStatus {
  * instant - exact state of the processing on the device, updatable once every several seconds.
  */
 
-@OptIn(ExperimentalTime::class)
 abstract class FrontDisplayView(
     val hardware: Hardware,
     val name: String,

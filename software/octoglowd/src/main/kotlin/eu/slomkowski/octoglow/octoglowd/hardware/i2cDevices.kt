@@ -1,31 +1,33 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import eu.slomkowski.octoglow.octoglowd.trySeveralTimes
 import io.github.oshai.kotlinlogging.KLogger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
+interface I2cDevice {
+    val i2cAddress: Int
 
-abstract class I2cDevice(
+    suspend fun initDevice()
+
+    suspend fun closeDevice()
+}
+
+abstract class FactoryMadeI2cDevice(
     private val hardware: Hardware,
-    private val i2cAddress: Int,
-    private val logger: KLogger,
-) {
+    final override val i2cAddress: Int,
+) : I2cDevice {
     companion object {
         private val defaultDelayBetweenWriteAndRead = 1.milliseconds
-
     }
 
     init {
         require(i2cAddress in 0..127)
     }
 
-    abstract suspend fun initDevice()
+    protected suspend fun doWrite(vararg writeBuffer: Int) = hardware.doWrite(i2cAddress, writeBuffer)
 
-    abstract suspend fun closeDevice()
-
-    suspend fun doWrite(vararg writeBuffer: Int) = hardware.doWrite(i2cAddress, writeBuffer)
-
-    suspend fun doTransaction(
+    protected suspend fun doTransaction(
         writeBuffer: IntArray,
         bytesToRead: Int,
         delayBetweenWriteAndRead: Duration = defaultDelayBetweenWriteAndRead,
@@ -35,11 +37,18 @@ abstract class I2cDevice(
 }
 
 
-abstract class MyI2CDevice(hardware: Hardware, i2cAddress: Int, logger: KLogger) : I2cDevice(hardware, i2cAddress, logger) {
+abstract class CustomI2cDevice(
+    private val hardware: Hardware,
+    private val logger: KLogger,
+    final override val i2cAddress: Int,
+    private val delayBetweenWriteAndRead: Duration = 1.milliseconds,
+) : I2cDevice {
 
     companion object {
 
-        fun calculateCcittCrc8(data: IntArray, range: ClosedRange<Int>): Int {
+        private const val NUMBER_OF_REPETITIONS = 5
+
+        internal fun calculateCcittCrc8(data: IntArray, range: ClosedRange<Int>): Int {
             var crcValue = 0x00
 
             var i = range.start
@@ -58,14 +67,14 @@ abstract class MyI2CDevice(hardware: Hardware, i2cAddress: Int, logger: KLogger)
             return crcValue
         }
 
-        fun createCommandWithCrc(vararg cmd: Int): IntArray {
+        internal fun createCommandWithCrc(vararg cmd: Int): IntArray {
             val buff = IntArray(cmd.size + 1)
             cmd.copyInto(buff, 1, 0, cmd.size)
             buff[0] = calculateCcittCrc8(buff, 1..cmd.size)
             return buff
         }
 
-        fun verifyResponse(reqBuff: IntArray, respBuff: IntArray) {
+        internal fun verifyResponse(reqBuff: IntArray, respBuff: IntArray) {
             try {
                 require(respBuff.size >= 2) { "response has to be at least 2 bytes" }
 
@@ -80,11 +89,32 @@ abstract class MyI2CDevice(hardware: Hardware, i2cAddress: Int, logger: KLogger)
         }
     }
 
-    // move to class like CustomI2cDevice?
-    suspend fun sendCommand(vararg cmd: Int) {
+    suspend fun sendCommand(
+        operationDescription: String,
+        vararg cmd: Int,
+    ) {
         val request = createCommandWithCrc(*cmd)
-        val returned = doTransaction(request, 2)
-        check(returned.size == 2)
-        verifyResponse(request, returned)
+
+        return trySeveralTimes(NUMBER_OF_REPETITIONS, logger, operationDescription) {
+            val returned = hardware.doTransaction(i2cAddress, request, 2, delayBetweenWriteAndRead)
+
+            check(returned.size == 2)
+            verifyResponse(request, returned)
+        }
+    }
+
+    suspend fun sendCommandAndReadData(
+        operationDescription: String,
+        noBytesToRead: Int,
+        vararg cmd: Int,
+    ): IntArray {
+        require(noBytesToRead in 0..20) { "invalid value for number of bytes to read" }
+        val commandWithCrc = createCommandWithCrc(*cmd)
+
+        return trySeveralTimes(NUMBER_OF_REPETITIONS, logger, operationDescription) {
+            val readBuffer = hardware.doTransaction(i2cAddress, commandWithCrc, noBytesToRead, delayBetweenWriteAndRead)
+            verifyResponse(commandWithCrc, readBuffer)
+            readBuffer
+        }
     }
 }

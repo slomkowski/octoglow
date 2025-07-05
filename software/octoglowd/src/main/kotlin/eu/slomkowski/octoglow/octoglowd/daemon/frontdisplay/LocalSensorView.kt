@@ -12,10 +12,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalTime::class)
 class LocalSensorView(
     private val config: Config,
     private val databaseLayer: DatabaseLayer,

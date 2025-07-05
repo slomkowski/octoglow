@@ -108,39 +108,35 @@ data class RemoteSensorReport(
     }
 }
 
-class ClockDisplay(hardware: Hardware) : MyI2CDevice(hardware, 0x10, logger), HasBrightness {
+class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10), HasBrightness {
 
     companion object {
         private val logger = KotlinLogging.logger {}
 
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
-
-        private val retrieveRemoteSensorReportCmd: IntArray = createCommandWithCrc(4)
     }
 
-    // todo optimize?
     override suspend fun setBrightness(brightness: Int) {
-        sendCommand(3, brightness)
+        sendCommand("set brightness", 3, brightness)
     }
 
     suspend fun setRelay(enabled: Boolean) {
-        sendCommand(2, 0, if (enabled) 1 else 0)
+        sendCommand("set relay", 2, 0, if (enabled) 1 else 0)
     }
 
     override suspend fun initDevice() {
-        sendCommand(2, 0, 0)
+        sendCommand("init", 2, 0, 0)
     }
 
     override suspend fun closeDevice() {
         setBrightness(3)
-        sendCommand(2, 0, 0)
-        sendCommand(1, 45, 45, 45, 45)
+        sendCommand("shut down relays", 2, 0, 0)
+        sendCommand("set display to --:--", 1, 45, 45, 45, 45)
     }
 
     suspend fun retrieveRemoteSensorReport(): RemoteSensorReport? {
-        val readBuffer = doTransaction(retrieveRemoteSensorReportCmd, 8)
-        verifyResponse(retrieveRemoteSensorReportCmd, readBuffer)
+        val readBuffer = sendCommandAndReadData("get remote sensor report", 8, 4)
         return RemoteSensorReport.parse(readBuffer)
     }
 
@@ -159,6 +155,7 @@ class ClockDisplay(hardware: Hardware) : MyI2CDevice(hardware, 0x10, logger), Ha
         }
 
         sendCommand(
+            "set display",
             1, when (hours < 10) {
                 true -> ' '.code
                 else -> 0x30 + hours / 10

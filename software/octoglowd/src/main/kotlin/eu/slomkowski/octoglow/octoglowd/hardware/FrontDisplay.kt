@@ -116,7 +116,7 @@ interface FrontDisplay {
     }
 }
 
-class FrontDisplayReal(hardware: Hardware) : MyI2CDevice(hardware, 0x14, logger), HasBrightness, FrontDisplay {
+class FrontDisplayReal(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x14), HasBrightness, FrontDisplay {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -124,7 +124,7 @@ class FrontDisplayReal(hardware: Hardware) : MyI2CDevice(hardware, 0x14, logger)
         // we assume last value as pivot
         private const val MAX_VALUES_IN_CHART = 5 * 20
 
-        private val getButtonReportCmd = createCommandWithCrc(1)
+        private val getButtonReportCmd = intArrayOf(1)
     }
 
     override suspend fun initDevice() {
@@ -142,16 +142,16 @@ class FrontDisplayReal(hardware: Hardware) : MyI2CDevice(hardware, 0x14, logger)
     }
 
     override suspend fun setBrightness(brightness: Int) {
-        sendCommand(3, brightness)
+        sendCommand("set brightness", 3, brightness)
     }
 
     override suspend fun setUpperBar(c: Int) {
         val bk = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(c)
-        sendCommand(7, bk[0].toInt(), bk[1].toInt(), bk[2].toInt())
+        sendCommand("set upper bar content", 7, bk[0].toInt(), bk[1].toInt(), bk[2].toInt())
     }
 
     override suspend fun clear() {
-        sendCommand(2)
+        sendCommand("clear display", 2)
     }
 
     override suspend fun setText(textBytes: ByteArray, header: IntArray) {
@@ -159,18 +159,16 @@ class FrontDisplayReal(hardware: Hardware) : MyI2CDevice(hardware, 0x14, logger)
         header.forEachIndexed { idx, v -> writeBuffer[idx] = v }
         textBytes.forEachIndexed { idx, b -> writeBuffer[idx + header.size] = b.toInt() }
         writeBuffer[header.size + textBytes.size] = 0
-        sendCommand(*writeBuffer)
+        sendCommand("set text", *writeBuffer)
     }
 
     override suspend fun getEndOfConstructionYearInternal(): Byte {
-        val getEndOfConstructionYearCmd = createCommandWithCrc(8)
-        val readBuffer = doTransaction(getEndOfConstructionYearCmd, 3)
-        verifyResponse(getEndOfConstructionYearCmd, readBuffer)
+        val readBuffer = sendCommandAndReadData("get end-of-construction year", 3, 8)
         return readBuffer[2].toByte()
     }
 
     override suspend fun setEndOfConstructionYearInternal(lastDigitsOfYear: Byte) {
-        sendCommand(9, lastDigitsOfYear.toInt())
+        sendCommand("set end-of-construction year", 9, lastDigitsOfYear.toInt())
     }
 
     override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
@@ -242,12 +240,11 @@ class FrontDisplayReal(hardware: Hardware) : MyI2CDevice(hardware, 0x14, logger)
 
         content.forEachIndexed { idx, v -> writeBuffer[idx + 4] = v }
 
-        sendCommand(*writeBuffer)
+        sendCommand("draw image", *writeBuffer)
     }
 
     override suspend fun getButtonReport(): ButtonReport {
-        val readBuffer = doTransaction(getButtonReportCmd, 4)
-        verifyResponse(getButtonReportCmd, readBuffer)
+        val readBuffer = sendCommandAndReadData("get button report", 4, 1)
 
         return ButtonReport(
             when (readBuffer[3]) {

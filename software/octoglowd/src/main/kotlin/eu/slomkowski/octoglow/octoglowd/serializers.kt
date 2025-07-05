@@ -44,7 +44,7 @@ abstract class AbstractInstantSerializer2(private val pattern: String) : KSerial
         }) { "$str does not match $pattern" }
     }
 
-    override fun serialize(encoder: Encoder, value: Instant) = TODO()
+    override fun serialize(encoder: Encoder, value: Instant) = error("serialization not supported")
 }
 
 
@@ -70,7 +70,7 @@ object AirQualityInstantSerializer : KSerializer<Instant> {
         }) { "$str does not match $regex" }
     }
 
-    override fun serialize(encoder: Encoder, value: Instant) = TODO()
+    override fun serialize(encoder: Encoder, value: Instant) = error("serialization not supported")
 }
 
 object InstantSerializer : KSerializer<Instant> {

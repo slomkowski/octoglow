@@ -1,17 +1,15 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
-import eu.slomkowski.octoglow.octoglowd.hardware.MyI2CDevice.Companion.calculateCcittCrc8
-import eu.slomkowski.octoglow.octoglowd.hardware.MyI2CDevice.Companion.createCommandWithCrc
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Assert.assertEquals
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.*
+import kotlin.time.Duration.Companion.seconds
 
 @ExtendWith(HardwareParameterResolver::class)
 class ClockDisplayTest {
@@ -29,20 +27,6 @@ class ClockDisplayTest {
         logger.info { "${RemoteSensorReport.toBitArray(i2CBuffer)}" }
 
         assertThat(RemoteSensorReport.calculateChecksum(i2CBuffer)).isTrue()
-    }
-
-    @Test
-    fun testCalculateCrc8() {
-        val buff = intArrayOf(251, 4, 2, 137, 20, 104, 132, 19)
-        val result = calculateCcittCrc8(buff, 1..<buff.size)
-        assertThat(result).isEqualTo(buff.first())
-    }
-
-    @Test
-    fun testCreateCommandWithCrc() {
-        val buff = intArrayOf(1, 49, 50, 51, 52)
-        val result = createCommandWithCrc(*buff)
-        assertThat(result).isEqualTo(intArrayOf(160, 1, 49, 50, 51, 52))
     }
 
     @Test
@@ -80,15 +64,24 @@ class ClockDisplayTest {
 
     @Test
     fun testGetOutdoorWeatherReportParse() {
-        assertParsing(23.9, 32.0, 102, 4, 6, 183, 160, 103, 51, 33)
-
-        //todo more positive temp
+        assertParsing(1, 23.9, 32.0, false, 102, 4, 6, 183, 160, 103, 51, 33)
+        assertParsing(2, 28.22, 25.0, false, 54, 4, 2, 63, 209, 108, 2, 82)
+        assertParsing(3, 26.44, 30.0, true, 188, 4, 6, 137, 164, 106, 3, 3)
+        // todo negative temperatures in winter
     }
 
-    private fun assertParsing(temperature: Double, humidity: Double, vararg buffer: Int) {
+    private fun assertParsing(
+        sensorId: Int,
+        temperature: Double,
+        humidity: Double,
+        weakBattery: Boolean,
+        vararg buffer: Int
+    ) {
         val i2CBuffer = intArrayOf(*buffer)
         val report = assertNotNull(RemoteSensorReport.parse(i2CBuffer))
 
+        assertThat(report.batteryIsWeak).isEqualTo(weakBattery)
+        assertThat(report.sensorId).isEqualTo(sensorId)
         assertEquals(temperature, report.temperature, DELTA)
         assertEquals(humidity, report.humidity, DELTA)
     }
@@ -134,17 +127,21 @@ class ClockDisplayTest {
     }
 
     @Test
-    @Disabled("persistent displaying new reports")
+//    @Disabled("persistent displaying new reports")
     fun testConstantReportsReceiving(hardware: Hardware) {
+        val reports = mutableListOf<RemoteSensorReport>()
         runBlocking {
-            hardware.clockDisplay.apply {
-
-                repeat(100000) {
-                    retrieveRemoteSensorReport()
-                    delay(300)
+            var lastReport: RemoteSensorReport? = null
+            repeat(60 * 2) {
+                val newReport = hardware.clockDisplay.retrieveRemoteSensorReport()
+                if (newReport != null && newReport != lastReport) {
+                    logger.info { "New report: $newReport" }
+                    reports.add(newReport)
                 }
-
+                lastReport = newReport
+                delay(1.seconds)
             }
         }
+        assertThat(reports).isNotEmpty()
     }
 }
