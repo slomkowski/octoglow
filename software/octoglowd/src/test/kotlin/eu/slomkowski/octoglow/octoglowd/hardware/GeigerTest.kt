@@ -3,11 +3,12 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import kotlin.math.sqrt
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -52,6 +53,44 @@ class GeigerTest {
     }
 
     @Test
+    fun testSetBrightnessTo1(hardware: Hardware): Unit = runBlocking {
+        hardware.geiger.setBrightness(1) // 110
+    }
+
+    @Test
+    fun testSetBrightnessTo2(hardware: Hardware): Unit = runBlocking {
+        hardware.geiger.setBrightness(2) // 140
+    }
+
+    @Test
+    fun testSetBrightnessTo3(hardware: Hardware): Unit = runBlocking {
+        hardware.geiger.setBrightness(3) // 180
+    }
+
+    @Test
+    fun testSetBrightnessTo4(hardware: Hardware): Unit = runBlocking {
+        hardware.geiger.setBrightness(4) // 210
+    }
+
+    @Test
+    fun testSetBrightnessTo5(hardware: Hardware): Unit = runBlocking {
+        hardware.geiger.setBrightness(5) // 250
+    }
+
+    @Test
+    fun testGeigerVoltage(hardware: Hardware): Unit = runBlocking {
+        val voltages = mutableListOf<Double>()
+
+        repeat(10) {
+            val voltage = hardware.geiger.getDeviceState().geigerVoltage
+            voltages.add(voltage)
+            delay(100.milliseconds)
+        }
+        logger.info { "Measured voltages: $voltages" }
+        assert(voltages.average() in 380.0..420.0)
+    }
+
+    @Test
     fun testSetBrightness(hardware: Hardware): Unit = runBlocking {
         for (i in 0..5) {
             logger.info { "Setting brightness to $i." }
@@ -66,19 +105,47 @@ class GeigerTest {
     fun testGetCounterState(hardware: Hardware): Unit = runBlocking {
         //geiger.reset()
 
-        repeat(10) {
+        repeat(50) {
             val state = hardware.geiger.getCounterState()
             logger.info { "State: $state." }
             delay(50)
+        }
+    }
+    
+    
+
+    @Test
+    fun testEyeVoltages(hardware: Hardware) : Unit = runBlocking {
+        hardware.geiger.setEyeConfiguration(true)
+        val voltages = listOf(110.0, 140.0, 180.0, 210.0, 250.0)
+
+        voltages.forEachIndexed { index, voltage ->
+            hardware.geiger.setBrightness(index + 1)
+            delay(4.seconds)
+
+            val voltageValues = (0..30).map {
+                delay(50.milliseconds)
+                hardware.geiger.getDeviceState().eyeVoltage
+            }
+            val valuesAvg = voltageValues.average()
+
+            logger.info {
+                "Voltage: $voltage V, avg measured: ${String.format("%.1f", valuesAvg)} V, diff: ${String.format("%.1f", valuesAvg - voltage)} V st dev: ${
+                    String.format(
+                        "%.1f",
+                        voltageValues.standardDeviation()
+                    )
+                }."
+            }
         }
     }
 
     @Test
     fun testGetDeviceState(hardware: Hardware): Unit = runBlocking {
 
-        hardware.geiger.reset()
+//        hardware.geiger.reset()
 
-        repeat(10) {
+        repeat(50) {
             val state = hardware.geiger.getDeviceState()
             logger.info { "State: $state." }
             delay(80)
@@ -170,5 +237,10 @@ class GeigerTest {
             assertEquals(EyeInverterState.DISABLED, eyeState)
             assertEquals(EyeDisplayMode.ANIMATION, eyeAnimationState)
         }
+    }
+
+    private fun List<Double>.standardDeviation(): Double {
+        val mean = average()
+        return sqrt(sumOf { (it - mean) * (it - mean) } / size)
     }
 }

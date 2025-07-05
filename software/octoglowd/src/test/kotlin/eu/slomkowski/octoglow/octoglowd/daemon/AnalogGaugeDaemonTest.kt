@@ -113,7 +113,7 @@ class AnalogGaugeDaemonTest {
             }
         }
 
-        //todo more tests on different files
+        //todo more tests on different files, z laptopa na przykład
     }
 
 }

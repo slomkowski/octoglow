@@ -6,7 +6,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlin.math.exp
-import kotlin.time.ExperimentalTime
 
 /**
  * Temperature in deg C, humidity in %, pressure in hPa.
@@ -100,7 +99,7 @@ data class CompensationData(
     val h6: Int,
 )
 
-class Bme280(hardware: Hardware) : I2CDevice(hardware, 0x76, logger) {
+class Bme280(hardware: Hardware) : I2cDevice(hardware, 0x76, logger) {
 
     companion object {
         private val logger = KotlinLogging.logger {}

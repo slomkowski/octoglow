@@ -1,8 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.contentToBitString
-import eu.slomkowski.octoglow.octoglowd.hardware.I2CDevice.Companion.calculateCcittCrc8
-import eu.slomkowski.octoglow.octoglowd.hardware.I2CDevice.Companion.createCommandWithCrc
+import eu.slomkowski.octoglow.octoglowd.hardware.MyI2CDevice.Companion.calculateCcittCrc8
+import eu.slomkowski.octoglow.octoglowd.hardware.MyI2CDevice.Companion.createCommandWithCrc
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking

@@ -116,7 +116,7 @@ interface FrontDisplay {
     }
 }
 
-class FrontDisplayReal(hardware: Hardware) : I2CDevice(hardware, 0x14, logger), HasBrightness, FrontDisplay {
+class FrontDisplayReal(hardware: Hardware) : MyI2CDevice(hardware, 0x14, logger), HasBrightness, FrontDisplay {
 
     companion object {
         private val logger = KotlinLogging.logger {}

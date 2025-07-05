@@ -1,14 +1,13 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlin.time.ExperimentalTime
 
 enum class DacChannel(val number: Int) {
     C1(0b00),
     C2(0b01)
 }
 
-class Dac(hardware: Hardware) : I2CDevice(hardware, 0x4f, logger) {
+class Dac(hardware: Hardware) : I2cDevice(hardware, 0x4f, logger) {
 
     companion object {
         private val logger = KotlinLogging.logger {}

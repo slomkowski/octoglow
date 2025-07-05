@@ -98,7 +98,7 @@ data class GeigerDeviceState(
     }
 }
 
-class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightness {
+class Geiger(hardware: Hardware) : MyI2CDevice(hardware, 0x18, logger), HasBrightness {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -125,14 +125,14 @@ class Geiger(hardware: Hardware) : I2CDevice(hardware, 0x12, logger), HasBrightn
     }
 
     suspend fun getDeviceState(): GeigerDeviceState = trySeveralTimes(I2C_READ_TRIES, logger, "getDeviceState()") {
-        val readBuffer = doTransaction(getDeviceStateCmd, GeigerDeviceState.SIZE_IN_BYTES, delayBetweenWriteAndRead = 1.milliseconds) //todo poprawić delay
+        val readBuffer = doTransaction(getDeviceStateCmd, GeigerDeviceState.SIZE_IN_BYTES, delayBetweenWriteAndRead = 5.milliseconds) //todo poprawić delay
         logger.trace { "Device state buffer: ${readBuffer.contentToString()}." }
         verifyResponse(getDeviceStateCmd, readBuffer)
         GeigerDeviceState.parse(readBuffer)
     }
 
     suspend fun getCounterState(): GeigerCounterState = trySeveralTimes(I2C_READ_TRIES, logger, "getCounterState()") {
-        val readBuffer = doTransaction(getGeigerStateCmd, GeigerCounterState.SIZE_IN_BYTES, delayBetweenWriteAndRead = 1.milliseconds) //todo poprawić delay
+        val readBuffer = doTransaction(getGeigerStateCmd, GeigerCounterState.SIZE_IN_BYTES, delayBetweenWriteAndRead = 5.milliseconds) //todo poprawić delay
         logger.trace { "Counter state buffer: ${readBuffer.contentToString()}." }
         verifyResponse(getGeigerStateCmd, readBuffer)
         GeigerCounterState.parse(readBuffer)

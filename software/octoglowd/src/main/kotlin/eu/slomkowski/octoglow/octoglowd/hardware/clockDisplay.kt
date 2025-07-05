@@ -108,7 +108,7 @@ data class RemoteSensorReport(
     }
 }
 
-class ClockDisplay(hardware: Hardware) : I2CDevice(hardware, 0x10, logger), HasBrightness {
+class ClockDisplay(hardware: Hardware) : MyI2CDevice(hardware, 0x10, logger), HasBrightness {
 
     companion object {
         private val logger = KotlinLogging.logger {}

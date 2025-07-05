@@ -4,13 +4,40 @@ import io.github.oshai.kotlinlogging.KLogger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-abstract class I2CDevice(
+
+abstract class I2cDevice(
     private val hardware: Hardware,
     private val i2cAddress: Int,
     private val logger: KLogger,
 ) {
     companion object {
         private val defaultDelayBetweenWriteAndRead = 1.milliseconds
+
+    }
+
+    init {
+        require(i2cAddress in 0..127)
+    }
+
+    abstract suspend fun initDevice()
+
+    abstract suspend fun closeDevice()
+
+    suspend fun doWrite(vararg writeBuffer: Int) = hardware.doWrite(i2cAddress, writeBuffer)
+
+    suspend fun doTransaction(
+        writeBuffer: IntArray,
+        bytesToRead: Int,
+        delayBetweenWriteAndRead: Duration = defaultDelayBetweenWriteAndRead,
+    ): IntArray {
+        return hardware.doTransaction(i2cAddress, writeBuffer, bytesToRead, delayBetweenWriteAndRead)
+    }
+}
+
+
+abstract class MyI2CDevice(hardware: Hardware, i2cAddress: Int, logger: KLogger) : I2cDevice(hardware, i2cAddress, logger) {
+
+    companion object {
 
         fun calculateCcittCrc8(data: IntArray, range: ClosedRange<Int>): Int {
             var crcValue = 0x00
@@ -32,9 +59,9 @@ abstract class I2CDevice(
         }
 
         fun createCommandWithCrc(vararg cmd: Int): IntArray {
-            val buff = IntArray(cmd.size + 1) { 0 }
+            val buff = IntArray(cmd.size + 1)
             cmd.copyInto(buff, 1, 0, cmd.size)
-            buff[0] = calculateCcittCrc8(cmd, cmd.indices)
+            buff[0] = calculateCcittCrc8(buff, 1..cmd.size)
             return buff
         }
 
@@ -51,24 +78,6 @@ abstract class I2CDevice(
                 error("problem with following request: ${reqBuff.contentToString()}, response: ${respBuff.contentToString()}: ${e.message}")
             }
         }
-    }
-
-    init {
-        require(i2cAddress in 0..127)
-    }
-
-    abstract suspend fun initDevice()
-
-    abstract suspend fun closeDevice()
-
-    suspend fun doWrite(vararg writeBuffer: Int) = hardware.doWrite(i2cAddress, writeBuffer)
-
-    suspend fun doTransaction(
-        writeBuffer: IntArray,
-        bytesToRead: Int,
-        delayBetweenWriteAndRead: Duration = defaultDelayBetweenWriteAndRead,
-    ): IntArray {
-        return hardware.doTransaction(i2cAddress, writeBuffer, bytesToRead, delayBetweenWriteAndRead)
     }
 
     // move to class like CustomI2cDevice?
