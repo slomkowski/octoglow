@@ -37,15 +37,20 @@ volatile protocol::DeviceState &hd::getDeviceState() {
 static void assertReadIs(const uint8_t expected) {
     uint8_t readValue;
     onTransmit(&readValue);
+    cout << "read " << static_cast<int>(readValue) << endl;
     ASSERT_EQ(expected, readValue);
 }
 
 TEST(I2C, ReadCommands) {
     // get device state
     onStart();
+    onReceive(7);
     onReceive(0x1);
 
+    cout << "get device state" << endl;
     onStart();
+    assertReadIs(242);
+    assertReadIs(1);
     assertReadIs(0x78);
     assertReadIs(0x56);
     assertReadIs(25);
@@ -66,8 +71,13 @@ TEST(I2C, ReadCommands) {
     geiger_counter::hd::numOfCountsCurrentCycle = 52;
 
     onStart();
+    onReceive(14);
     onReceive(0x2);
+
+    cout << "get device state" << endl;
     onStart();
+    assertReadIs(108);
+    assertReadIs(2);
     assertReadIs(1);
     assertReadIs(52);
     assertReadIs(0);
@@ -78,15 +88,24 @@ TEST(I2C, ReadCommands) {
     assertReadIs(0x2c);
     assertReadIs(0x1);
 
-
     // clean geiger state
     onStart();
-    onReceive(0x4);
+    onReceive(28);
+    onReceive(4);
+
+    onStart();
+    assertReadIs(28);
+    assertReadIs(4);
 
     // read geiger state again
     onStart();
+    onReceive(14);
     onReceive(0x2);
+
+    cout << "get device state" << endl;
     onStart();
+    assertReadIs(252);
+    assertReadIs(2);
     assertReadIs(1);
     assertReadIs(0);
     assertReadIs(0);
@@ -98,8 +117,13 @@ TEST(I2C, ReadCommands) {
     assertReadIs(0x1);
 
     onStart();
+    onReceive(14);
     onReceive(0x2);
+
+    cout << "get device state" << endl;
     onStart();
+    assertReadIs(133);
+    assertReadIs(2);
     assertReadIs(0); // calling getState() causes the new cycle-bit to be reset
     assertReadIs(0);
     assertReadIs(0);
@@ -114,41 +138,56 @@ TEST(I2C, ReadCommands) {
 TEST(I2C, WriteCommands) {
     // set eye configuration
     onStart();
+    onReceive(213);
     onReceive(0x5);
     onReceive(1);
     onReceive(0);
     ASSERT_FALSE(eyeInverterEnabled);
-    ASSERT_EQ(protocol::EyeInverterState::HEATING_LIMITED, magiceye::state);
+    assertEq(protocol::EyeInverterState::HEATING_LIMITED, magiceye::state);
 
     for (int i = 0; i < 5000 * 2; ++i) {
         magiceye::tick();
     }
-    ASSERT_EQ(protocol::EyeInverterState::RUNNING, magiceye::state);
-    ASSERT_EQ(protocol::EyeDisplayMode::ANIMATION, magiceye::animationMode);
+    assertEq(protocol::EyeInverterState::RUNNING, magiceye::state);
+    assertEq(protocol::EyeDisplayMode::ANIMATION, magiceye::animationMode);
     ASSERT_TRUE(eyeInverterEnabled);
+    onStart();
+    onReceive(27);
+    onReceive(5);
 
     onStart();
+    onReceive(199);
     onReceive(0x5);
     onReceive(0);
     onReceive(1);
     ASSERT_FALSE(eyeInverterEnabled);
-    ASSERT_EQ(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
-
+    assertEq(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
+    onStart();
+    onReceive(27);
+    onReceive(0x5);
 
     onStart();
+    onReceive(24);
     onReceive(0x6);
     onReceive(123);
-    ASSERT_EQ(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
+    assertEq(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
     ASSERT_EQ(123, currentAdcValue);
+    onStart();
+    onReceive(18);
+    onReceive(6);
 
     onStart();
+    onReceive(90);
     onReceive(0x6);
     onReceive(12);
-    ASSERT_EQ(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
+    assertEq(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
     ASSERT_EQ(12, currentAdcValue);
-
+    onStart();
+    onReceive(18);
+    onReceive(6);
 
     onStart();
+    onReceive(76);
     onReceive(0x3);
     onReceive(0x12);
     onReceive(0x34);
@@ -157,9 +196,16 @@ TEST(I2C, WriteCommands) {
     ASSERT_EQ(0x3412, cycleLength);
     const bool hasNewCycleStarted = geiger_counter::geigerState.hasNewCycleStarted;
     ASSERT_TRUE(hasNewCycleStarted);
+    onStart();
+    onReceive(9);
+    onReceive(3);
 
     onStart();
+    onReceive(41);
     onReceive(0x6);
     onReceive(4);
     onReceive(0);
+    onStart();
+    onReceive(18);
+    onReceive(6);
 }

@@ -5,12 +5,6 @@
 
 using namespace octoglow::geiger::inverter::_private;
 
-constexpr int16_t eyeAdcVal(const double voltage) {
-    return desiredAdcReadout(EYE_DIVIDER_UPPER_RESISTOR,
-                             EYE_DIVIDER_LOWER_RESISTOR,
-                             voltage);
-}
-
 constexpr int16_t desiredAdcValues[] = {
     eyeAdcVal(0),
     eyeAdcVal(110),
@@ -68,9 +62,9 @@ int16_t octoglow::geiger::inverter::_private::readAdcValue(const uint8_t channel
     return sum / ADC_SAMPLES_PER_CHANNEL;
 }
 
-void octoglow::geiger::inverter::_private::regulateEyeInverter(const int16_t adcReadout, uint16_t *const pwmValue) {
+uint16_t octoglow::geiger::inverter::_private::regulateEyeInverter(const int16_t adcReadout) {
     const int16_t newPwmValue = eyePid.step(desiredEyeAdcValue, adcReadout);
-    *pwmValue = newPwmValue;
+    return newPwmValue;
 }
 
 void octoglow::geiger::inverter::setBrightness(const uint8_t brightness) {
@@ -79,7 +73,7 @@ void octoglow::geiger::inverter::setBrightness(const uint8_t brightness) {
     eyePid.clear();
 }
 
-void octoglow::geiger::inverter::_private::regulateGeigerInverter(const int16_t adcReadout, uint16_t *const pwmValue) {
+uint16_t octoglow::geiger::inverter::_private::regulateGeigerInverter(const int16_t adcReadout) {
     const int16_t newPwmValue = geigerPid.step(GEIGER_DESIRED_ADC_READOUT, adcReadout);
-    *pwmValue = newPwmValue;
+    return newPwmValue;
 }

@@ -24,7 +24,7 @@ namespace octoglow::geiger::inverter {
     namespace _private {
         constexpr double REFERENCE_VOLTAGE = 2.5;
 
-        constexpr double GEIGER_VOLTAGE = 395.0;
+        constexpr double GEIGER_VOLTAGE = 400.0;
         constexpr double GEIGER_DIVIDER_UPPER_RESISTOR = 4 * 470;
         constexpr double GEIGER_DIVIDER_LOWER_RESISTOR = 4.7;
         constexpr double GEIGER_PWM_MIN_DUTY = 0.02;
@@ -58,6 +58,12 @@ namespace octoglow::geiger::inverter {
             return desiredVoltage / REFERENCE_VOLTAGE * 0x3ff;
         }
 
+        constexpr int16_t eyeAdcVal(const double voltage) {
+            return desiredAdcReadout(EYE_DIVIDER_UPPER_RESISTOR,
+                                     EYE_DIVIDER_LOWER_RESISTOR,
+                                     voltage);
+        }
+
         constexpr int16_t EYE_MIDDLE_PWM_DUTY_CYCLES = eyeCycles((EYE_PWM_MAX_DUTY + EYE_PWM_MIN_DUTY) / 2.0);
         constexpr int16_t GEIGER_MIDDLE_PWM_DUTY_CYCLES = geigerCycles(
             (GEIGER_PWM_MAX_DUTY - GEIGER_PWM_MIN_DUTY) / 2.0);
@@ -70,9 +76,9 @@ namespace octoglow::geiger::inverter {
 
         int16_t readAdcValue(uint8_t channel);
 
-        void regulateEyeInverter(int16_t adcReadout, uint16_t *pwmValue);
+        uint16_t regulateEyeInverter(int16_t adcReadout);
 
-        void regulateGeigerInverter(int16_t adcReadout, uint16_t *pwmValue);
+        uint16_t regulateGeigerInverter(int16_t adcReadout);
 
         void clearEyePid();
 

@@ -25,7 +25,7 @@ namespace octoglow::geiger::protocol {
         CLEAN_GEIGER_STATE,
         SET_EYE_CONFIGURATION,
         SET_EYE_DISPLAY_VALUE,
-        SET_BRIGHTNESS
+        SET_BRIGHTNESS,
     };
 
     struct DeviceState {

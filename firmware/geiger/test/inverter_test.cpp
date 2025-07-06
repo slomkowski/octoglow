@@ -13,7 +13,6 @@ using namespace octoglow::geiger::inverter;
 void octoglow::geiger::inverter::setEyeEnabled(const bool enabled) {
     cout << "eye inverter " << enabled << endl;
     eyeInverterEnabled = enabled;
-
 }
 
 TEST(Inverter, AdcValues) {
@@ -22,27 +21,35 @@ TEST(Inverter, AdcValues) {
 }
 
 TEST(Inverter, EyeRegulation) {
-    cout << endl;
+    using namespace _private;
 
-    cout << "Min PWM value: " << _private::eyeCycles(_private::EYE_PWM_MIN_DUTY) << endl;
-    cout << "Max PWM value: " << _private::eyeCycles(_private::EYE_PWM_MAX_DUTY) << endl;
+    cout << "Eye regulation" << endl;
 
-    constexpr uint16_t adcValue = 134;
-    uint16_t pwmValue = 100;
-    _private::regulateEyeInverter(adcValue, &pwmValue);
+    setBrightness(3);
 
-    cout << "PWM value: " << pwmValue << endl;
+    cout << "Min PWM value: " << eyeCycles(EYE_PWM_MIN_DUTY) << endl;
+    cout << "Max PWM value: " << eyeCycles(EYE_PWM_MAX_DUTY) << endl;
+
+    for (int i = 0; i < 200; ++i) {
+        const uint16_t adcValue = eyeAdcVal(150.0 + 0.3 * i);
+
+        const uint16_t pwmValue = regulateEyeInverter(adcValue);
+        cout << "PWM value: " << pwmValue << endl;
+    }
 }
 
 TEST(Inverter, GeigerRegulation) {
-    cout << endl;
+    using namespace _private;
+    cout << "Geiger regulation" << endl;
 
-    cout << "Min PWM value: " << _private::geigerCycles(_private::GEIGER_PWM_MIN_DUTY) << endl;
-    cout << "Max PWM value: " << _private::geigerCycles(_private::GEIGER_PWM_MAX_DUTY) << endl;
+    cout << "Min PWM value: " << geigerCycles(GEIGER_PWM_MIN_DUTY) << endl;
+    cout << "Max PWM value: " << geigerCycles(GEIGER_PWM_MAX_DUTY) << endl;
 
-    constexpr uint16_t adcValue = 134;
-    uint16_t pwmValue = 100;
-    _private::regulateGeigerInverter(adcValue, &pwmValue);
+    for (int i = 0; i < 200; ++i) {
+        constexpr uint16_t adcValue = desiredAdcReadout(
+            GEIGER_DIVIDER_UPPER_RESISTOR, GEIGER_DIVIDER_LOWER_RESISTOR, 390.0);
 
-    cout << "PWM value: " << pwmValue << endl;
+        const uint16_t pwmValue = regulateGeigerInverter(adcValue);
+        cout << "PWM value: " << pwmValue << endl;
+    }
 }

@@ -85,14 +85,10 @@ void ::octoglow::geiger::inverter::init() {
 void octoglow::geiger::inverter::tick() {
     using namespace _private;
     eyeAdcReadout = readAdcValue(EYE_ADC_CHANNEL);
-    uint16_t eyePwmValue = TA1CCR1;
-    regulateEyeInverter(eyeAdcReadout, &eyePwmValue);
-    TA1CCR1 = eyePwmValue;
+    TA1CCR1 = regulateEyeInverter(eyeAdcReadout);
 
     geigerAdcReadout = readAdcValue(GEIGER_ADC_CHANNEL);
-    uint16_t geigerPwmValue = TA0CCR1;
-    regulateGeigerInverter(geigerAdcReadout, &geigerPwmValue);
-    TA0CCR1 = geigerPwmValue;
+    TA0CCR1 = regulateGeigerInverter(geigerAdcReadout);
 }
 
 void octoglow::geiger::inverter::setEyeEnabled(const bool enabled) {

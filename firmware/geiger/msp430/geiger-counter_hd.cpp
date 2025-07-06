@@ -7,7 +7,9 @@ using namespace octoglow::geiger::geiger_counter;
 void octoglow::geiger::geiger_counter::init() {
     geigerState.cycleLength = GEIGER_CYCLE_DEFAULT_LENGTH;
 
-    // P2.2
+    P2DIR &= ~BIT2;
+    P2REN &= ~BIT2;
+
     P2SEL &= ~BIT2;
     P2IE = BIT2;
     P2IES = BIT2;
