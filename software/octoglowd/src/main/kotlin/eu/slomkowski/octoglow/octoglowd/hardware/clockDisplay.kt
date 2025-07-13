@@ -140,6 +140,13 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
         return RemoteSensorReport.parse(readBuffer)
     }
 
+    suspend fun retrieveLightSensorMeasurement(): Int {
+        val readBuffer = sendCommandAndReadData("get light sensor measurement", 4, 5)
+        return (readBuffer[2] + (readBuffer[3] shl 8)).also {
+            check(it in 0..1023) { "Light sensor measurement $it is out of valid range 0..1023" }
+        }
+    }
+
     suspend fun setDisplay(hours: Int, minutes: Int, upperDot: Boolean, lowerDot: Boolean) {
         require(hours in 0..24)
         require(minutes in 0..60)

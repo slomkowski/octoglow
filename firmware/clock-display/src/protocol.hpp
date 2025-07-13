@@ -16,7 +16,8 @@ namespace octoglow::vfd_clock::protocol {
         SET_DISPLAY_CONTENT = 0x1, // 4 ascii chars + dot content
         SET_RELAY,
         SET_BRIGHTNESS,
-        GET_WEATHER_SENSOR_STATE
+        GET_WEATHER_SENSOR_STATE,
+        GET_LIGHT_SENSOR_VALUE,
     };
 
     struct DisplayContent {

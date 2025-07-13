@@ -9,10 +9,15 @@ SET(FREQ "8000000")
 SET(CMAKE_C_COMPILER avr-gcc)
 SET(CMAKE_CXX_COMPILER avr-g++)
 
-SET(CMAKE_C_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c23 -Wl,--gc-sections -Wall -Wextra -pedantic")
-SET(CMAKE_CXX_FLAGS "-Os -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c++17 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
+SET(CMAKE_C_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c23 -Wl,--gc-sections -Wall -Wextra -pedantic")
+SET(CMAKE_CXX_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c++17 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
 
-SET(SOURCES src/main.cpp src/global.hpp src/display.cpp src/display.hpp src/relay.cpp src/relay.hpp src/protocol.hpp src/receiver433.cpp src/receiver433.hpp src/i2c-slave.hpp src/i2c-slave.cpp)
+SET(SOURCES src/main.cpp src/global.hpp src/protocol.hpp
+        src/display.cpp src/display.hpp
+        src/relay.cpp src/relay.hpp
+        src/receiver433.cpp src/receiver433.hpp
+        src/i2c-slave.hpp src/i2c-slave.cpp
+        src/light-sensor.cpp src/light-sensor.hpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 

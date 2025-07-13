@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.*
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @ExtendWith(HardwareParameterResolver::class)
@@ -123,6 +124,16 @@ class ClockDisplayTest {
                     setDisplay(hour, minute, upperDot = minute % 2 == 0, lowerDot = hour % 2 == 0)
                 }
             }
+        }
+    }
+
+    @Test
+    fun testLightSensor(hardware: Hardware): Unit = runBlocking {
+        repeat(30) {
+            val lightSensorValue = hardware.clockDisplay.retrieveLightSensorMeasurement()
+            logger.info { "Light sensor: $lightSensorValue." }
+            delay(100.milliseconds)
+            assertThat(lightSensorValue).isBetween(0, 1023)
         }
     }
 

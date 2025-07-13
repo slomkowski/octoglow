@@ -3,6 +3,7 @@
 #include "receiver433.hpp"
 #include "i2c-slave.hpp"
 #include "protocol.hpp"
+#include "light-sensor.hpp"
 
 #include <avr/io.h>
 #include <avr/wdt.h>
@@ -35,7 +36,23 @@ static bool checkCrc8(const uint8_t dataPayloadLength) {
     return i2c_wrbuf[0] == calculatedCrcValue;
 }
 
-static void processI2cReadCommands() {
+// __attribute__((optimize("O3"), hot))
+static inline void setCrcForSimpleCommand() {
+    i2c_rdbuf[0] = _crc8_ccitt_update(0, i2c_rdbuf[1]);
+    i2c_reply_done(2);
+}
+
+// __attribute__((optimize("O3"), hot))
+static inline void setCrcForComplexCommand(const uint8_t payloadLength) {
+    uint8_t crcValue = 0;
+    for (uint8_t i = 1; i < payloadLength + 2; ++i) {
+        crcValue = _crc8_ccitt_update(crcValue, i2c_rdbuf[i]);
+    }
+    i2c_rdbuf[0] = crcValue;
+    i2c_reply_done(payloadLength + 2);
+}
+
+static inline void processI2cReadCommands() {
     if (!i2c_reply_ready()) {
         return;
     }
@@ -52,20 +69,20 @@ static void processI2cReadCommands() {
                 i2c_rdbuf[i] = reinterpret_cast<uint8_t *>(&receiver433::currentWeatherSensorState)[i - 2];
             }
             receiver433::currentWeatherSensorState.flags |= ALREADY_READ_FLAG;
-
-            uint8_t crcValue = 0;
-            for (uint8_t i = 1; i < static_cast<uint8_t>(sizeof(WeatherSensorState)) + 2; ++i) {
-                crcValue = _crc8_ccitt_update(crcValue, i2c_rdbuf[i]);
-            }
-            i2c_rdbuf[0] = crcValue;
-            i2c_reply_done(sizeof(WeatherSensorState) + 2);
+            setCrcForComplexCommand(sizeof(WeatherSensorState));
+            break;
+        }
+        case Command::GET_LIGHT_SENSOR_VALUE: {
+            const uint16_t measurement = lightsensor::getMeasurement();
+            i2c_rdbuf[2] = 0xff & measurement;
+            i2c_rdbuf[3] = 0xff & (measurement >> 8);
+            setCrcForComplexCommand(2);
             break;
         }
         case Command::SET_BRIGHTNESS:
         case Command::SET_RELAY:
         case Command::SET_DISPLAY_CONTENT: {
-            i2c_rdbuf[0] = _crc8_ccitt_update(0, i2c_rdbuf[1]);
-            i2c_reply_done(2);
+            setCrcForSimpleCommand();
             break;
         }
         default:
@@ -75,7 +92,7 @@ static void processI2cReadCommands() {
     currentCommand = Command::NONE;
 }
 
-static void processI2cWriteCommands() {
+static inline void processI2cWriteCommands() {
     if (!i2c_message_ready()) {
         return;
     }
@@ -117,6 +134,12 @@ static void processI2cWriteCommands() {
             }
             currentCommand = Command::GET_WEATHER_SENSOR_STATE;
             break;
+        case Command::GET_LIGHT_SENSOR_VALUE:
+            if (!checkCrc8(0)) {
+                break;
+            }
+            currentCommand = Command::GET_LIGHT_SENSOR_VALUE;
+            break;
         default:
             currentCommand = Command::NONE;
             break;
@@ -127,14 +150,14 @@ static void processI2cWriteCommands() {
 
 [[noreturn]] int main() {
     // pull-up all unused pins
-    PORTA |= _BV(PA0) | _BV(PA4) | _BV(PA5);
-    PORTA |= _BV(PA4); // 1 wire is not used currently
+    PORTA |= _BV(PA0) | _BV(PA5);
     PORTB |= _BV(PB1) | _BV(PB4) | _BV(PB5) | _BV(PB7);
 
     i2c_initialize();
     display::init();
     relay::init();
     receiver433::init();
+    lightsensor::init();
 
     if (WATCHDOG_ENABLE) {
         wdt_enable(WDTO_250MS);
