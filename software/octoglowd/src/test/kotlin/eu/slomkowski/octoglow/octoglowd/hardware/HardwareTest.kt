@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 
@@ -18,18 +19,51 @@ class HardwareTest {
         private val logger = KotlinLogging.logger {}
     }
 
-    @Test
-    fun testBrightness(hardware: Hardware): Unit = runBlocking {
+    private suspend fun testBrightness(hardware: Hardware, b: Int) {
+        setExampleText(hardware)
+        logger.info { "Setting brightness to $b." }
+        hardware.setBrightness(b)
+    }
+
+    private suspend fun setExampleText(hardware: Hardware) {
         hardware.frontDisplay.setStaticText(0, LoremIpsum.getInstance().getWords(20).take(39))
         hardware.clockDisplay.setDisplay(12, 34, upperDot = true, lowerDot = false)
+    }
 
-        for (b in (0..5)) {
+    @Test
+    fun setBrightnessTo1(hardware: Hardware): Unit = runBlocking {
+        testBrightness(hardware, 1)
+    }
+
+    @Test
+    fun setBrightnessTo2(hardware: Hardware): Unit = runBlocking {
+        testBrightness(hardware, 2)
+    }
+
+    @Test
+    fun setBrightnessTo3(hardware: Hardware): Unit = runBlocking {
+        testBrightness(hardware, 3)
+    }
+
+    @Test
+    fun setBrightnessTo4(hardware: Hardware): Unit = runBlocking {
+        testBrightness(hardware, 4)
+    }
+
+    @Test
+    fun setBrightnessTo5(hardware: Hardware): Unit = runBlocking {
+        testBrightness(hardware, 5)
+    }
+
+    @Test
+    fun testBrightness(hardware: Hardware): Unit = runBlocking {
+        setExampleText(hardware)
+
+        for (b in 0..5) {
             logger.info { "Setting brightness to $b." }
             hardware.setBrightness(b)
-            delay(4_000)
+            delay(2.seconds)
         }
-
-        delay(2000)
     }
 
     @Test

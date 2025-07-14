@@ -30,7 +30,7 @@ constexpr uint8_t RECEIVER_INVALID_UPDATE_CHARACTER_SHAPE = 0b0000010;
 static_assert((RECEIVER_UPDATE_FLAG & protocol::LOWER_DOT) == 0);
 static_assert((RECEIVER_UPDATE_FLAG & protocol::UPPER_DOT) == 0);
 
-static constexpr uint8_t BRIGHTNESS_PWM_VALUES[] PROGMEM = {0, 5, 7, 20, 50, 80};
+static constexpr uint8_t BRIGHTNESS_PWM_VALUES[] PROGMEM = {0, 1, 4, 10, 20, 60};
 static_assert(sizeof(BRIGHTNESS_PWM_VALUES) == protocol::MAX_BRIGHTNESS + 1, "invalid number of brightness PWM values");
 
 /*
