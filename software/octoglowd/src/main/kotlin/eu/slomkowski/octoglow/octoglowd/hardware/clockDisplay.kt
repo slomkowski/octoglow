@@ -142,7 +142,8 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
 
     suspend fun retrieveLightSensorMeasurement(): Int {
         val readBuffer = sendCommandAndReadData("get light sensor measurement", 4, 5)
-        return (readBuffer[2] + (readBuffer[3] shl 8)).also {
+        // we invert sensor value, so a high amount of light is a high reading
+        return (1023 - (readBuffer[2] + (readBuffer[3] shl 8))).also {
             check(it in 0..1023) { "Light sensor measurement $it is out of valid range 0..1023" }
         }
     }

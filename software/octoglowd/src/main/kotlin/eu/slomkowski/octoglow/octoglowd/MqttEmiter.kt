@@ -12,6 +12,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.ClassDiscriminatorMode
+import org.apache.commons.lang3.RandomStringUtils
 import java.nio.charset.StandardCharsets
 
 typealias PayloadFunc = (Double) -> MqttEmiter.SensorPayload
@@ -64,7 +65,15 @@ class MqttEmiter(
                 "ppm",
                 "{{ value_json.concentration | round(0) }}",
                 null,
-            ) { SensorPayload.ConcentrationPayload(it) }
+            ) { SensorPayload.ConcentrationPayload(it) },
+            SendableToHomeassistant(
+                LightSensorValue,
+                "Czujnik światła",
+                null,
+                null,
+                "{{ value_json.raw_value | round(0) }}",
+                "mdi:brightness-6",
+            ) { SensorPayload.RawValuePayload(it) }
         ).associateBy { it.type }
 
         fun createDiscoveryMessageDto(): DeviceConfig {
@@ -77,6 +86,7 @@ class MqttEmiter(
                     stateTopic = it.topic,
                     uniqueId = "${deviceId}_${it.haIdentifier}",
                     icon = it.icon,
+                    stateClass = "measurement",
                 )
             }
 
@@ -112,7 +122,8 @@ class MqttEmiter(
     }
 
     private val client = MqttClient(config.mqtt.host, config.mqtt.port) {
-        clientId = "octoglowd" // todo better clientId
+        // random string to prevent two clients with the same clientId
+        clientId = "octoglowd-" + RandomStringUtils.insecure().nextAlphanumeric(8)
         username = config.mqtt.username
         password = config.mqtt.password
     }
@@ -196,6 +207,12 @@ class MqttEmiter(
         data class ConcentrationPayload(
             val concentration: Double,
         ) : SensorPayload()
+
+        @Serializable
+        data class RawValuePayload(
+            @SerialName("raw_value")
+            val rawValue: Double,
+        ) : SensorPayload()
     }
 
     class HaTemperature(
@@ -228,7 +245,7 @@ class MqttEmiter(
         val type: HistoricalValueType,
         val humanReadableName: String,
         val deviceClass: String?,
-        val unitOfMeasurement: String,
+        val unitOfMeasurement: String?,
         val valueTemplate: String,
         val icon: String?,
         val payloadFunc: PayloadFunc,
@@ -283,11 +300,12 @@ class MqttEmiter(
             data class Sensor(
                 val name: String,
                 @SerialName("device_class") val deviceClass: String? = null,
-                @SerialName("unit_of_measurement") val unitOfMeasurement: String,
+                @SerialName("unit_of_measurement") val unitOfMeasurement: String? = null,
                 @SerialName("value_template") val valueTemplate: String,
                 @SerialName("state_topic") val stateTopic: String,
                 @SerialName("unique_id") val uniqueId: String,
                 val icon: String? = null,
+                @SerialName("state_class") val stateClass: String? = null,
             ) : Component("sensor")
 
             @Serializable

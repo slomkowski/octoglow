@@ -76,6 +76,7 @@ class LocalSensorView(
 
         val bme280data = hardware.bme280.readReport()
         val scd40dataAsync = async { hardware.scd40.readMeasurementWithWaiting() }
+        val lightSensorMeasurementAsync = async { hardware.clockDisplay.retrieveLightSensorMeasurement() }
 
         val elevation = config.geoPosition.elevation
         val mslPressure = bme280data.getMeanSeaLevelPressure(elevation)
@@ -106,7 +107,10 @@ class LocalSensorView(
             databaseLayer.insertHistoricalValueAsync(ts, Scd40Temperature, scd40data.temperature),
         )
 
-        bme280dbJobs.plus(scd40dbJobs).joinAll()
+        bme280dbJobs
+            .plus(scd40dbJobs)
+            .plus(databaseLayer.insertHistoricalValueAsync(ts, LightSensorValue, lightSensorMeasurementAsync.await().toDouble()))
+            .joinAll()
 
         currentReport = CurrentReport(
             ts = now,

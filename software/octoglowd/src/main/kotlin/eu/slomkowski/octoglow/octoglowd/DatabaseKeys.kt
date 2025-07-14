@@ -34,6 +34,8 @@ object MSLPressure : HistoricalValueType() {
         get() = "MSL_PRESSURE"
 }
 
+object LightSensorValue : HistoricalValueType()
+
 data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
     init {
         require(symbol.isNotBlank())
