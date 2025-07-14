@@ -39,7 +39,7 @@ fun main() {
     val frontDisplayViews = listOf(
         CalendarView(config, hardware),
         WeatherSensorView(config, database, hardware),
-        GeigerView(database, hardware),
+        GeigerView(config, database, hardware),
         CryptocurrencyView(config, database, hardware),
         NbpView(config, hardware),
         SimpleMonitorView(config, hardware),

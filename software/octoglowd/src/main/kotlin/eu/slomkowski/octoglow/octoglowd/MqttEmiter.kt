@@ -60,7 +60,7 @@ class MqttEmiter(
             ) { SensorPayload.Radioactivity(it) },
             SendableToHomeassistant(
                 IndoorCo2,
-                "Stężenie CO2",
+                "Stężenie CO₂",
                 "carbon_dioxide",
                 "ppm",
                 "{{ value_json.concentration | round(0) }}",

@@ -102,6 +102,20 @@ data class ConfTodoist(
 }
 
 @Serializable
+data class ConfRadmon(
+    val enabled: Boolean = false,
+    val username: String = "",
+    val password: String = "",
+) {
+    init {
+        if (enabled) {
+            require(username.isNotBlank()) { "radmon.org username must not be blank" }
+            require(password.isNotBlank()) { "radmon.org password must not be blank" }
+        }
+    }
+}
+
+@Serializable
 data class Config(
     val i2cBus: Int,
     val databaseFile: Path = Paths.get("data.db"),
@@ -130,6 +144,8 @@ data class Config(
     val mqtt: ConfMqttInfo,
 
     val todoist: ConfTodoist,
+
+    val radmon: ConfRadmon? = null,
 ) {
     init {
         require(i2cBus >= 0)

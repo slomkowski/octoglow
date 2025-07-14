@@ -33,6 +33,10 @@ val httpClient = HttpClient(CIO) {
         socketTimeoutMillis = 15_000
     }
 
+    install(UserAgent) {
+        agent = "octoglowd/1.0 (Linux) (+https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display/)"
+    }
+
     install(ContentNegotiation) {
         json(jsonSerializer)
     }

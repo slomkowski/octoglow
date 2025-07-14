@@ -25,6 +25,7 @@ class CryptocurrencyViewTest {
     fun testCoinpaprikaMethods() {
         runBlocking {
             CryptocurrencyView.getLatestOhlc("btc-bitcoin").apply {
+                logger.info { "Cryptocurrency is $this." }
                 assertNotNull(this)
                 assertTrue(high > low)
                 assertTrue(high > 0)
