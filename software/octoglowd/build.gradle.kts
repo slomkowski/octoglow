@@ -39,8 +39,6 @@ dependencies {
     implementation(libs.org.tinylog.tinylog.impl)
     implementation(libs.org.tinylog.tinylog.slf4j)
 
-    implementation(libs.org.apache.commons.commons.lang3)
-
     implementation(libs.io.ktor.ktor.client.cio.jvm)
     implementation(libs.io.ktor.ktor.client.content.negotiation.jvm)
     implementation(libs.io.ktor.ktor.serialization.kotlinx.json.jvm)

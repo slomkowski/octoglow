@@ -4,6 +4,8 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalTime
@@ -11,6 +13,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -18,22 +21,99 @@ class BrightnessDaemon(
     private val config: Config,
     private val database: DatabaseLayer,
     private val hardware: Hardware,
-) : Daemon(logger, 30.seconds) {
+) : Daemon(logger, 1200.milliseconds) {
 
-    data class BrightnessMode(
+    // todo publish current brightness in a flow
+    sealed class BrightnessValue {
+        abstract val brightness: Int
+
+        data class Auto(override val brightness: Int) : BrightnessValue()
+        data class Manual(override val brightness: Int) : BrightnessValue()
+    }
+
+    private val _brightnessValue = MutableStateFlow<BrightnessValue>(BrightnessValue.Auto(3))
+    val brightnessValue: StateFlow<BrightnessValue> = _brightnessValue
+
+    private data class BrightnessMode(
         val isDay: Boolean,
         val isSleeping: Boolean,
-        val brightness: Int
+        val lightSensor: Collection<LightSensor>,
+        val brightness: Int,
     )
+
+    enum class LightSensor(val valueRange: IntRange) {
+        FULLY_LIGHT(800..Int.MAX_VALUE),
+        INTERMEDIATE(200..800),
+        FULLY_DARK(0..200),
+    }
 
     companion object {
         private val logger = KotlinLogging.logger {}
 
         private val brightnessModes = setOf(
-            BrightnessMode(isDay = true, isSleeping = false, brightness = 5),
-            BrightnessMode(isDay = true, isSleeping = true, brightness = 4),
-            BrightnessMode(isDay = false, isSleeping = false, brightness = 3),
-            BrightnessMode(isDay = false, isSleeping = true, brightness = 1),
+            BrightnessMode(
+                isDay = true,
+                isSleeping = false,
+                lightSensor = setOf(LightSensor.FULLY_LIGHT, LightSensor.INTERMEDIATE),
+                brightness = 5
+            ),
+            BrightnessMode(
+                isDay = true,
+                isSleeping = false,
+                lightSensor = setOf(LightSensor.FULLY_DARK),
+                brightness = 3
+            ),
+
+            BrightnessMode(
+                isDay = true,
+                isSleeping = true,
+                lightSensor = setOf(LightSensor.FULLY_LIGHT, LightSensor.INTERMEDIATE),
+                brightness = 4
+            ),
+            BrightnessMode(
+                isDay = true,
+                isSleeping = true,
+                lightSensor = setOf(LightSensor.FULLY_DARK),
+                brightness = 3
+            ),
+
+            BrightnessMode(
+                isDay = false,
+                isSleeping = false,
+                lightSensor = setOf(LightSensor.FULLY_LIGHT),
+                brightness = 4
+            ),
+            BrightnessMode(
+                isDay = false,
+                isSleeping = false,
+                lightSensor = setOf(LightSensor.INTERMEDIATE),
+                brightness = 3
+            ),
+            BrightnessMode(
+                isDay = false,
+                isSleeping = false,
+                lightSensor = setOf(LightSensor.FULLY_DARK),
+                brightness = 2
+            ),
+
+            BrightnessMode(
+                isDay = false,
+                isSleeping = true,
+                lightSensor = setOf(LightSensor.FULLY_LIGHT),
+                brightness = 4
+            ),
+            BrightnessMode(
+                isDay = false,
+                isSleeping = true,
+                lightSensor = setOf(LightSensor.INTERMEDIATE),
+                brightness = 3
+            ),
+            BrightnessMode(
+                isDay = false,
+                isSleeping = true,
+                lightSensor = setOf(LightSensor.FULLY_DARK),
+                brightness = 1
+            ),
         )
 
         fun calculateFromData(
@@ -41,7 +121,8 @@ class BrightnessDaemon(
             sunset: LocalTime,
             goToSleep: LocalTime,
             sleepDuration: Duration,
-            now: LocalTime
+            now: LocalTime,
+            lightCategory: LightSensor,
         ): Int {
             require(sunset > sunrise)
 
@@ -53,7 +134,7 @@ class BrightnessDaemon(
             val isDay = nowd in dayRange
             val isSleeping = isSleeping(goToSleep, sleepDuration, now)
 
-            return brightnessModes.first { it.isDay == isDay && it.isSleeping == isSleeping }.brightness
+            return brightnessModes.first { it.isDay == isDay && it.isSleeping == isSleeping && lightCategory in it.lightSensor }.brightness
         }
 
         fun isSleeping(start: LocalTime, duration: Duration, now: LocalTime): Boolean {
@@ -85,12 +166,20 @@ class BrightnessDaemon(
     }
 
     override suspend fun pool() {
-        val br = (forced ?: calculateBrightnessFraction(now())).coerceIn(1, 5)
-        logger.debug { "Setting brightness to $br." }
+        val br = (forced ?: run {
+            val lightSensorValue = hardware.clockDisplay.retrieveLightSensorMeasurement()
+            val lightSensorCategory = LightSensor.entries.first { lightSensorValue in it.valueRange }
+            calculateBrightnessFraction(now(), lightSensorCategory)
+        }).coerceIn(1, 5)
+//        logger.debug { "Setting brightness to $br." }
         hardware.setBrightness(br)
+        _brightnessValue.value = when (forced) {
+            null -> BrightnessValue.Auto(br)
+            else -> BrightnessValue.Manual(br)
+        }
     }
 
-    fun calculateBrightnessFraction(ts: Instant): Int {
+    fun calculateBrightnessFraction(ts: Instant, lightSensorCategory: LightSensor): Int {
 
         val sleepStart = config.sleep.startAt
         val sleepDuration = config.sleep.duration
@@ -98,16 +187,17 @@ class BrightnessDaemon(
         val localDateTime = ts.toLocalDateTime(TimeZone.currentSystemDefault())
 
         //todo should check if geo is within timezone
+        // todo wyliczać co kilka minut, publikować do flow albo zmiennej
         val (sunrise, sunset) = calculateSunriseAndSunset(
             config.geoPosition.latitude,
             config.geoPosition.longitude,
             localDateTime.date,
         )
-        logger.debug { "On ${localDateTime.date} sun is up from $sunrise to $sunset." }
+        logger.trace { "On ${localDateTime.date} sun is up from $sunrise to $sunset." }
 
-        val br = calculateFromData(sunrise, sunset, sleepStart, sleepDuration, localDateTime.time)
+        val br = calculateFromData(sunrise, sunset, sleepStart, sleepDuration, localDateTime.time, lightSensorCategory)
 
-        logger.debug { "Assuming $sleepDuration sleep starts at $sleepStart, the current brightness is $br." }
+        logger.trace { "Assuming $sleepDuration sleep starts at $sleepStart and light is $lightSensorCategory, the current brightness is $br." }
 
         return br
     }

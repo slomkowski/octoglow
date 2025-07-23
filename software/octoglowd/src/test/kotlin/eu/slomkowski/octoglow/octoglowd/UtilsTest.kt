@@ -178,4 +178,26 @@ class UtilsTest {
         assertEquals(" 6:21", LocalTime(6, 21, 1).formatJustHoursMinutes())
         assertEquals(" 7:02", LocalTime(7, 2, 1).formatJustHoursMinutes())
     }
+
+    @Test
+    fun testAbbreviate() {
+        assertEquals("Hello", "Hello".abbreviate(5))
+        assertEquals("He...", "Hello World".abbreviate(5))
+        assertEquals("", "".abbreviate(5))
+        assertEquals("A...", "ABCDEF".abbreviate(4))
+        assertEquals("Test", "Test".abbreviate(10))
+
+        assertEquals("", "".abbreviate(10))
+        assertEquals("short", "short".abbreviate(10))
+        assertEquals("Now is ...", "Now is the time for all good men to come to the aid of their party.".abbreviate(10))
+        val raspberry = "raspberry peach"
+        assertEquals("raspberry p...", raspberry.abbreviate(14))
+        assertEquals("raspberry peach", "raspberry peach".abbreviate(15))
+        assertEquals("raspberry peach", "raspberry peach".abbreviate(16))
+        assertEquals("abc...", "abcdefg".abbreviate(6))
+        assertEquals("abcdefg", "abcdefg".abbreviate(7))
+        assertEquals("abcdefg", "abcdefg".abbreviate(8))
+        assertEquals("a...", "abcdefg".abbreviate(4))
+        assertEquals("", "".abbreviate(4))
+    }
 }

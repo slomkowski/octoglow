@@ -4,6 +4,7 @@ package eu.slomkowski.octoglow.octoglowd
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import eu.slomkowski.octoglow.octoglowd.db.SqlDelightDatabase
+import eu.slomkowski.octoglow.octoglowd.mqtt.MqttEmiter
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.Instant

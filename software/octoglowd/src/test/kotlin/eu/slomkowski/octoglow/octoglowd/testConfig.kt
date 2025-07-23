@@ -1,9 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import kotlinx.datetime.LocalTime
-import org.apache.commons.lang3.RandomUtils
 import java.net.URI
 import java.nio.file.Paths
+import kotlin.random.Random
 
 val testConfig = Config.parse(Paths.get("config.json"))
 
@@ -32,7 +32,7 @@ val defaultTestConfig = Config(
     ),
     mqtt = ConfMqttInfo(
         enabled = true,
-        port = RandomUtils.insecure().randomInt(10_000, 30_000),
+        port = Random.nextInt(10_000, 30_000),
     ),
     todoist = ConfTodoist(
         apiKey = "api-key-here"

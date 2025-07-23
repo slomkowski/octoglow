@@ -10,11 +10,11 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
-import org.apache.commons.lang3.RandomStringUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import java.util.*
 
 
 @ExtendWith(HardwareParameterResolver::class)
@@ -63,7 +63,7 @@ class SimpleMonitorViewTest {
             SimpleMonitorView.SimpleMonitorJson(
                 Instant.parse("2023-06-19T20:39:18.387530Z"),
                 (1..10).map {
-                    "failing-monitor-$it-${RandomStringUtils.randomAlphabetic(20)}" to SimpleMonitorView.Monitor(
+                    "failing-monitor-$it-${UUID.randomUUID()}" to SimpleMonitorView.Monitor(
                         SimpleMonitorView.MonitorStatus.FAIL,
                         0,
                         ""

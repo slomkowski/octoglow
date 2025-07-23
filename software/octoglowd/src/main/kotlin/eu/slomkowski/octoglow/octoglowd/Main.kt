@@ -6,6 +6,7 @@ import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.RealTimeClockDaemon
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.*
 import eu.slomkowski.octoglow.octoglowd.hardware.HardwareReal
+import eu.slomkowski.octoglow.octoglowd.mqtt.MqttEmiter
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import java.nio.file.Paths

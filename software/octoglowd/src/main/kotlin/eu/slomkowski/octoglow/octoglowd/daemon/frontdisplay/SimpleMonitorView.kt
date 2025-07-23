@@ -14,7 +14,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.apache.commons.lang3.StringUtils
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -159,7 +158,8 @@ class SimpleMonitorView(
                         else -> {
                             val failedText = "${failedMonitors.size} FAILED"
                             fd.setStaticText(20, failedText)
-                            val scrollingText = StringUtils.abbreviate(failedMonitors.keys.joinToString(","), Slot.SLOT0.capacity)
+                            val scrollingText = failedMonitors.keys.joinToString(",").abbreviate(Slot.SLOT0.capacity)
+
                             fd.setScrollingText(
                                 Slot.SLOT0,
                                 21 + failedText.length,

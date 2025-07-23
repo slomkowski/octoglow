@@ -34,7 +34,7 @@ val httpClient = HttpClient(CIO) {
     }
 
     install(UserAgent) {
-        agent = "octoglowd/1.0 (Linux) (+https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display/)"
+        agent = "octoglowd/1.0 (Linux; Octoglow; +https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display/)"
     }
 
     install(ContentNegotiation) {
@@ -176,3 +176,13 @@ fun LocalTime.formatJustHoursMinutes() = "${hour.toString().padStart(2, ' ')}:${
 
 @OptIn(ExperimentalTime::class)
 fun kotlin.time.Instant.toKotlinxDatetimeInstant(): Instant = Instant.fromEpochSeconds(this.epochSeconds, this.nanosecondsOfSecond)
+
+fun String.abbreviate(maxLength: Int): String {
+    require(maxLength > 0) { "maxLength must be positive" }
+
+    return when {
+        length <= maxLength -> this
+        maxLength <= 3 -> substring(0, maxLength)
+        else -> substring(0, maxLength - 3) + "..."
+    }
+}

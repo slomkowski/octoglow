@@ -9,7 +9,6 @@ io-helins-linux-i2c = "1.0.2"
 io-github-oshai-kotlin-logging = "7.0.7"
 io-ktor = "3.1.3"
 io-mockk = "1.14.2"
-org-apache-commons-commons-lang3 = "3.17.0"
 org-assertj-assertj-core = "3.27.3"
 org-jetbrains-kotlinx-kotlinx-coroutines-core = "1.10.2"
 org-jetbrains-kotlinx-kotlinx-datetime-jvm = "0.6.2"
@@ -19,7 +18,7 @@ org-junit-jupiter-junit = "5.12.2"
 tinylog = "2.7.0"
 org-glassfish-jaxb-jaxb-runtime = "2.3.1"
 javax-xml-bind-jaxb-api = "2.3.1"
-de-kempmobil-ktor-mqtt = "0.6.1"
+de-kempmobil-ktor-mqtt = "0.6.2"
 
 [libraries]
 org-tinylog-tinylog-api-kotlin = { module = "org.tinylog:tinylog-api-kotlin", version.ref = "tinylog" }
@@ -33,7 +32,6 @@ io-ktor-ktor-client-cio-jvm = { module = "io.ktor:ktor-client-cio-jvm", version.
 io-ktor-ktor-client-content-negotiation-jvm = { module = "io.ktor:ktor-client-content-negotiation-jvm", version.ref = "io-ktor" }
 io-ktor-ktor-serialization-kotlinx-json-jvm = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm", version.ref = "io-ktor" }
 io-mockk-mockk-jvm = { module = "io.mockk:mockk-jvm", version.ref = "io-mockk" }
-org-apache-commons-commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "org-apache-commons-commons-lang3" }
 org-assertj-assertj-core = { module = "org.assertj:assertj-core", version.ref = "org-assertj-assertj-core" }
 org-jetbrains-kotlin-kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
 org-jetbrains-kotlin-kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }

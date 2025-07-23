@@ -11,7 +11,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
-import org.apache.commons.lang3.StringUtils
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -98,7 +97,7 @@ class CalendarView(
             names?.joinToString(",")
         )
             .joinToString("; ")
-            .let { StringUtils.capitalize(it) }
+            .let { it.replaceFirstChar { char -> char.uppercase() } }
     }
 
     override suspend fun poolStatusData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
