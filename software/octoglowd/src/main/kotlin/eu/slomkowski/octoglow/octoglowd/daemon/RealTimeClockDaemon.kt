@@ -34,7 +34,7 @@ class RealTimeClockDaemon(
     @Volatile
     private var previousDisplayContent: DisplayContent? = null
 
-    override suspend fun pool() {
+    override suspend fun poll() {
         val newDisplayContent = DisplayContent.ofTimestamp(now().toLocalDateTime(TimeZone.currentSystemDefault()))
 
         if (newDisplayContent != previousDisplayContent) {

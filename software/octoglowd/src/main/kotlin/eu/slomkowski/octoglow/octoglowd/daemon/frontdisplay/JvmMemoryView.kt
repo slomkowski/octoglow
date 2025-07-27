@@ -64,11 +64,11 @@ class JvmMemoryView(
         return status
     }
 
-    override suspend fun poolStatusData(now: Instant): UpdateStatus {
+    override suspend fun pollStatusData(now: Instant): UpdateStatus {
         return updateJvmStatus()
     }
 
-    override suspend fun poolInstantData(now: Instant): UpdateStatus {
+    override suspend fun pollInstantData(now: Instant): UpdateStatus {
         return updateJvmStatus()
     }
 

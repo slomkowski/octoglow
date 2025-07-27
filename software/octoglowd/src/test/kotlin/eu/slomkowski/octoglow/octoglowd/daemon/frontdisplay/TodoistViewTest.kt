@@ -19,7 +19,7 @@ class TodoistViewTest {
         val view = TodoistView(testConfig, mockk<Hardware>())
 
         repeat(10) {
-            view.poolStatusData(now())
+            view.pollStatusData(now())
             delay(5.seconds)
             //todo some tests
         }

@@ -394,7 +394,7 @@ class FrontDisplayDaemon(
                 info.bumpLastStatusAndInstant()
 
                 launch {
-                    val status = info.view.poolStatusData(clock.now().toKotlinxDatetimeInstant())
+                    val status = info.view.pollStatusData(clock.now().toKotlinxDatetimeInstant())
                     if (status != UpdateStatus.NO_NEW_DATA) {
                         info.bumpLastSuccessfulStatusUpdate()
                         stateExecutor.transition(Event.StatusUpdate(info, status))
@@ -405,7 +405,7 @@ class FrontDisplayDaemon(
 
                 if ((stateExecutor.state as? State.ViewCycle)?.info == info) {
                     launch {
-                        val status = info.view.poolInstantData(clock.now().toKotlinxDatetimeInstant())
+                        val status = info.view.pollInstantData(clock.now().toKotlinxDatetimeInstant())
                         if (status != UpdateStatus.NO_NEW_DATA) {
                             stateExecutor.transition(Event.InstantUpdate(info, status))
                         }
@@ -420,7 +420,7 @@ class FrontDisplayDaemon(
     @Volatile
     private var lastDialActivity: kotlin.time.Instant = kotlin.time.Instant.DISTANT_PAST
 
-    override suspend fun pool() {
+    override suspend fun poll() {
         val buttonState = hardware.frontDisplay.getButtonReport()
         val now = clock.now()
 

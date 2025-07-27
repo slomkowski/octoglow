@@ -100,9 +100,9 @@ class CalendarView(
             .let { it.replaceFirstChar { char -> char.uppercase() } }
     }
 
-    override suspend fun poolStatusData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun pollStatusData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
-    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {

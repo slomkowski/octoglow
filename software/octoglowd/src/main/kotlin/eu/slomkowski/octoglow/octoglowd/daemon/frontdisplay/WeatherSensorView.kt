@@ -141,16 +141,16 @@ class WeatherSensorView(
             Unit
         }
 
-    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
     private suspend fun poolRemoteSensor(
         now: Instant,
         receivedReport: RemoteSensorReport?,
         channelId: Int,
         previousReport: Pair<Instant, RemoteReport>?,
-        temperatureDbKey: HistoricalValueType,
-        humidityDbKey: HistoricalValueType,
-        weakBatteryDbKey: HistoricalValueType
+        temperatureDbKey: MeasurementType,
+        humidityDbKey: MeasurementType,
+        weakBatteryDbKey: MeasurementType
     ): Pair<UpdateStatus, RemoteReport?> = coroutineScope {
 
         if (receivedReport == null || receivedReport.alreadyReadFlag) {
@@ -201,7 +201,7 @@ class WeatherSensorView(
         }
     }
 
-    override suspend fun poolStatusData(now: Instant) = coroutineScope {
+    override suspend fun pollStatusData(now: Instant) = coroutineScope {
 
         // if status failure, set null; other
         fun <T : Any> takeIfReportAppropriate(

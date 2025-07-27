@@ -40,9 +40,9 @@ abstract class FrontDisplayView(
 
     open fun getMenus(): List<Menu> = emptyList()
 
-    abstract suspend fun poolStatusData(now: Instant): UpdateStatus
+    abstract suspend fun pollStatusData(now: Instant): UpdateStatus
 
-    abstract suspend fun poolInstantData(now: Instant): UpdateStatus
+    abstract suspend fun pollInstantData(now: Instant): UpdateStatus
 
     abstract suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant)
 

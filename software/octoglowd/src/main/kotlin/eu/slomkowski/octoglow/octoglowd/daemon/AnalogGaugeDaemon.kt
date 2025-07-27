@@ -75,7 +75,7 @@ class AnalogGaugeDaemon(
     private var cpuLastIdle: Long = 0
     private var cpuLastTotal: Long = 0
 
-    override suspend fun pool() = coroutineScope {
+    override suspend fun poll() = coroutineScope {
         launch {
             setValue(CPU_CHANNEL, getCpuLoad())
         }

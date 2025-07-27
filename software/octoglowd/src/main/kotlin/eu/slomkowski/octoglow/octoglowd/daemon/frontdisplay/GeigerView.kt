@@ -226,7 +226,7 @@ class GeigerView(
         })
     }
 
-    override suspend fun poolInstantData(now: Instant): UpdateStatus {
+    override suspend fun pollInstantData(now: Instant): UpdateStatus {
         return try {
             deviceReport = hardware.geiger.getDeviceState()
             UpdateStatus.FULL_SUCCESS
@@ -237,7 +237,7 @@ class GeigerView(
         }
     }
 
-    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
+    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
         try {
             val cs = hardware.geiger.getCounterState()
 

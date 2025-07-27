@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.Config
-
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.helins.linux.i2c.I2CBuffer
 import io.helins.linux.i2c.I2CBus
@@ -10,11 +9,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
-import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 interface Hardware : AutoCloseable {
 
@@ -66,15 +62,10 @@ class HardwareReal(
     private val writeI2cBuffer = I2CBuffer(I2C_BUFFER_MAX_SIZE)
     private val readI2cBuffer = I2CBuffer(I2C_BUFFER_MAX_SIZE)
 
-    @Volatile
-    private var lastHardwareCallEnded: Instant = Clock.System.now()
-
     companion object {
         private val logger = KotlinLogging.logger {}
 
         private const val I2C_BUFFER_MAX_SIZE = 500
-
-        private val minWaitTimeBetweenSubsequentCalls = 2.milliseconds
 
         private val exceptionRegex = Regex("errno (\\d+)")
 
@@ -162,27 +153,13 @@ class HardwareReal(
 
     override suspend fun doWrite(i2cAddress: Int, writeData: IntArray) = withContext(Dispatchers.IO) {
         try {
-            executeExclusivelyAndWaitIfRequired {
+            busMutex.withLock {
                 fillWriteBuffer(writeData)
                 bus.selectSlave(i2cAddress)
                 bus.write(writeI2cBuffer, writeData.size)
             }
         } catch (e: Exception) {
             throw handleI2cException(e)
-        }
-    }
-
-    private suspend fun executeExclusivelyAndWaitIfRequired(executionBlock: suspend () -> Unit) {
-
-        busMutex.withLock {
-            val durationToWait = (Clock.System.now() - lastHardwareCallEnded).coerceIn(0.milliseconds, minWaitTimeBetweenSubsequentCalls)
-            if (durationToWait > 0.milliseconds) {
-                delay(durationToWait)
-            }
-
-            executionBlock()
-
-            lastHardwareCallEnded = Clock.System.now()
         }
     }
 
@@ -200,7 +177,7 @@ class HardwareReal(
         withContext(Dispatchers.IO) {
             for (tryNo in 1..numberOfTries) {
                 try {
-                    executeExclusivelyAndWaitIfRequired {
+                    busMutex.withLock {
                         fillWriteBuffer(writeData)
                         bus.selectSlave(i2cAddress)
                         bus.write(writeI2cBuffer, writeData.size)

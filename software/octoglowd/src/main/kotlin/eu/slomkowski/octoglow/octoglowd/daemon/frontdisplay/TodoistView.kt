@@ -155,9 +155,9 @@ class TodoistView(
     @Volatile
     private var syncToken: String? = null
 
-    override suspend fun poolInstantData(now: Instant) = UpdateStatus.NO_NEW_DATA
+    override suspend fun pollInstantData(now: Instant) = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
+    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
         val (newSyncToken, items) = try {
             callSyncApi(config.todoist.apiKey, syncToken ?: "*")
         } catch (e: Exception) {

@@ -148,7 +148,7 @@ class DatabaseLayer(
         }
     }
 
-    fun insertHistoricalValueAsync(ts: Instant, key: HistoricalValueType, value: Double): Job {
+    fun insertHistoricalValueAsync(ts: Instant, key: MeasurementType, value: Double): Job {
         return workerScope.launch {
             launch { mqtt.publishMeasurement(key, value) }
             database.transaction {
@@ -164,7 +164,7 @@ class DatabaseLayer(
 
     fun getLastHistoricalValuesByHourAsync(
         currentTime: Instant,
-        key: HistoricalValueType,
+        key: MeasurementType,
         numberOfPastHours: Int
     ): Deferred<List<Double?>> {
         val query = createAveragedByTimeInterval(

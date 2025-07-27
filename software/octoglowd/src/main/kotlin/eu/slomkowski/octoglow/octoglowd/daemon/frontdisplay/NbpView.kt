@@ -198,9 +198,9 @@ class NbpView(
     /**
      * Progress bar is dependent only on current time so always success.
      */
-    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
 
-    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
+    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
 
         val newReport = CurrentReport(now, currencyKeys.map { code ->
             async {

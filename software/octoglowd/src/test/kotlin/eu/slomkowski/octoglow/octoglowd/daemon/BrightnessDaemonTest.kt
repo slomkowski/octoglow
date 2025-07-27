@@ -43,19 +43,19 @@ class BrightnessDaemonTest {
 
         assertEquals(
             3,
-            bd.calculateBrightnessFraction(kotlinx.datetime.LocalDateTime(2019, 1, 23, 17, 21).toInstant(WARSAW_ZONE_ID))
+            bd.calculateBrightnessFraction(kotlinx.datetime.LocalDateTime(2019, 1, 23, 17, 21).toInstant(WARSAW_ZONE_ID), BrightnessDaemon.LightSensor.INTERMEDIATE)
         )
         assertEquals(
             4,
-            bd.calculateBrightnessFraction(kotlinx.datetime.LocalDateTime(2019, 1, 23, 8, 21).toInstant(WARSAW_ZONE_ID))
+            bd.calculateBrightnessFraction(kotlinx.datetime.LocalDateTime(2019, 1, 23, 8, 21).toInstant(WARSAW_ZONE_ID), BrightnessDaemon.LightSensor.FULLY_LIGHT)
         )
 
         runBlocking {
-            bd.pool()
+            bd.poll()
 
             bd.setForcedMode(3)
 
-            bd.pool()
+            bd.poll()
 
             coVerify(exactly = 1) { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, "3") }
             coVerify(exactly = 2) { hardwareMock.setBrightness(3) }
@@ -84,7 +84,7 @@ class BrightnessDaemonTest {
     fun testCalculateFromData() {
         fun cr(sleepTime: LocalTime, sleepDurationHours: Int, time: LocalTime) = BrightnessDaemon.calculateFromData(
             LocalTime(7, 32), LocalTime(17, 23),
-            sleepTime, sleepDurationHours.hours, time
+            sleepTime, sleepDurationHours.hours, time, BrightnessDaemon.LightSensor.INTERMEDIATE,
         )
 
         (LocalTime(23, 31) to 8).let { (st, d) ->

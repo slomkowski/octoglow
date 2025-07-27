@@ -90,7 +90,7 @@ class SimpleMonitorView(
     @Volatile
     internal var currentReport: CurrentReport? = null
 
-    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
+    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
         val (status, newReport) = try {
             val json = getLatestSimpleMonitorJson(
                 config.simplemonitor.url,
@@ -114,7 +114,7 @@ class SimpleMonitorView(
         status
     }
 
-    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
     override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
         coroutineScope {

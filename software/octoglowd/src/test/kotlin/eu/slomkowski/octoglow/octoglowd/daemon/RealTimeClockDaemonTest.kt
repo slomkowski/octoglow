@@ -19,9 +19,9 @@ class RealTimeClockDaemonTest {
 
         runBlocking {
 
-            d.pool()
-            d.pool()
-            d.pool()
+            d.poll()
+            d.poll()
+            d.poll()
 
             coVerify(exactly = 1) { hardware.clockDisplay.setDisplay(any(), any(), any(), any()) }
         }

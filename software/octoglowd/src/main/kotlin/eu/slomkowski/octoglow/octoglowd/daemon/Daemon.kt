@@ -10,24 +10,22 @@ import kotlin.time.Duration
  */
 abstract class Daemon(
     private val logger: KLogger,
-    private val poolInterval: Duration,
+    private val pollInterval: Duration,
 ) {
 
     /**
-     * This coroutine is pooled with the interval defined for a daemon.
+     * This coroutine is polled with the interval defined for a daemon.
      */
-    abstract suspend fun pool()
+    abstract suspend fun poll()
 
     suspend fun createJob(): Job = coroutineScope {
-        delay(poolInterval.inWholeMilliseconds % 2000)
-
         logger.debug { "Creating repeating job." }
 
         launch {
             while (isActive) {
                 try {
-                    pool()
-                    delay(poolInterval.inWholeMilliseconds)
+                    poll()
+                    delay(pollInterval.inWholeMilliseconds)
                 } catch (e: Exception) {
                     logger.error(e) { "Exception caught in $coroutineContext." }
                     delay(5_000)

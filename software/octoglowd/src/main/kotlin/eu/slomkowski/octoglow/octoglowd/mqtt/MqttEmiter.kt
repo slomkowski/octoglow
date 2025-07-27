@@ -5,7 +5,7 @@ import de.kempmobil.ktor.mqtt.PublishRequest
 import de.kempmobil.ktor.mqtt.QoS
 import de.kempmobil.ktor.mqtt.buildFilterList
 import eu.slomkowski.octoglow.octoglowd.Config
-import eu.slomkowski.octoglow.octoglowd.HistoricalValueType
+import eu.slomkowski.octoglow.octoglowd.MeasurementType
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -36,7 +36,7 @@ class MqttEmiter(
         clientId = "octoglowd-" + UUID.randomUUID().toString().replace("-", "").take(8)
         username = config.mqtt.username
         password = config.mqtt.password
-        keepAliveSeconds = 30u
+        keepAliveSeconds = 15u
     }
 
     init {
@@ -87,7 +87,7 @@ class MqttEmiter(
     // custom text
     // notification
 
-    suspend fun publishMeasurement(sensorKey: HistoricalValueType, value: Double): Boolean {
+    suspend fun publishMeasurement(sensorKey: MeasurementType, value: Double): Boolean {
         val sensor = availableSensors[sensorKey] ?: return false
 
         val payloadMsg = sensor.payloadFunc.invoke(value)

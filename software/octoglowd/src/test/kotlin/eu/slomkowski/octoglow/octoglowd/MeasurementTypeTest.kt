@@ -3,7 +3,7 @@ package eu.slomkowski.octoglow.octoglowd
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
-class HistoricalValueTypeTest {
+class MeasurementTypeTest {
 
     @Test
     fun testToSnakeCase() {

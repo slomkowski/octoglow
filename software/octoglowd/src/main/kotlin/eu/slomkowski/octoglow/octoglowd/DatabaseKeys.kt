@@ -1,6 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd
 
-sealed class HistoricalValueType {
+sealed class MeasurementType {
     companion object {
         private fun toSnakeCase(s: String) = Regex("([A-Z])").replace(s, "_$1").uppercase().trim('_')
     }
@@ -11,32 +11,33 @@ sealed class HistoricalValueType {
     override fun toString(): String = databaseSymbol
 }
 
-object RadioactivityCpm : HistoricalValueType()
-object RadioactivityUSVH : HistoricalValueType() // uSv/h
 
-object OutdoorTemperature : HistoricalValueType()
-object OutdoorHumidity : HistoricalValueType()
-object OutdoorWeakBattery : HistoricalValueType()
-object IndoorTemperature : HistoricalValueType()
-object IndoorWeakBattery : HistoricalValueType()
-object IndoorHumidity : HistoricalValueType()
-object IndoorCo2 : HistoricalValueType()
+object RadioactivityCpm : MeasurementType()
+object RadioactivityUSVH : MeasurementType() // uSv/h
 
-object Bme280Temperature : HistoricalValueType()
-object Bme280Humidity : HistoricalValueType()
+object OutdoorTemperature : MeasurementType()
+object OutdoorHumidity : MeasurementType()
+object OutdoorWeakBattery : MeasurementType()
+object IndoorTemperature : MeasurementType()
+object IndoorWeakBattery : MeasurementType()
+object IndoorHumidity : MeasurementType()
+object IndoorCo2 : MeasurementType()
 
-object Scd40Temperature : HistoricalValueType()
-object Scd40Humidity : HistoricalValueType()
+object Bme280Temperature : MeasurementType()
+object Bme280Humidity : MeasurementType()
 
-object RealPressure : HistoricalValueType()
-object MSLPressure : HistoricalValueType() {
+object Scd40Temperature : MeasurementType()
+object Scd40Humidity : MeasurementType()
+
+object RealPressure : MeasurementType()
+object MSLPressure : MeasurementType() {
     override val databaseSymbol: String
         get() = "MSL_PRESSURE"
 }
 
-object LightSensorValue : HistoricalValueType()
+object LightSensorValue : MeasurementType()
 
-data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
+data class Cryptocurrency(val symbol: String) : MeasurementType() {
     init {
         require(symbol.isNotBlank())
         require(symbol.length < 10)
@@ -46,7 +47,7 @@ data class Cryptocurrency(val symbol: String) : HistoricalValueType() {
         get() = "CRYPTOCURRENCY_$symbol".uppercase()
 }
 
-data class AirQuality(val stationId: Long) : HistoricalValueType() {
+data class AirQuality(val stationId: Long) : MeasurementType() {
     init {
         require(stationId > 0)
     }
@@ -56,7 +57,7 @@ data class AirQuality(val stationId: Long) : HistoricalValueType() {
 }
 
 
-data class Stock(val symbol: String) : HistoricalValueType() {
+data class Stock(val symbol: String) : MeasurementType() {
 
     companion object {
         private val NON_ALPHANUMERIC_REGEX = Regex("[^A-Za-z0-9 ]")

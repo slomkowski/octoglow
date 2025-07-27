@@ -152,9 +152,9 @@ class CryptocurrencyView(
     /**
      * Progress bar is dependent only on current time so always success.
      */
-    override suspend fun poolInstantData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
 
-    override suspend fun poolStatusData(now: Instant): UpdateStatus = coroutineScope {
+    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
 
         val newReport = CurrentReport(now, coinKeys.map { symbol ->
             async {

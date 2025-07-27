@@ -9,7 +9,7 @@ const val magicEyeSwitchTopic = "$DEVICE_ID/switch/$magicEyeIdentifier"
 
 
 class HaTemperature(
-    type: HistoricalValueType,
+    type: MeasurementType,
     humanReadableName: String,
 ) : SendableToHomeassistant(
     type,
@@ -22,7 +22,7 @@ class HaTemperature(
 )
 
 class HaHumidity(
-    type: HistoricalValueType,
+    type: MeasurementType,
     humanReadableName: String,
 ) : SendableToHomeassistant(
     type,
@@ -35,7 +35,7 @@ class HaHumidity(
 )
 
 open class SendableToHomeassistant(
-    val type: HistoricalValueType,
+    val type: MeasurementType,
     val humanReadableName: String,
     val deviceClass: String?,
     val unitOfMeasurement: String?,
@@ -113,7 +113,7 @@ fun createDiscoveryMessageDto(): DeviceConfig {
         ),
         origin = DeviceConfig.DeviceDetails(
             name = "Octoglow",
-            url = "https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display/"
+            url = "https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display"
         ),
         components = sensors.plus(
             magicEyeIdentifier to DeviceConfig.Component.Switch(

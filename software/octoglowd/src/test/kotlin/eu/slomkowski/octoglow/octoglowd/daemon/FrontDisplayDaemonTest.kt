@@ -34,12 +34,12 @@ class FrontDisplayDaemonTest {
     ) {
         override val preferredDisplayTime = 7.seconds
 
-        override suspend fun poolStatusData(now: Instant): UpdateStatus {
+        override suspend fun pollStatusData(now: Instant): UpdateStatus {
             logger.info { "Call poolStatusData." }
             return UpdateStatus.FULL_SUCCESS
         }
 
-        override suspend fun poolInstantData(now: Instant): UpdateStatus {
+        override suspend fun pollInstantData(now: Instant): UpdateStatus {
             logger.info { "Call poolInstantData." }
             return UpdateStatus.FULL_SUCCESS
         }
@@ -73,9 +73,9 @@ class FrontDisplayDaemonTest {
 
                 val d = FrontDisplayDaemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList())
 
-                d.pool()
+                d.poll()
 
-                d.pool()
+                d.poll()
 
                 coVerify { v1.redrawDisplay(true, true, any()) }
                 coVerify { v2.redrawDisplay(true, true, any()) }

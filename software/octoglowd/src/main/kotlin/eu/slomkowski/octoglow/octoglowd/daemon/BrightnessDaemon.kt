@@ -154,7 +154,7 @@ class BrightnessDaemon(
     suspend fun setForcedMode(v: Int?) {
         forced = v
         database.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, v?.toString() ?: "AUTO")
-        pool()
+        poll()
     }
 
     init {
@@ -165,7 +165,7 @@ class BrightnessDaemon(
         }
     }
 
-    override suspend fun pool() {
+    override suspend fun poll() {
         val br = (forced ?: run {
             val lightSensorValue = hardware.clockDisplay.retrieveLightSensorMeasurement()
             val lightSensorCategory = LightSensor.entries.first { lightSensorValue in it.valueRange }

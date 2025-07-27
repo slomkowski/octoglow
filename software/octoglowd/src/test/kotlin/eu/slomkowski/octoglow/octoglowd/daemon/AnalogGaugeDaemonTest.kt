@@ -41,7 +41,7 @@ class AnalogGaugeDaemonTest {
 
         runBlocking {
             repeat(20) {
-                d.pool()
+                d.poll()
             }
         }
     }
@@ -52,7 +52,7 @@ class AnalogGaugeDaemonTest {
 
         runBlocking {
             repeat(20) {
-                d.pool()
+                d.poll()
                 delay(200.milliseconds)
             }
         }
