@@ -4,7 +4,6 @@
 
 
 namespace octoglow::front_display::encoder {
-
     enum class ButtonState : int8_t {
         NO_CHANGE = 0,
         JUST_PRESSED = 1,
@@ -13,10 +12,8 @@ namespace octoglow::front_display::encoder {
 
     void init();
 
-    void pool();
-
     /*
-     * Reads the effective number of steps from last call. Read zeroes the counter.
+     * Reads the effective number of steps since the last call. Read operation zeroes the counter.
      */
     int8_t getValueAndClear();
 

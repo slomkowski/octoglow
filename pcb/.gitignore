@@ -48,3 +48,4 @@ sym-lib-table
 *.xml
 *.csv
 
+*.kicad_prl

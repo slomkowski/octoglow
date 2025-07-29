@@ -60,7 +60,6 @@ static inline void showDemoOnDisplay() {
 
     while (true) {
         display::pool();
-        encoder::pool();
 
         if (WATCHDOG_ENABLE) {
             wdt_reset();
