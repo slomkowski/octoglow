@@ -5,8 +5,8 @@ package eu.slomkowski.octoglow.octoglowd
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import eu.slomkowski.octoglow.octoglowd.daemon.Demon
 import eu.slomkowski.octoglow.octoglowd.db.SqlDelightDatabase
+import eu.slomkowski.octoglow.octoglowd.demon.Demon
 import eu.slomkowski.octoglow.octoglowd.mqtt.MqttEmiter
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
@@ -26,10 +26,10 @@ fun Instant.fmt(): String {
     return String.format("%04d-%02d-%02d %02d:%02d:%02d.%03d", d.year, d.monthNumber, d.dayOfMonth, d.hour, d.minute, d.second, d.nanosecond / 1000000)
 }
 
-class DatabaseLayer(
+class DatabaseDemon(
     databaseFile: Path,
     private val mqtt: MqttEmiter,
-    private val eventBus: HistoricalValuesEvents,
+    private val eventBus: DataSnapshotBus,
 ) : Demon(), AutoCloseable {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -153,7 +153,7 @@ class DatabaseLayer(
         }
     }
 
-    fun insertHistoricalValueAsync(ts: Instant, key: DbMeasurementType, value: Double): Job {
+    fun insertHistoricalValueAsync(ts: Instant, key: DbDataSampleType, value: Double): Job {
         return workerScope.launch {
             launch { mqtt.publishMeasurement(key, value) } // todo move to other listener
             database.transaction {
@@ -169,7 +169,7 @@ class DatabaseLayer(
 
     fun getLastHistoricalValuesByHourAsync(
         currentTime: kotlin.time.Instant,
-        key: DbMeasurementType,
+        key: DbDataSampleType,
         numberOfPastHours: Int
     ): Deferred<List<Double?>> {
         val query = createAveragedByTimeInterval(
@@ -199,14 +199,14 @@ class DatabaseLayer(
     }
 
     override fun createJobs(scope: CoroutineScope): List<Job> = listOf(scope.launch {
-        eventBus.events.collect { packet ->
+        eventBus.snapshots.collect { packet ->
             packet.values
-                .filter { it.type is DbMeasurementType }
+                .filter { it.type is DbDataSampleType }
                 .forEach { savableData ->
                     savableData.value.onSuccess {
                         insertHistoricalValueAsync(
                             packet.timestamp.toKotlinxDatetimeInstant(),
-                            savableData.type as DbMeasurementType,
+                            savableData.type as DbDataSampleType,
                             it
                         )
                     }

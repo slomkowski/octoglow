@@ -46,6 +46,8 @@ TEST(I2C, ReadCommands) {
     onStart();
     onReceive(7);
     onReceive(0x1);
+    onStop();
+    processDataIfAvailable();
 
     cout << "get device state" << endl;
     onStart();
@@ -73,6 +75,8 @@ TEST(I2C, ReadCommands) {
     onStart();
     onReceive(14);
     onReceive(0x2);
+    onStop();
+    processDataIfAvailable();
 
     cout << "get device state" << endl;
     onStart();
@@ -92,6 +96,8 @@ TEST(I2C, ReadCommands) {
     onStart();
     onReceive(28);
     onReceive(4);
+    onStop();
+    processDataIfAvailable();
 
     onStart();
     assertReadIs(28);
@@ -101,6 +107,8 @@ TEST(I2C, ReadCommands) {
     onStart();
     onReceive(14);
     onReceive(0x2);
+    onStop();
+    processDataIfAvailable();
 
     cout << "get device state" << endl;
     onStart();
@@ -119,6 +127,8 @@ TEST(I2C, ReadCommands) {
     onStart();
     onReceive(14);
     onReceive(0x2);
+    onStop();
+    processDataIfAvailable();
 
     cout << "get device state" << endl;
     onStart();
@@ -142,6 +152,9 @@ TEST(I2C, WriteCommands) {
     onReceive(0x5);
     onReceive(1);
     onReceive(0);
+    onStop();
+    processDataIfAvailable();
+
     ASSERT_FALSE(eyeInverterEnabled);
     assertEq(protocol::EyeInverterState::HEATING_LIMITED, magiceye::state);
 
@@ -154,43 +167,63 @@ TEST(I2C, WriteCommands) {
     onStart();
     onReceive(27);
     onReceive(5);
+    onStop();
+    processDataIfAvailable();
 
     onStart();
     onReceive(199);
     onReceive(0x5);
     onReceive(0);
     onReceive(1);
+    onStop();
+    processDataIfAvailable();
+
     ASSERT_FALSE(eyeInverterEnabled);
     assertEq(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
     onStart();
     onReceive(27);
     onReceive(0x5);
+    onStop();
+    processDataIfAvailable();
 
     onStart();
     onReceive(24);
     onReceive(0x6);
     onReceive(123);
+    onStop();
+    processDataIfAvailable();
+
     assertEq(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
     ASSERT_EQ(123, currentAdcValue);
     onStart();
     onReceive(18);
     onReceive(6);
+    onStop();
+    processDataIfAvailable();
 
     onStart();
     onReceive(90);
     onReceive(0x6);
     onReceive(12);
+    onStop();
+    processDataIfAvailable();
+
     assertEq(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
     ASSERT_EQ(12, currentAdcValue);
     onStart();
     onReceive(18);
     onReceive(6);
+    onStop();
+    processDataIfAvailable();
 
     onStart();
     onReceive(76);
     onReceive(0x3);
     onReceive(0x12);
     onReceive(0x34);
+    onStop();
+    processDataIfAvailable();
+
     geiger_counter::updateGeigerState();
     const uint16_t cycleLength = geiger_counter::geigerState.cycleLength;
     ASSERT_EQ(0x3412, cycleLength);
@@ -199,6 +232,8 @@ TEST(I2C, WriteCommands) {
     onStart();
     onReceive(9);
     onReceive(3);
+    onStop();
+    processDataIfAvailable();
 
     onStart();
     onReceive(41);
@@ -208,4 +243,6 @@ TEST(I2C, WriteCommands) {
     onStart();
     onReceive(18);
     onReceive(6);
+    onStop();
+    processDataIfAvailable();
 }

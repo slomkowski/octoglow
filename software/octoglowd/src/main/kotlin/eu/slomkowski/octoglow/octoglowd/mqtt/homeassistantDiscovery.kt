@@ -9,7 +9,7 @@ const val magicEyeSwitchTopic = "$DEVICE_ID/switch/$magicEyeIdentifier"
 
 
 class HaTemperature(
-    type: DbMeasurementType, // todo przerobić na HaMeasurementType?
+    type: DbDataSampleType, // todo przerobić na HaMeasurementType?
     humanReadableName: String,
 ) : SendableToHomeassistant(
     type,
@@ -22,7 +22,7 @@ class HaTemperature(
 )
 
 class HaHumidity(
-    type: DbMeasurementType,
+    type: DbDataSampleType,
     humanReadableName: String,
 ) : SendableToHomeassistant(
     type,
@@ -35,7 +35,7 @@ class HaHumidity(
 )
 
 open class SendableToHomeassistant(
-    val type: DbMeasurementType,
+    val type: DbDataSampleType,
     val humanReadableName: String,
     val deviceClass: String?,
     val unitOfMeasurement: String?,

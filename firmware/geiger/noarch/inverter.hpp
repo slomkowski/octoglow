@@ -28,7 +28,7 @@ namespace octoglow::geiger::inverter {
         constexpr double GEIGER_DIVIDER_UPPER_RESISTOR = 4 * 470;
         constexpr double GEIGER_DIVIDER_LOWER_RESISTOR = 4.7;
         constexpr double GEIGER_PWM_MIN_DUTY = 0.02;
-        constexpr double GEIGER_PWM_MAX_DUTY = 0.18;
+        constexpr double GEIGER_PWM_MAX_DUTY = 0.21;
         constexpr uint32_t GEIGER_PWM_FREQUENCY = 40000; // 33 kHz
         static_assert(GEIGER_PWM_MAX_DUTY > GEIGER_PWM_MIN_DUTY, "invalid geiger PWM range");
 

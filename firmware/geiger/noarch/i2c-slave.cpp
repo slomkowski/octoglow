@@ -11,6 +11,7 @@ constexpr uint8_t BUFFER_SIZE = 16;
 static uint8_t volatile buffer[BUFFER_SIZE];
 static volatile uint8_t bytesProcessed = 0;
 static volatile uint8_t numberOfBytesToTransmit = 0;
+static volatile bool bufferLoadedWithData = false;
 
 static_assert(sizeof(buffer) >= 4, "buffer has to have at least 4 bytes");
 static_assert(sizeof(buffer) >= sizeof(GeigerState) + 2, "buffer has to contain whole GeigerState structure");
@@ -88,6 +89,16 @@ void i2c::onReceive(const uint8_t value) {
 
     buffer[bytesProcessed] = value;
     ++bytesProcessed;
+}
+
+void i2c::onStop() {
+    bufferLoadedWithData = true;
+}
+
+void i2c::processDataIfAvailable() {
+    if (!bufferLoadedWithData) {
+        return;
+    }
 
     const auto cmd = static_cast<Command>(buffer[1]);
 
@@ -112,7 +123,7 @@ void i2c::onReceive(const uint8_t value) {
         } else if (cmd == Command::GET_DEVICE_STATE) {
             //  setClockToHigh();
             if (checkCrc8fails()) {
-              //  setClockToLow();
+                //  setClockToLow();
                 return;
             }
             fillBuffer(&hd::getDeviceState(), sizeof(DeviceState));
@@ -147,4 +158,6 @@ void i2c::onReceive(const uint8_t value) {
             setCrcForSimpleCommand();
         }
     }
+
+    bufferLoadedWithData = false;
 }

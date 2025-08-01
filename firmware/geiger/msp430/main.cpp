@@ -76,6 +76,7 @@ __interrupt_vec(TRAPINT_VECTOR) [[noreturn]] void trapHandler() {
 
             P1OUT &= ~BIT0;
         }
+        i2c::processDataIfAvailable();
 
         WDTCTL = WDTPW + WDTCNTCL;
     }

@@ -23,9 +23,9 @@ class DatabaseTest {
         private val logger = KotlinLogging.logger {}
     }
 
-    private fun <T : Any> createTestDbContext(func: (DatabaseLayer) -> T): T {
+    private fun <T : Any> createTestDbContext(func: (DatabaseDemon) -> T): T {
         val dbFile = Files.createTempFile("unit-test-", ".db")
-        DatabaseLayer(dbFile, mockk()).use { db ->
+        DatabaseDemon(dbFile, mockk()).use { db ->
             assertNotNull(db)
             logger.debug { "Opened DB file $dbFile" }
             return func(db)
@@ -93,7 +93,7 @@ class DatabaseTest {
         |FROM indoor_weather_report
         |WHERE created BETWEEN '2018-06-24 09:20:11.000' AND '2018-06-24 16:20:11.000'
         |GROUP BY 1
-        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseDemon.createAveragedByTimeInterval(
                 "indoor_weather_report",
                 listOf("temperature", "humidity", "pressure"),
                 d,
@@ -124,7 +124,7 @@ class DatabaseTest {
         |FROM indoor_weather_report
         |WHERE created BETWEEN '2018-06-24 09:50:11.000' AND '2018-06-24 16:20:11.000' AND created < (SELECT MAX(created) FROM indoor_weather_report)
         |GROUP BY 1
-        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseDemon.createAveragedByTimeInterval(
                 "indoor_weather_report",
                 listOf("temperature"), d, 30.minutes, 13, true
             )
@@ -142,7 +142,7 @@ class DatabaseTest {
         |FROM tt
         |WHERE created BETWEEN '2019-01-24 10:30:00.000' AND '2019-01-24 12:30:00.000' AND symbol = 'WER'
         |GROUP BY 1
-        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseDemon.createAveragedByTimeInterval(
                 "tt",
                 listOf("value"),
                 LocalDateTime(2019, 1, 24, 12, 30).toInstant(WARSAW_ZONE_ID),
@@ -163,7 +163,7 @@ class DatabaseTest {
         |FROM tt
         |WHERE created BETWEEN '2019-01-24 11:30:00.000' AND '2019-01-24 12:30:00.000' AND created < (SELECT MAX(created) FROM tt) AND symbol IS NULL
         |GROUP BY 1
-        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseDemon.createAveragedByTimeInterval(
                 "tt",
                 listOf("value"),
                 LocalDateTime(2019, 1, 24, 12, 30).toInstant(WARSAW_ZONE_ID),
@@ -189,7 +189,7 @@ class DatabaseTest {
         |FROM tt
         |WHERE created BETWEEN '2020-11-29 00:00:00.000' AND '2020-12-03 00:00:00.000' AND symbol = 'TEST'
         |GROUP BY 1
-        |ORDER BY 1 DESC""".trimMargin(), DatabaseLayer.createAveragedByTimeInterval(
+        |ORDER BY 1 DESC""".trimMargin(), DatabaseDemon.createAveragedByTimeInterval(
                 "tt",
                 listOf("value"),
                 LocalDate(2020, 12, 3).atStartOfDayIn(WARSAW_ZONE_ID), //todo test other zones

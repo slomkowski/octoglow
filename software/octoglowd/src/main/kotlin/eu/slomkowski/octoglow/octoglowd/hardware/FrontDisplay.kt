@@ -172,7 +172,7 @@ class FrontDisplayReal(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0
     }
 
     override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T?, historicalValues: List<T?>?, unit: T) {
-        if(currentValue == null || historicalValues == null) {
+        if (currentValue == null || historicalValues == null) {
             return // todo probably paint empty space
         }
 

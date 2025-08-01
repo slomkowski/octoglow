@@ -5,7 +5,7 @@ import de.kempmobil.ktor.mqtt.PublishRequest
 import de.kempmobil.ktor.mqtt.QoS
 import de.kempmobil.ktor.mqtt.buildFilterList
 import eu.slomkowski.octoglow.octoglowd.Config
-import eu.slomkowski.octoglow.octoglowd.MeasurementType
+import eu.slomkowski.octoglow.octoglowd.DataSampleType
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -70,7 +70,7 @@ class MqttEmiter(
         runBlocking {
             client.connect().onSuccess { connack ->
                 if (connack.isSuccess) {
-                    logger.info { "Successfully connected to ${config.mqtt.host}:${config.mqtt.port}" }
+                    logger.info { "Successfully connected to ${config.mqtt.host}:${config.mqtt.port}." }
                     sendHomeassistantDiscoveryMessage()
 
                     client.subscribe(buildFilterList {
@@ -92,7 +92,7 @@ class MqttEmiter(
     // custom text
     // notification
 
-    suspend fun publishMeasurement(sensorKey: MeasurementType, value: Double): Boolean {
+    suspend fun publishMeasurement(sensorKey: DataSampleType, value: Double): Boolean {
         val sensor = availableSensors[sensorKey] ?: return false
 
         val payloadMsg = sensor.payloadFunc.invoke(value)

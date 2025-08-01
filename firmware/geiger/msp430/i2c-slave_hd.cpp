@@ -27,7 +27,7 @@ void i2c::init() {
     UCB0I2COA = SLAVE_ADDRESS; // set own (slave) address
     UCB0CTL1 &= ~UCSWRST; // Clear SW reset, resume operation
     IE2 |= UCB0TXIE + UCB0RXIE; // Enable TX and RX interrupt
-    UCB0I2CIE |= UCSTTIE; // Enable interrupt on I2C start
+    UCB0I2CIE |= UCSTTIE + UCSTPIE; // Enable interrupt on I2C start
 }
 
 /**
@@ -45,8 +45,13 @@ __interrupt_vec(USCIAB0TX_VECTOR) void USCIAB0TX_ISR() {
  * State machine interrupt. Called on I2C start, stop, nack etc. TI's naming is confusing.
  */
 __interrupt_vec(USCIAB0RX_VECTOR) void USCIAB0RX_ISR() {
+    if (UCB0STAT & UCSTPIFG) {
+        i2c::onStop();
+    } else {
+        i2c::onStart();
+    }
+
     UCB0STAT &= ~(UCSTPIFG + UCSTTIFG + UCNACKIFG + UCALIFG); // Clear interrupt flags
-    i2c::onStart();
 }
 
 volatile protocol::DeviceState &i2c::hd::getDeviceState() {

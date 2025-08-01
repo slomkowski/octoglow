@@ -11,6 +11,7 @@ constexpr uint8_t BUFFER_SIZE = 200;
 
 static uint8_t buffer[BUFFER_SIZE];
 static uint8_t bytesProcessed;
+static volatile bool bufferLoadedWithData = false;
 
 static_assert(sizeof(buffer) >= 5, "buffer has to have at least 5 bytes");
 static_assert(sizeof(buffer) >= sizeof(encoder::ButtonState) + 2, "buffer has to contain whole ButtonState structure");
@@ -52,7 +53,10 @@ static void setCrcForComplexCommand(const uint8_t payloadLength) {
     buffer[0] = crcValue;
 }
 
-__attribute__((optimize("O3"), hot))
+void i2c::onStop() {
+    bufferLoadedWithData = true;
+}
+
 void i2c::onReceive(const uint8_t value) {
     if (bytesProcessed == sizeof(buffer)) {
         return;
@@ -60,7 +64,12 @@ void i2c::onReceive(const uint8_t value) {
 
     buffer[bytesProcessed] = value;
     ++bytesProcessed;
+}
 
+void i2c::processDataIfAvailable() {
+    if (!bufferLoadedWithData) {
+        return;
+    }
     // crc is at buffer 0, command is at 1
     const auto cmd = static_cast<Command>(buffer[1]);
 
@@ -101,13 +110,13 @@ void i2c::onReceive(const uint8_t value) {
             eeprom::saveEndYearOfConstruction(buffer[2]);
             setCrcForSimpleCommand();
         }
-    } else if (cmd == Command::WRITE_STATIC_TEXT && value == 0 && bytesProcessed >= 4) {
+    } else if (cmd == Command::WRITE_STATIC_TEXT && buffer[bytesProcessed - 1] == 0 && bytesProcessed >= 4) {
         if (checkCrc8fails()) {
             return;
         }
         display::writeStaticText(buffer[2], buffer[3], reinterpret_cast<char *>(&buffer[4]));
         setCrcForSimpleCommand();
-    } else if (cmd == Command::WRITE_SCROLLING_TEXT && value == 0 && bytesProcessed >= 5) {
+    } else if (cmd == Command::WRITE_SCROLLING_TEXT && buffer[bytesProcessed - 1] == 0 && bytesProcessed >= 5) {
         if (checkCrc8fails()) {
             return;
         }
@@ -126,4 +135,6 @@ void i2c::onReceive(const uint8_t value) {
         display::setUpperBarContent(*reinterpret_cast<uint32_t *>(buffer + 2));
         setCrcForSimpleCommand();
     }
+
+    bufferLoadedWithData = false;
 }

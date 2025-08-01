@@ -11,7 +11,7 @@ constexpr int16_t desiredAdcValues[] = {
     eyeAdcVal(140),
     eyeAdcVal(180),
     eyeAdcVal(210),
-    eyeAdcVal(250),
+    eyeAdcVal(240),
 };
 
 constexpr int16_t EYE_MIN_PWM_DUTY_CYCLES = eyeCycles(EYE_PWM_MIN_DUTY);
