@@ -11,3 +11,13 @@ class DataSnapshotBus {
         _snapshots.emit(dataSnapshot)
     }
 }
+
+class CommandBus {
+    private val _commands = MutableSharedFlow<Command>(replay = 100)
+    val commands = _commands.asSharedFlow()
+
+    suspend fun publish(cmd: Command) {
+        _commands.emit(cmd)
+    }
+}
+

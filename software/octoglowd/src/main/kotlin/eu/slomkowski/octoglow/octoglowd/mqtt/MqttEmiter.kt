@@ -4,8 +4,7 @@ import de.kempmobil.ktor.mqtt.MqttClient
 import de.kempmobil.ktor.mqtt.PublishRequest
 import de.kempmobil.ktor.mqtt.QoS
 import de.kempmobil.ktor.mqtt.buildFilterList
-import eu.slomkowski.octoglow.octoglowd.Config
-import eu.slomkowski.octoglow.octoglowd.DataSampleType
+import eu.slomkowski.octoglow.octoglowd.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -19,6 +18,7 @@ import java.util.*
 class MqttEmiter(
     private val config: Config,
     private val workerScope: CoroutineScope,
+    private val commandBus: CommandBus,
 ) : AutoCloseable {
 
     companion object {
@@ -59,6 +59,16 @@ class MqttEmiter(
                             })
                         }
 
+                        dialButtonTopic -> {
+                            val payloadStr = publish.payload.decodeToString(StandardCharsets.UTF_8).lowercase().trim()
+                            when (payloadStr) {
+                                dialCommandCw -> DialTurned(1)
+                                dialCommandCcw -> DialTurned(-1)
+                                dialCommandPress -> DialPressed
+                                else -> null
+                            }?.let { commandBus.publish(it) }
+                        }
+
                         else -> logger.warn { "Received message with unexpected topic: $publish." }
                     }
                 } catch (e: SerializationException) {
@@ -76,6 +86,7 @@ class MqttEmiter(
                     client.subscribe(buildFilterList {
                         //todo subcribe to homeassistant/status, send discovery when it becomes 'online'
                         add(magicEyeSwitchSetTopic)
+                        add(dialButtonTopic)
                     })
                 } else {
                     error("Failed to connect to ${config.mqtt.host}:${config.mqtt.port}")

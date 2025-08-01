@@ -3,9 +3,7 @@
 package eu.slomkowski.octoglow.octoglowd.demon
 
 
-import eu.slomkowski.octoglow.octoglowd.Config
-import eu.slomkowski.octoglow.octoglowd.DataSnapshotBus
-import eu.slomkowski.octoglow.octoglowd.StateMachine
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.FrontDisplayView
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.Menu
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.MenuOption
@@ -27,7 +25,8 @@ class FrontDisplayDemon(
     private val hardware: Hardware,
     frontDisplayViews: List<FrontDisplayView<*, *>>,
     additionalMenus: List<Menu>,
-    private val historicalValuesEventBus: DataSnapshotBus,
+    private val dataSnapshotBus: DataSnapshotBus,
+    private val commandBus: CommandBus,
     private val realTimeClockDemon: RealTimeClockDemon,
     private val clock: Clock = Clock.System,
 ) : PollingDemon(logger, 20.milliseconds) {
@@ -496,7 +495,23 @@ class FrontDisplayDemon(
 
     override fun createJobs(scope: CoroutineScope): List<Job> {
         return super.createJobs(scope).plus(views.map {
-            it.createDataSnapshotCollector(scope, historicalValuesEventBus)
+            it.createDataSnapshotCollector(scope, dataSnapshotBus)
+        }).plus(scope.launch {
+            commandBus.commands.collect { command ->
+                when (command) {
+                    is DialPressed -> {
+                        lastDialActivity = clock.now()
+                        stateExecutor.transition(Event.ButtonPressed)
+                    }
+
+                    is DialTurned -> {
+                        if (command.delta != 0) {
+                            lastDialActivity = clock.now()
+                            stateExecutor.transition(Event.EncoderDelta(command.delta))
+                        }
+                    }
+                }
+            }
         })
     }
 }

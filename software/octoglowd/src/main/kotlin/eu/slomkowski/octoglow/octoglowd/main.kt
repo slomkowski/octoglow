@@ -20,9 +20,10 @@ fun main() {
 
     val workerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    val commandBus = CommandBus()
     val eventBus = DataSnapshotBus()
 
-    val mqttEmiter = MqttEmiter(config, workerScope)
+    val mqttEmiter = MqttEmiter(config, workerScope, commandBus)
     val hardware = HardwareReal(config)
     val database = DatabaseDemon(config.databaseFile, mqttEmiter, eventBus)
     val closeable = listOf(database, hardware)
@@ -62,7 +63,7 @@ fun main() {
     val demons = listOf(
         database,
         realTimeClockDemon,
-        FrontDisplayDemon(config, workerScope, hardware, frontDisplayViews2, menus, eventBus, realTimeClockDemon),
+        FrontDisplayDemon(config, workerScope, hardware, frontDisplayViews2, menus, eventBus, commandBus, realTimeClockDemon),
         AnalogGaugeDemon(hardware),
         brightnessDaemon,
         RadmonOrgSenderDemon(config, eventBus),

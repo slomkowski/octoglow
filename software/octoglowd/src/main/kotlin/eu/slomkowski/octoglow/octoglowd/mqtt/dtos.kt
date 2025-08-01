@@ -48,6 +48,14 @@ data class DeviceConfig(
             @SerialName("value_template") val valueTemplate: String,
             @SerialName("unique_id") val uniqueId: String,
         ) : Component("switch")
+
+        @Serializable
+        data class Button(
+            val name: String,
+            @SerialName("command_topic") val commandTopic: String,
+            @SerialName("payload_press") val payloadPress: String,
+            @SerialName("unique_id") val uniqueId: String,
+        ) : Component("button")
     }
 }
 

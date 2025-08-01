@@ -7,6 +7,12 @@ const val magicEyeIdentifier = "magic_eye"
 const val magicEyeSwitchSetTopic = "$DEVICE_ID/switch/$magicEyeIdentifier/set"
 const val magicEyeSwitchTopic = "$DEVICE_ID/switch/$magicEyeIdentifier"
 
+const val dialIdentifier = "dial"
+const val dialButtonTopic = "$DEVICE_ID/button/$dialIdentifier/commands"
+
+const val dialCommandCcw = "dial_ccw"
+const val dialCommandCw = "dial_cw"
+const val dialCommandPress = "dial_press"
 
 class HaTemperature(
     type: DbDataSampleType, // todo przerobić na HaMeasurementType?
@@ -116,12 +122,32 @@ fun createDiscoveryMessageDto(): DeviceConfig {
             url = "https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display"
         ),
         components = sensors.plus(
-            magicEyeIdentifier to DeviceConfig.Component.Switch(
-                name = "Oko magiczne",
-                stateTopic = magicEyeSwitchTopic,
-                commandTopic = magicEyeSwitchSetTopic,
-                "{{ value_json.state }}",
-                uniqueId = "${DEVICE_ID}_$magicEyeIdentifier",
+            listOf(
+                magicEyeIdentifier to DeviceConfig.Component.Switch(
+                    name = "Oko magiczne",
+                    stateTopic = magicEyeSwitchTopic,
+                    commandTopic = magicEyeSwitchSetTopic,
+                    "{{ value_json.state }}",
+                    uniqueId = "${DEVICE_ID}_$magicEyeIdentifier",
+                ),
+                "${dialIdentifier}_$dialCommandCcw" to DeviceConfig.Component.Button(
+                    name = "Gałka w lewo",
+                    uniqueId = "${DEVICE_ID}_${dialIdentifier}_$dialCommandCcw",
+                    commandTopic = dialButtonTopic,
+                    payloadPress = dialCommandCcw,
+                ),
+                "${dialIdentifier}_$dialCommandCw" to DeviceConfig.Component.Button(
+                    name = "Gałka w prawo",
+                    uniqueId = "${DEVICE_ID}_${dialIdentifier}_$dialCommandCw",
+                    commandTopic = dialButtonTopic,
+                    payloadPress = dialCommandCw,
+                ),
+                "${dialIdentifier}_$dialCommandPress" to DeviceConfig.Component.Button(
+                    name = "Gałka przycisk",
+                    uniqueId = "${DEVICE_ID}_${dialIdentifier}_$dialCommandPress",
+                    commandTopic = dialButtonTopic,
+                    payloadPress = dialCommandPress,
+                )
             )
         ),
     )
