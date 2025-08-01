@@ -9,7 +9,6 @@ import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.Menu
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.MenuOption
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.toKotlinxDatetimeInstant
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlin.time.Clock
@@ -64,7 +63,7 @@ class FrontDisplayDemon2(
 
     data class TimestampedObject(
         val timestamp: Instant,
-        val obj : Any?,
+        val obj: Any?,
     )
 
     inner class ViewInfo(
@@ -92,7 +91,7 @@ class FrontDisplayDemon2(
 
         val menus = view.getMenus()
 
-        override fun toString(): String = view.toString()
+        override fun toString(): String = "$view ($number)"
 
         fun bumpLastStatusAndInstantRedraw() {
             clock.now().let {
@@ -108,7 +107,7 @@ class FrontDisplayDemon2(
         suspend fun redrawAll() {
             val now = clock.now()
             lastViewed = now
-            logger.debug { "Redrawing $view." }
+            logger.debug { "Redrawing $this." }
             coroutineScope {
                 hardware.frontDisplay.clear()
                 launch { realTimeClockDemon.setFrontDisplayViewNumber(number) }
@@ -139,7 +138,7 @@ class FrontDisplayDemon2(
 
         fun redrawInstant() {
             workerScope.launch {
-                logger.debug { "Updating instant of $view." }
+                logger.debug { "Updating instant of ${this@ViewInfo}." }
                 view.redrawDisplay(
                     redrawStatic = false,
                     redrawStatus = false,
@@ -150,22 +149,24 @@ class FrontDisplayDemon2(
             }
         }
 
-        fun createEventCollector(scope : CoroutineScope,
-                                         historicalValuesEvents: HistoricalValuesEvents) : Job = scope.launch {
-                logger.info { "Created event collector for ${view}." }
-                historicalValuesEvents.events.collect { packet ->
-                    val newStatus = try {
-                        view.onNewMeasurementReport(packet, currentStatus.obj)
-                    } catch (e: Exception) {
-                        logger.error(e) { "Error while processing measurement report: $packet" }
-                        FrontDisplayView2.UpdateStatus.NewData(null)
-                    }
-                    if (newStatus is FrontDisplayView2.UpdateStatus.NewData) {
-                        logger.debug { "Status updated." }
-                        currentStatus = TimestampedObject(clock.now(), newStatus.newStatus)
-                        stateExecutor.transition(Event.StatusUpdate(this@ViewInfo))
-                    }
+        fun createEventCollector(
+            scope: CoroutineScope,
+            historicalValuesEvents: HistoricalValuesEvents
+        ): Job = scope.launch {
+            logger.info { "Created event collector for ${view}." }
+            historicalValuesEvents.events.collect { packet ->
+                val newStatus = try {
+                    view.onNewMeasurementReport(packet, currentStatus.obj)
+                } catch (e: Exception) {
+                    logger.error(e) { "Error while processing measurement report: $packet" }
+                    FrontDisplayView2.UpdateStatus.NewData(null)
                 }
+                if (newStatus is FrontDisplayView2.UpdateStatus.NewData) {
+                    logger.debug { "Status updated of ${this@ViewInfo}." }
+                    currentStatus = TimestampedObject(clock.now(), newStatus.newStatus)
+                    stateExecutor.transition(Event.StatusUpdate(this@ViewInfo))
+                }
+            }
         }
     }
 
@@ -349,7 +350,7 @@ class FrontDisplayDemon2(
                 createCommonViewCycleActions()
 
                 on<Event.Timeout> { event ->
-                    if (event.now - info.lastViewed >= info.view.preferredDisplayTime) {
+                    if (event.now - info.lastViewed >= info.view.preferredDisplayTime(info.currentStatus.obj)) {
                         val newView = getMostSuitableViewInfo(clock, views)
                         logger.info { "Going to view $newView because of timeout." }
                         transitionTo(State.ViewCycle.Auto(newView), SideEffect.ViewInfoRedrawAll(this.info))
@@ -452,15 +453,13 @@ class FrontDisplayDemon2(
                         val newInstant = info.view.pollInstantData(
                             clock.now(),
                             info.currentInstant.obj,
-                            )
+                        )
                         if (newInstant is FrontDisplayView2.UpdateStatus.NewData) {
                             info.currentInstant = TimestampedObject(clock.now(), newInstant.newStatus)
                             stateExecutor.transition(Event.InstantUpdate(info))
                         }
                     }
                 }
-            } else {
-                yield()
             }
         }
     }

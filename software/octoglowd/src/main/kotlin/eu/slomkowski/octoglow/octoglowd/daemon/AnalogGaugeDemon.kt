@@ -37,6 +37,7 @@ class AnalogGaugeDemon(
 
         private val PROC_NET_WIRELESS_PATH: Path = Paths.get("/proc/net/wireless")
 
+        // todo publish as measurement value
         fun parseProcNetWirelessFile(reader: BufferedReader): List<WifiSignalInfo> =
             reader.lines().skip(2).map { line ->
                 val columns = line.trim().split(MANY_WHITESPACES_REGEX)

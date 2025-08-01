@@ -6,7 +6,6 @@ package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 import com.sun.management.OperatingSystemMXBean
 import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.now
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -14,7 +13,6 @@ import java.lang.management.ManagementFactory
 import java.lang.management.ThreadMXBean
 import kotlin.math.min
 import kotlin.time.Clock
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -28,7 +26,7 @@ class JvmMemoryView(
     1.seconds,
     logger,
 ) {
-    override val preferredDisplayTime: Duration = 5.seconds
+    override fun preferredDisplayTime(status: Unit?) = 5.seconds
 
     private val operatingSystemMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
     private val threadBean: ThreadMXBean = ManagementFactory.getThreadMXBean()

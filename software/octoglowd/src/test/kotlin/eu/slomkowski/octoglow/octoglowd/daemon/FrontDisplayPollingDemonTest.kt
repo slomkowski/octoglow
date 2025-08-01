@@ -1,9 +1,9 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 
-import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDemon.Companion.updateViewIndex
-import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
-import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
+import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDemon2.Companion.updateViewIndex
+import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView2
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonReport
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
@@ -12,7 +12,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.seconds
@@ -26,26 +25,25 @@ class FrontDisplayPollingDemonTest {
         private val logger = KotlinLogging.logger {}
     }
 
-    class TestView(name: String) : FrontDisplayView(
+    class TestView(name: String) : FrontDisplayView2<Any, Any>(
         mockk(),
         name,
-        10.seconds,
         1.seconds,
+        logger,
     ) {
-        override val preferredDisplayTime = 7.seconds
+        override fun preferredDisplayTime(status: Any?) = 7.seconds
 
-        override suspend fun pollStatusData(now: Instant): UpdateStatus {
-            logger.info { "Call poolStatusData." }
-            return UpdateStatus.FULL_SUCCESS
-        }
-
-        override suspend fun pollInstantData(now: Instant): UpdateStatus {
+        override suspend fun pollInstantData(now: kotlin.time.Instant, oldInstant: Any?): UpdateStatus {
             logger.info { "Call poolInstantData." }
-            return UpdateStatus.FULL_SUCCESS
+            return UpdateStatus.NewData(Unit)
         }
 
-        override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) {
+        override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: kotlin.time.Instant, status: Any?, instant: Any?) {
             logger.info { "Screen redrawn." }
+        }
+
+        override suspend fun onNewMeasurementReport(report: MeasurementReport, oldStatus: Any?): UpdateStatus {
+            TODO("Not yet implemented")
         }
 
     }
@@ -62,23 +60,23 @@ class FrontDisplayPollingDemonTest {
 
                 coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
 
-                val v1 = mockk<FrontDisplayView>()
-                val v2 = mockk<FrontDisplayView>()
+                val v1 = mockk<FrontDisplayView2<Any, Any>>()
+                val v2 = mockk<FrontDisplayView2<Any, Any>>()
 
                 coEvery { v1.getMenus() } returns listOf()
                 coEvery { v2.getMenus() } returns listOf()
 
-                coEvery { v1.redrawDisplay(true, true, any()) } just Runs
-                coEvery { v2.redrawDisplay(true, true, any()) } just Runs
+                coEvery { v1.redrawDisplay(true, true, any(), any(), any()) } just Runs
+                coEvery { v2.redrawDisplay(true, true, any(), any(), any()) } just Runs
 
-                val d = FrontDisplayDemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList())
-
-                d.poll()
+                val d = FrontDisplayDemon2(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList(), mockk(), mockk())
 
                 d.poll()
 
-                coVerify { v1.redrawDisplay(true, true, any()) }
-                coVerify { v2.redrawDisplay(true, true, any()) }
+                d.poll()
+
+                coVerify { v1.redrawDisplay(true, true, any(), any(), any()) }
+                coVerify { v2.redrawDisplay(true, true, any(), any(), any()) }
             }
         }
     }

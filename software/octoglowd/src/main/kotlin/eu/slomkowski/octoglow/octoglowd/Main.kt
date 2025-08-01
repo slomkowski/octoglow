@@ -40,17 +40,6 @@ fun main() {
         logger.info { "Shut down." }
     })
 
-    val frontDisplayViews = listOf(
-        CalendarView(config, hardware),
-        GeigerView(config, database, hardware),
-        CryptocurrencyView(config, database, hardware),
-        SimpleMonitorView(config, hardware),
-        AirQualityView(config, database, hardware),
-        NetworkView(config, hardware),
-        LocalSensorView(config, database, hardware),
-        TodoistView(config, hardware),
-    )
-
     val frontDisplayViews2 = listOf(
         CalendarView(config, hardware),
         GeigerView(config, database, hardware),
@@ -60,6 +49,9 @@ fun main() {
         JvmMemoryView(hardware),
         NbpView(config, hardware),
         WeatherSensorView(config, database, hardware),
+        SimpleMonitorView(config, hardware),
+        TodoistView(hardware),
+        NetworkView(hardware),
     )
 
     val brightnessDaemon = BrightnessDemon(config, database, hardware)
@@ -84,6 +76,9 @@ fun main() {
         LocalSensorsDataCollector(config, hardware, eventBus),
         NbpDataCollector(config, eventBus),
         RadioWeatherSensorDataCollector(config, hardware, eventBus),
+        SimplemonitorDataCollector(config, eventBus),
+        TodoistDataCollector(config, eventBus),
+        NetworkDataCollector(config, eventBus),
     )
 
     runBlocking {

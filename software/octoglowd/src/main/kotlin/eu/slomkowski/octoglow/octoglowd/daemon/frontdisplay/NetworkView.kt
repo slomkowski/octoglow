@@ -1,189 +1,43 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.Config
-import eu.slomkowski.octoglow.octoglowd.MANY_WHITESPACES_REGEX
+import eu.slomkowski.octoglow.octoglowd.PingTimeGateway
+import eu.slomkowski.octoglow.octoglowd.PingTimeRemoteHost
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
+import eu.slomkowski.octoglow.octoglowd.datacollectors.NetworkDataCollector
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.readToString
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.*
-import kotlinx.datetime.Instant
-import java.io.BufferedReader
-import java.net.Inet4Address
-import java.net.InetAddress
-import java.net.NetworkInterface
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.concurrent.TimeUnit
-import java.util.stream.Collectors
-import kotlin.math.roundToLong
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.nanoseconds
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 class NetworkView(
-    private val config: Config,
     hardware: Hardware
-) : FrontDisplayView(
+) : FrontDisplayView2<NetworkView.CurrentReport, Unit>(
     hardware,
     "Network",
-    38.seconds,
-    37.seconds,
+    null,
+    logger,
 ) {
-    override val preferredDisplayTime: Duration = 5.seconds
-
-    data class RouteEntry(
-        val dst: InetAddress,
-        val gateway: InetAddress,
-        val dev: String,
-        val metric: Int
-    )
-
-    data class InterfaceInfo(
-        val name: String,
-        val ip: Inet4Address,
-        val gatewayIp: Inet4Address,
-        val isWifi: Boolean
-    )
-
-    data class PingResult(
-        val packetsTransmitted: Int,
-        val packetsReceived: Int,
-        val rttMin: Duration,
-        val rttAvg: Duration,
-        val rttMax: Duration
-    ) {
-        init {
-            require(packetsReceived >= 0)
-            require(packetsTransmitted > 0)
-            require(packetsReceived <= packetsTransmitted)
-            require(rttMin <= rttAvg)
-            require(rttAvg <= rttMax)
-        }
-    }
+    override fun preferredDisplayTime(status: CurrentReport?) = 5.seconds
 
     data class CurrentReport(
-        val interfaceInfo: InterfaceInfo,
+        val timestamp: Instant,
+        val cycleLength: Duration,
+        val interfaceInfo: NetworkDataCollector.InterfaceInfo?,
         val remotePing: Duration?,
-        val gwPing: Duration?
+        val gwPing: Duration?,
     )
-
-    @Volatile
-    private var currentReport: CurrentReport? = null
 
     companion object {
         private val logger = KotlinLogging.logger {}
-
-        private val PROC_NET_WIRELESS_PATH: Path = Paths.get("/proc/net/wireless")
-        private val PROC_NET_ROUTE_PATH: Path = Paths.get("/proc/net/route")
-
-        /**
-         * We assume that the interface has only one IP.
-         */
-        fun getActiveInterfaceInfo(): InterfaceInfo? = Files.newBufferedReader(PROC_NET_ROUTE_PATH).use { reader ->
-            getDefaultRouteEntry(parseProcNetRouteFile(reader))
-                ?.let { it to NetworkInterface.getByName(it.dev) }
-                ?.let { (re, iface) ->
-                    InterfaceInfo(
-                        iface.name,
-                        iface.inetAddresses.toList().first { it is Inet4Address } as Inet4Address,
-                        re.gateway as Inet4Address,
-                        !iface.isEthernet())
-                }
-        }
-
-        /*
-         * We assume that only one interface is active and is routing all traffic.
-         */
-        private fun getDefaultRouteEntry(entries: Collection<RouteEntry>): RouteEntry? =
-            entries.filter { it.dst == InetAddress.getByAddress(byteArrayOf(0, 0, 0, 0)) }.minByOrNull { it.metric }
-
-        fun createIpFromHexString(str: String): InetAddress {
-            require(str.length == 8) { "the string has to be 8 hex digits" }
-            return InetAddress.getByName(str.chunked(2).asReversed().joinToString(".") { it.toInt(16).toString() })
-        }
-
-        fun parseProcNetRouteFile(reader: BufferedReader): List<RouteEntry> = reader.lines().skip(1).map { line ->
-            val columns = line.trim().split(MANY_WHITESPACES_REGEX)
-
-            RouteEntry(
-                createIpFromHexString(columns[1].trim()),
-                createIpFromHexString(columns[2].trim()),
-                columns[0].trim(),
-                columns[6].trim().toInt()
-            )
-        }.collect(Collectors.toList())
-
-        suspend fun pingAddressAndGetRtt(
-            pingBinary: Path,
-            iface: String,
-            address: String,
-            timeout: Duration,
-            noPings: Int
-        ): PingResult {
-            require(iface.isNotBlank())
-            require(address.isNotBlank())
-            require(noPings > 0)
-            require(timeout > Duration.ZERO)
-            val pb = ProcessBuilder(
-                pingBinary.toAbsolutePath().toString(),
-                "-4",
-                "-c", noPings.toString(),
-                "-i", "0.2",
-                "-I", iface,
-                "-w", timeout.inWholeSeconds.toString(),
-                address
-            )
-
-            val output = StringBuilder()
-
-            withContext(Dispatchers.IO) {
-                val process = pb.start()
-                val reader = process.inputStream.bufferedReader()
-
-                while (isActive && process.isAlive) {
-                    while (isActive && reader.ready()) {
-                        output.append(reader.readLine())
-                        output.append("\n")
-                    }
-                    delay(20)
-                }
-
-                while (isActive && reader.ready()) {
-                    output.append(reader.readLine())
-                    output.append("\n")
-                }
-
-                process.waitFor(timeout.inWholeMilliseconds + 2000, TimeUnit.MILLISECONDS)
-
-                check(output.isNotBlank()) {
-                    val errorMsg = process.errorStream.readToString()
-                    "ping returned no output, error is: $errorMsg"
-                }
-            }
-
-            return parsePingOutput(output.toString())
-        }
-
-        private val packetRegex = Regex("(\\d+) packets transmitted, (\\d+) received")
-        private val rttRegex = Regex("rtt min/avg/max/mdev = (\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+)/(\\d+\\.\\d+) ms")
-
-        fun parsePingOutput(text: String): PingResult {
-
-            val (packetsTransmitted, packetsReceived) = checkNotNull(packetRegex.find(text))
-            { "info about packet numbers not found in ping output" }.groupValues.let {
-                it[1].toInt() to it[2].toInt()
-            }
-
-            val (rttMin, rttAvg, rttMax) = checkNotNull(rttRegex.find(text))
-            { "info about RTT not found in ping output" }
-                .groupValues
-                .subList(1, 4)
-                .map { (it.toDouble() * 1_000_000.0).roundToLong().nanoseconds }
-
-            return PingResult(packetsTransmitted, packetsReceived, rttMin, rttAvg, rttMax)
-        }
 
         fun formatPingRtt(d: Duration?): String = when (val ms = d?.inWholeMilliseconds) {
             null -> " -- ms"
@@ -193,112 +47,83 @@ class NetworkView(
             else -> ">999ms"
         }
 
-        private fun NetworkInterface.isEthernet(): Boolean = listOf("eth", "enp").any { this.name.startsWith(it) }
     }
 
-    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
+    override suspend fun onNewMeasurementReport(
+        report: MeasurementReport,
+        oldStatus: CurrentReport?
+    ): UpdateStatus {
 
-    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
-        val (newReport, updateStatus) = try {
-            val iface =
-                checkNotNull(withContext(Dispatchers.IO) { getActiveInterfaceInfo() }) { "cannot determine currently active network interface" }
-
-            val gatewayPingTime = async {
-                try {
-                    pingAddressAndGetRtt(iface.gatewayIp.hostAddress, iface)
-                } catch (e: Exception) {
-                    logger.error(e) { "Error during gateway ping." }
-                    null
-                }
-            }
-
-            val remotePingTime = async {
-                try {
-                    val remoteAddress = config.networkInfo.pingAddress
-                    pingAddressAndGetRtt(remoteAddress, iface)
-                } catch (e: Exception) {
-                    logger.error(e) { "Error during remote ping ping." }
-                    null
-                }
-            }
-
-            val updateStatus = if (remotePingTime.await() != null && gatewayPingTime.await() != null) {
-                UpdateStatus.FULL_SUCCESS
-            } else {
-                UpdateStatus.PARTIAL_SUCCESS
-            }
-
-            CurrentReport(iface, remotePingTime.await(), gatewayPingTime.await()) to updateStatus
-
-        } catch (e: Exception) {
-            logger.error(e) { "Cannot determine active network interface." }
-            null to UpdateStatus.FAILURE
+        if (report is NetworkDataCollector.NetworkMeasurementReport && report.interfaceInfo == null) {
+            return UpdateStatus.NewData(null)
         }
 
-        currentReport = newReport
-
-        updateStatus
-    }
-
-    private suspend fun pingAddressAndGetRtt(
-        address: String,
-        interfaceInfo: InterfaceInfo
-    ): Duration {
-
-        logger.debug {
-            "Pinging $address via interface ${interfaceInfo.name} (" + when (interfaceInfo.isWifi) {
-                true -> "wireless"
-                false -> "wired"
-            } + ")."
+        val newRemotePing = when (val v = report.values.firstOrNull { it.type == PingTimeRemoteHost }?.value) {
+            null -> oldStatus?.remotePing
+            else -> v.getOrNull()?.milliseconds
         }
 
-        val pingInfo = pingAddressAndGetRtt(
-            config.networkInfo.pingBinary,
-            interfaceInfo.name,
-            address,
-            4.seconds,
-            3,
+        val newGwPing = when (val v = report.values.firstOrNull { it.type == PingTimeGateway }?.value) {
+            null -> oldStatus?.gwPing
+            else -> v.getOrNull()?.milliseconds
+        }
+
+        val interfaceInfo = (report as? NetworkDataCollector.NetworkMeasurementReport)?.interfaceInfo
+
+        if (newRemotePing != null && newGwPing != null && interfaceInfo == null) {
+            return UpdateStatus.NoNewData
+        }
+
+        return UpdateStatus.NewData(
+            CurrentReport(
+                report.timestamp,
+                report.cycleLength ?: oldStatus?.cycleLength ?: 5.minutes,
+                interfaceInfo ?: oldStatus?.interfaceInfo,
+                newRemotePing ?: oldStatus?.remotePing,
+                newGwPing ?: oldStatus?.gwPing,
+            )
         )
-
-        val pingTime = pingInfo.rttAvg
-
-        logger.info { "RTT to $address is ${pingTime.inWholeMilliseconds} ms." }
-
-        return pingTime
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
-        coroutineScope {
-            val fd = hardware.frontDisplay
-            val cr = currentReport
+    override suspend fun redrawDisplay(
+        redrawStatic: Boolean,
+        redrawStatus: Boolean,
+        now: Instant,
+        status: CurrentReport?,
+        instant: Unit?
+    ): Unit = coroutineScope {
+        val fd = hardware.frontDisplay
 
-            if (redrawStatic) {
-                launch { fd.setStaticText(0, "IP:") }
-                launch { fd.setStaticText(20, "ping") }
-                launch { fd.setStaticText(32, "gw") }
-            }
+        if (redrawStatic) {
+            launch { fd.setStaticText(0, "IP:") }
+            launch { fd.setStaticText(20, "ping") }
+            launch { fd.setStaticText(32, "gw") }
+        }
 
-            if (redrawStatus) {
+        if (redrawStatus) {
 
-                val text = cr?.interfaceInfo?.ip?.hostAddress ?: "---.---.---.---"
-                launch { fd.setStaticText(4, text) }
+            val text = status?.interfaceInfo?.ip?.hostAddress ?: "---.---.---.---"
+            launch { fd.setStaticText(4, text) }
 
-                if (cr != null) {
-                    launch {
-                        fd.setStaticText(
-                            16,
-                            when (cr.interfaceInfo.isWifi) {
-                                false -> "wire"
-                                true -> "wifi"
-                            }
-                        )
-                    }
+            if (status != null) {
+                launch {
+                    fd.setStaticText(
+                        16,
+                        when (status.interfaceInfo?.isWifi) {
+                            false -> "wire"
+                            true -> "wifi"
+                            else -> "----"
+                        }
+                    )
+                }
 
-                    launch {
-                        fd.setStaticText(24, formatPingRtt(cr.remotePing))
-                        fd.setStaticText(34, formatPingRtt(cr.gwPing))
-                    }
+                launch {
+                    fd.setStaticText(24, formatPingRtt(status.remotePing))
+                    fd.setStaticText(34, formatPingRtt(status.gwPing))
                 }
             }
         }
+
+        drawProgressBar(status?.timestamp, now, status?.cycleLength)
+    }
 }

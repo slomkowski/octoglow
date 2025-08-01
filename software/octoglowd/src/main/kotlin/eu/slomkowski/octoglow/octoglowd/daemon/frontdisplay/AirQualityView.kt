@@ -32,7 +32,7 @@ class AirQualityView(
     null,
     logger,
 ) {
-    override val preferredDisplayTime: Duration = 13.seconds
+    override fun preferredDisplayTime(status: CurrentReport?) = 13.seconds
 
     data class SingleStationData(
         val name: String,

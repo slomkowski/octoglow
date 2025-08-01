@@ -61,7 +61,6 @@ data class AirQuality(val stationId: Long) : DbMeasurementType {
         get() = "AIR_QUALITY_$stationId"
 }
 
-
 data class Stock(val symbol: String) : DbMeasurementType {
 
     companion object {
@@ -76,6 +75,10 @@ data class Stock(val symbol: String) : DbMeasurementType {
     override val databaseSymbol: String
         get() = "STOCK_" + symbol.replace(NON_ALPHANUMERIC_REGEX, "_").uppercase()
 }
+
+data object PingTimeRemoteHost : MeasurementType
+
+data object PingTimeGateway : DbMeasurementType
 
 enum class ChangeableSetting {
     BRIGHTNESS,

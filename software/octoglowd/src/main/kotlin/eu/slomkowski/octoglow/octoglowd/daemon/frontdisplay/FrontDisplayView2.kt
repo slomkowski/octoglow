@@ -29,14 +29,10 @@ abstract class FrontDisplayView2<StatusType, InstantType>(
         data class NewData(val newStatus: Any?) : UpdateStatus()
     }
 
-    /**
-     * @return true if the new data arrived and
-     * todo może flow, który aktualizuje status??
-     */
     abstract suspend fun onNewMeasurementReport(report: MeasurementReport,
                                                 oldStatus: StatusType?): UpdateStatus
 
-    abstract val preferredDisplayTime: Duration
+    abstract fun preferredDisplayTime(status : StatusType?): Duration
 
     open suspend fun pollInstantData(now: Instant, oldInstant : InstantType?): UpdateStatus {
         error("should not be called if instant data interval not defined. otherwise, implement it")

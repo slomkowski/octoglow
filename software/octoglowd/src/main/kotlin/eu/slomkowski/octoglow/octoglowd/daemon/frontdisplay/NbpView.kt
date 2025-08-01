@@ -25,7 +25,7 @@ class NbpView(
     null,
     logger,
 ) {
-    override val preferredDisplayTime = 13.seconds
+    override fun preferredDisplayTime(status: CurrentReport?) = 13.seconds
 
     data class CurrentReport(
         val timestamp: Instant,

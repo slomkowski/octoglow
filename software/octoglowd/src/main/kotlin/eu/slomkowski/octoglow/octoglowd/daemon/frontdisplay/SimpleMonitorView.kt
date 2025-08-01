@@ -1,178 +1,125 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.*
+import eu.slomkowski.octoglow.octoglowd.Config
+import eu.slomkowski.octoglow.octoglowd.abbreviate
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
+import eu.slomkowski.octoglow.octoglowd.datacollectors.SimplemonitorDataCollector
+import eu.slomkowski.octoglow.octoglowd.formatJustHoursMinutes
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import eu.slomkowski.octoglow.octoglowd.toLocalTime
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import java.net.URI
-import java.nio.charset.StandardCharsets
-import java.util.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 class SimpleMonitorView(
     private val config: Config,
     hardware: Hardware
-) : FrontDisplayView(
+) : FrontDisplayView2<SimpleMonitorView.CurrentReport, Unit>(
     hardware,
     "SimpleMonitor",
-    90.seconds,
-    15.seconds,
+    null,
+    logger,
 ) {
 
-    @Serializable
-    enum class MonitorStatus {
-        @SerialName("OK")
-        OK,
-
-        @SerialName("Fail")
-        FAIL,
-
-        @SerialName("Skipped")
-        SKIPPED
-    }
-
-    @Serializable
-    data class Monitor(
-        val status: MonitorStatus,
-        @SerialName("virtual_fail_count") val virtualFailCount: Int,
-        val result: String
-    )
-
-    @Serializable
-    data class SimpleMonitorJson(
-        @Serializable(SimpleMonitorInstantSerializer::class)
-        val generated: Instant,
-        val monitors: Map<String, Monitor>
-    )
-
     data class CurrentReport(
-        val timestamp: Instant,
-        val data: SimpleMonitorJson?
+        val timestamp: kotlin.time.Instant,
+        val cycleLength: Duration?,
+        val data: SimplemonitorDataCollector.SimpleMonitorJson?,
     )
 
     companion object {
         private val logger = KotlinLogging.logger {}
-
-        suspend fun getLatestSimpleMonitorJson(url: URI, user: String?, password: String?): SimpleMonitorJson {
-
-            logger.info { "Downloading SimpleMonitor status from $url." }
-
-            return if (user != null && password != null) {
-                val auth = Base64.getEncoder().encodeToString("$user:$password".toByteArray(StandardCharsets.UTF_8))
-                httpClient.get {
-                    url(url.toString())
-                    header("Authorization", "Basic $auth")
-                }.body()
-            } else {
-                httpClient.get(url.toString()).body()
-            }
-        }
     }
 
-    override val preferredDisplayTime: Duration
-        get() {
-            val noFailedMonitors = currentReport?.data?.monitors?.filterValues { it.status == MonitorStatus.FAIL }?.count() ?: 0
-            return (1500.milliseconds * noFailedMonitors).coerceIn(5.seconds, 60.seconds)
+    override fun preferredDisplayTime(status: CurrentReport?): Duration {
+        val noFailedMonitors = status?.data?.monitors?.filterValues { it.status == SimplemonitorDataCollector.MonitorStatus.FAIL }?.count() ?: 0
+        return (1500.milliseconds * noFailedMonitors).coerceIn(5.seconds, 60.seconds)
+    }
+
+    override suspend fun onNewMeasurementReport(
+        report: MeasurementReport,
+        oldStatus: CurrentReport?
+    ): UpdateStatus {
+        if (report !is SimplemonitorDataCollector.SimplemonitorMeasurementReport) {
+            return UpdateStatus.NoNewData
         }
 
-    @Volatile
-    internal var currentReport: CurrentReport? = null
-
-    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
-        val (status, newReport) = try {
-            val json = getLatestSimpleMonitorJson(
-                config.simplemonitor.url,
-                config.simplemonitor.user, config.simplemonitor.password
+        return UpdateStatus.NewData(
+            CurrentReport(
+                report.timestamp,
+                report.cycleLength ?: oldStatus?.cycleLength,
+                report.data
             )
-
-            json.monitors.filterValues { it.status == MonitorStatus.FAIL }.let { failedMons ->
-                if (failedMons.isNotEmpty()) {
-                    logger.warn { "${failedMons.size} monitors are failed." }
-                }
-            }
-
-            UpdateStatus.FULL_SUCCESS to CurrentReport(now, json)
-        } catch (e: Exception) {
-            logger.error(e) { "Failed to download status from SimpleMonitor URL." }
-            UpdateStatus.FAILURE to CurrentReport(now, null)
-        }
-
-        currentReport = newReport
-
-        status
+        )
     }
 
-    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun redrawDisplay(
+        redrawStatic: Boolean,
+        redrawStatus: Boolean,
+        now: kotlin.time.Instant,
+        report: CurrentReport?,
+        instant: Unit?
+    ): Unit = coroutineScope {
+        val fd = hardware.frontDisplay
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
-        coroutineScope {
-            val report = currentReport
-            val fd = hardware.frontDisplay
+        if (redrawStatus) {
+            logger.debug { "Redrawing SimpleMonitor status." }
 
-            if (redrawStatus) {
-                fd.clear()
+            fun monitors(status: SimplemonitorDataCollector.MonitorStatus) = report?.data?.monitors?.filterValues { it.status == status }
+            val failedMonitors = monitors(SimplemonitorDataCollector.MonitorStatus.FAIL)
 
-                logger.debug { "Redrawing SimpleMonitor status." }
+            launch {
+                val time = report?.data?.generated?.toLocalDateTime(TimeZone.currentSystemDefault())
+                    ?.toLocalTime()
+                    ?.formatJustHoursMinutes()
+                    ?: "--:--"
+                fd.setStaticText(0, "*$time")
+            }
 
-                fun monitors(status: MonitorStatus) = report?.data?.monitors?.filterValues { it.status == status }
-                val failedMonitors = monitors(MonitorStatus.FAIL)
+            launch {
+                val okMonitorsCount = monitors(SimplemonitorDataCollector.MonitorStatus.OK)?.size
+                val skippedMonitorsCount = monitors(SimplemonitorDataCollector.MonitorStatus.SKIPPED)?.size
 
-                launch {
-                    val time = report?.data?.generated?.toLocalDateTime(TimeZone.currentSystemDefault())
-                        ?.toLocalTime()
-                        ?.formatJustHoursMinutes()
-                        ?: "--:--"
-                    fd.setStaticText(0, "*$time")
-                }
+                val allMonitorsCount = report?.data?.monitors?.size
 
-                launch {
-                    val okMonitorsCount = monitors(MonitorStatus.OK)?.size
-                    val skippedMonitorsCount = monitors(MonitorStatus.SKIPPED)?.size
+                val upperText = "OK:${okMonitorsCount ?: "--"}+${
+                    skippedMonitorsCount
+                        ?: "--"
+                }/${allMonitorsCount ?: "--"}"
 
-                    val allMonitorsCount = report?.data?.monitors?.size
+                fd.setStaticText(20 - upperText.length, upperText)
+            }
 
-                    val upperText = "OK:${okMonitorsCount ?: "--"}+${
-                        skippedMonitorsCount
-                            ?: "--"
-                    }/${allMonitorsCount ?: "--"}"
+            launch {
+                when (failedMonitors?.size) {
+                    null -> fd.setStaticText(21, "SERVER COMM ERROR!")
+                    0 -> fd.setStaticText(22, "All monitors OK")
+                    else -> {
+                        val failedText = "${failedMonitors.size} FAILED"
+                        fd.setStaticText(20, failedText)
+                        val scrollingText = failedMonitors.keys.joinToString(",").abbreviate(Slot.SLOT0.capacity)
 
-                    fd.setStaticText(20 - upperText.length, upperText)
-                }
-
-                launch {
-                    when (failedMonitors?.size) {
-                        null -> fd.setStaticText(21, "SERVER COMM ERROR!")
-                        0 -> fd.setStaticText(22, "All monitors OK")
-                        else -> {
-                            val failedText = "${failedMonitors.size} FAILED"
-                            fd.setStaticText(20, failedText)
-                            val scrollingText = failedMonitors.keys.joinToString(",").abbreviate(Slot.SLOT0.capacity)
-
-                            fd.setScrollingText(
-                                Slot.SLOT0,
-                                21 + failedText.length,
-                                19 - failedText.length,
-                                scrollingText
-                            )
-                        }
+                        fd.setScrollingText(
+                            Slot.SLOT0,
+                            21 + failedText.length,
+                            19 - failedText.length,
+                            scrollingText
+                        )
                     }
                 }
             }
-
-            drawProgressBar(report?.timestamp, now)
-
-            Unit
         }
+
+        drawProgressBar(report?.timestamp, now, report?.cycleLength)
+    }
 }

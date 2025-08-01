@@ -24,7 +24,7 @@ class LocalSensorView(
     null,
     logger,
 ) {
-    override val preferredDisplayTime: Duration = 12.seconds
+    override fun preferredDisplayTime(status: CurrentReport?) = 12.seconds
 
     companion object {
         private val logger = KotlinLogging.logger {}

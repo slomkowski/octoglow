@@ -1,144 +1,31 @@
+@file:OptIn(ExperimentalTime::class, ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.Config
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
+import eu.slomkowski.octoglow.octoglowd.datacollectors.TodoistDataCollector
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.httpClient
+import eu.slomkowski.octoglow.octoglowd.toKotlinxDatetimeInstant
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.call.*
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.http.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.*
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 
 class TodoistView(
-    private val config: Config,
     hardware: Hardware,
-) : FrontDisplayView(
+) : FrontDisplayView2<TodoistView.Report, Unit>(
     hardware,
-    "Number of pending tasks from todoist.com",
-    90.seconds,
-    15.seconds,
+    "Todoist",
+    null,
+    logger,
 ) {
-    override val preferredDisplayTime: Duration = 6.seconds
-
-    @Serializable
-    data class TaskDto(
-        val id: String,
-        val content: String,
-        val due: Due?,
-    )
-
-    @Serializable
-    data class Due(
-        val date: String
-    )
-
-    @Serializable
-    data class TaskResponse(
-        val results: List<TaskDto> = emptyList(),
-
-        @SerialName("next_cursor")
-        val nextCursor: String? = null,
-    )
-
-    @Serializable
-    data class LiveNotification(
-        @SerialName("created_at")
-        val createdAt: Instant,
-
-        @SerialName("notification_type")
-        val notificationType: String,
-    )
-
-    @Serializable
-    data class CompletedInfo(
-        val id: String,
-    )
-
-    @Serializable
-    data class Item(
-        val id: String,
-        @SerialName("project_id")
-        val projectId: String,
-        val content: String,
-        val priority: Int,
-        val due: Due?,
-//        val completed: Boolean,
-        @SerialName("user_id")
-        val userId: String,
-        val labels: List<String>,
-        @SerialName("parent_id")
-        val parentId: String?,
-//        val order: Int,
-        @SerialName("child_order")
-        val childOrder: Int,
-//        @SerialName("date_added")
-//        val dateAdded: String,
-        @SerialName("checked")
-        val isChecked: Boolean,
-        val description: String,
-        @SerialName("is_deleted")
-        val isDeleted: Boolean,
-    ) {
-        val dueDate: LocalDate?
-            get() = due?.date?.let {
-                try {
-                    LocalDateTime.parse(it).date
-                } catch (e: IllegalArgumentException) {
-                    try {
-                        LocalDate.parse(it)
-                    } catch (e: IllegalArgumentException) {
-                        logger.error { "Cannot parse $it" }
-                        null
-                    }
-                }
-            }
-
-        fun toTask() = Task(id, dueDate)
-    }
-
-    @Serializable
-    data class SyncResponse(
-        @SerialName("full_sync")
-        val fullSync: Boolean,
-
-//        @SerialName("completed_info")
-//        val completedInfo: List<CompletedInfo>,
-
-        @SerialName("items")
-        val items: List<Item>,
-
-//        @SerialName("live_notifications")
-//        val liveNotifications: List<LiveNotification>,
-
-        @SerialName("sync_token")
-        val syncToken: String,
-    )
+    override fun preferredDisplayTime(status: Report?) = 6.seconds
 
     companion object {
         private val logger = KotlinLogging.logger {}
-
-        private const val TODOIST_SYNC_ENDPOINT = "https://api.todoist.com/api/v1/sync"
-
-        suspend fun callSyncApi(apiToken: String, syncToken: String = "*"): Pair<String, List<Item>> {
-            val response = httpClient.post(TODOIST_SYNC_ENDPOINT) {
-                parameter("sync_token", syncToken)
-                parameter("resource_types", """["items"]""")
-                header(HttpHeaders.Authorization, "Bearer $apiToken")
-                timeout {
-                    requestTimeoutMillis = 30_000
-                }
-            }.body<SyncResponse>()
-
-            return response.syncToken to response.items
-        }
     }
 
     data class Report(
@@ -149,32 +36,14 @@ class TodoistView(
         override fun toString(): String = "${todayTasks.size} today, ${tomorrowTasks.size} tomorrow, ${overdueTasks.size} overdue"
     }
 
-    @Volatile
-    private var currentReport: Report? = null
-
-    @Volatile
-    private var syncToken: String? = null
-
-    override suspend fun pollInstantData(now: Instant) = UpdateStatus.NO_NEW_DATA
-
-    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
-        val (newSyncToken, items) = try {
-            callSyncApi(config.todoist.apiKey, syncToken ?: "*")
-        } catch (e: Exception) {
-            logger.error(e) { "Error while calling Todoist sync endpoint;" }
-            currentReport = null
-            syncToken = null
-            return@coroutineScope UpdateStatus.FAILURE
+    override suspend fun onNewMeasurementReport(report: MeasurementReport, oldReport: Report?): UpdateStatus {
+        if (report !is TodoistDataCollector.TodoistMeasurementReport) {
+            return UpdateStatus.NoNewData
         }
 
-        syncToken = newSyncToken
+        val items = report.dataItem.getOrNull() ?: return UpdateStatus.NoNewData // todo na pewno?
 
-        if (items.isEmpty()) {
-            return@coroutineScope UpdateStatus.NO_NEW_DATA
-        }
-
-        val oldReport = currentReport
-        val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = report.timestamp.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).date
 
         fun createGroupOfTasks(oldTasks: Set<Task>?, dateFilter: (LocalDate) -> Boolean): Set<Task> {
             val tasks = oldTasks?.toMutableSet() ?: mutableSetOf()
@@ -200,9 +69,8 @@ class TodoistView(
         )
 
         logger.info { "Tasks: $newReport." }
-        currentReport = newReport
 
-        UpdateStatus.FULL_SUCCESS
+        return UpdateStatus.NewData(newReport)
     }
 
     data class Task(
@@ -210,9 +78,14 @@ class TodoistView(
         val dueDate: LocalDate?,
     )
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant): Unit = coroutineScope {
+    override suspend fun redrawDisplay(
+        redrawStatic: Boolean,
+        redrawStatus: Boolean,
+        now: kotlin.time.Instant,
+        status: Report?,
+        instant: Unit?
+    ): Unit = coroutineScope {
         val fd = hardware.frontDisplay
-        val rep = currentReport
 
         if (redrawStatic) {
             fd.setStaticText(0, "Todoist:")
@@ -222,10 +95,9 @@ class TodoistView(
         }
 
         if (redrawStatus) {
-            fd.setStaticText(20, rep?.todayTasks?.size?.toString() ?: "--")
-            fd.setStaticText(31, rep?.tomorrowTasks?.size?.toString() ?: "--")
-            fd.setStaticText(9, rep?.overdueTasks?.size?.toString() ?: "--")
+            fd.setStaticText(20, status?.todayTasks?.size?.toString() ?: "--")
+            fd.setStaticText(31, status?.tomorrowTasks?.size?.toString() ?: "--")
+            fd.setStaticText(9, status?.overdueTasks?.size?.toString() ?: "--")
         }
     }
-
 }

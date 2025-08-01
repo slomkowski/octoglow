@@ -29,7 +29,7 @@ class CryptocurrencyView(
     null,
     logger,
 ) {
-    override val preferredDisplayTime: Duration = 13.seconds
+    override fun preferredDisplayTime(status: CurrentReport?) = 13.seconds
 
     companion object {
         private val logger = KotlinLogging.logger {}

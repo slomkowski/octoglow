@@ -23,11 +23,11 @@ class WeatherSensorView(
     hardware: Hardware
 ) : FrontDisplayView2<WeatherSensorView.CurrentReport, Unit>(
     hardware,
-    "Weather sensor view",
+    "Weather sensor",
     null,
     logger,
 ) {
-    override val preferredDisplayTime: Duration = 12.seconds
+    override fun preferredDisplayTime(status: CurrentReport?) = 12.seconds
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -122,9 +122,9 @@ class WeatherSensorView(
         UpdateStatus.NewData(
             CurrentReport(
                 report.cycleLength ?: oldStatus?.cycleLength ?: 5.minutes,
-            indoor.await()?.let { report.timestamp to it } ?: oldStatus?.indoorSensor,
-            outdoor.await()?.let { report.timestamp to it } ?: oldStatus?.outdoorSensor,
-        ))
+                indoor.await()?.let { report.timestamp to it } ?: oldStatus?.indoorSensor,
+                outdoor.await()?.let { report.timestamp to it } ?: oldStatus?.outdoorSensor,
+            ))
     }
 
     override suspend fun redrawDisplay(

@@ -28,7 +28,7 @@ class GeigerView(
     2.seconds,
     logger,
 ) {
-    override val preferredDisplayTime: Duration = 11.seconds
+    override fun preferredDisplayTime(status: CounterReport?) = 11.seconds
 
     companion object {
         private val logger = KotlinLogging.logger {}
