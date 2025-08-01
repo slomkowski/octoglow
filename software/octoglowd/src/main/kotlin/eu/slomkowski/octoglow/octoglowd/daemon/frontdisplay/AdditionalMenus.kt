@@ -1,10 +1,10 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
-import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon
+import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDemon
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 
-class BrightnessMenu(private val brightnessDaemon: BrightnessDaemon) : Menu("Brightness") {
+class BrightnessMenu(private val brightnessDaemon: BrightnessDemon) : Menu("Brightness") {
     companion object {
         private val logger = KotlinLogging.logger {}
 

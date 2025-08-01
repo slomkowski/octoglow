@@ -186,3 +186,6 @@ fun String.abbreviate(maxLength: Int): String {
         else -> substring(0, maxLength - 3) + "..."
     }
 }
+
+private val uppercaseLetters = Regex("([A-Z])")
+fun toSnakeCase(s: String) = uppercaseLetters.replace(s, "_$1").uppercase().trim('_')

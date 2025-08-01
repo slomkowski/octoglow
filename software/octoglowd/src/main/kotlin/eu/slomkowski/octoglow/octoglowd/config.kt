@@ -44,7 +44,9 @@ data class ConfSimpleMonitor(
 @Serializable
 data class ConfSingleAirStation(
     val id: Long,
-    val name: String
+
+    @Deprecated("not used")
+    val name: String,
 )
 
 @Serializable

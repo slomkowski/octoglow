@@ -5,24 +5,30 @@ import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.calendar.determineHolidayNamesForDay
 import eu.slomkowski.octoglow.octoglowd.calendar.determineNamedaysFor
 import eu.slomkowski.octoglow.octoglowd.calendar.holidayNamesSupportCountryCode
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.*
-import kotlin.time.Duration.Companion.minutes
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
+@OptIn(ExperimentalTime::class)
 class CalendarView(
     private val config: Config,
     hardware: Hardware
-) : FrontDisplayView(
+) : FrontDisplayView2<LocalDate, Unit>(
     hardware,
     "Calendar",
-    3.minutes,
-    1.minutes,
+    null,
+    logger,
 ) {
     override val preferredDisplayTime = 20.seconds
 
@@ -100,30 +106,44 @@ class CalendarView(
             .let { it.replaceFirstChar { char -> char.uppercase() } }
     }
 
-    override suspend fun pollStatusData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
+    override suspend fun onNewMeasurementReport(report: MeasurementReport, oldStatus: LocalDate?): UpdateStatus {
+        val today = report.timestamp.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
 
-    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
-
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
-        coroutineScope {
-            val fd = hardware.frontDisplay
-            val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
-
-            if (redrawStatus) {
-                launch {
-                    val (sunrise, sunset) = calculateSunriseAndSunset(
-                        config.geoPosition.latitude,
-                        config.geoPosition.longitude,
-                        today
-                    )
-                    check(sunrise < LocalTime(10, 0))
-
-                    fd.setStaticText(0, formatDate(today))
-                    fd.setStaticText(15, sunrise.roundToNearestMinute().formatJustHoursMinutes())
-                    fd.setStaticText(35, sunset.roundToNearestMinute().formatJustHoursMinutes())
-                }
-
-                launch { fd.setScrollingText(Slot.SLOT0, 20, 14, getInfoForDay(today).take(Slot.SLOT0.capacity)) }
-            }
+        return if (today == oldStatus) {
+            UpdateStatus.NoNewData
+        } else {
+            UpdateStatus.NewData(today)
         }
+    }
+
+    override suspend fun redrawDisplay(
+        redrawStatic: Boolean,
+        redrawStatus: Boolean,
+        now: Instant,
+        status: LocalDate?,
+        instant: Unit?
+    ): Unit = coroutineScope {
+        val fd = hardware.frontDisplay
+        if (status == null) {
+            fd.setStaticText(0, "no date")
+            return@coroutineScope
+        }
+
+        if (redrawStatus) {
+            launch {
+                val (sunrise, sunset) = calculateSunriseAndSunset(
+                    config.geoPosition.latitude,
+                    config.geoPosition.longitude,
+                    status,
+                )
+                check(sunrise < LocalTime(10, 0))
+
+                fd.setStaticText(0, formatDate(status))
+                fd.setStaticText(15, sunrise.roundToNearestMinute().formatJustHoursMinutes())
+                fd.setStaticText(35, sunset.roundToNearestMinute().formatJustHoursMinutes())
+            }
+
+            launch { fd.setScrollingText(Slot.SLOT0, 20, 14, getInfoForDay(status).take(Slot.SLOT0.capacity)) }
+        }
+    }
 }

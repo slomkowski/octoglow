@@ -2,7 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.daemon
 
 
 import eu.slomkowski.octoglow.octoglowd.*
-import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDaemon.Companion.isSleeping
+import eu.slomkowski.octoglow.octoglowd.daemon.BrightnessDemon.Companion.isSleeping
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 
 
-class BrightnessDaemonTest {
+class BrightnessPollingDemonTest {
     companion object {
         private val logger = KotlinLogging.logger {}
     }
@@ -32,7 +32,7 @@ class BrightnessDaemonTest {
         coEvery { databaseMock.getChangeableSettingAsync(ChangeableSetting.BRIGHTNESS) } returns CompletableDeferred("AUTO")
         coEvery { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, any()) } returns Job()
 
-        val bd = BrightnessDaemon(
+        val bd = BrightnessDemon(
             defaultTestConfig.copy(
                 sleep = ConfSleep(
                     LocalTime(0, 45),
@@ -43,11 +43,11 @@ class BrightnessDaemonTest {
 
         assertEquals(
             3,
-            bd.calculateBrightnessFraction(kotlinx.datetime.LocalDateTime(2019, 1, 23, 17, 21).toInstant(WARSAW_ZONE_ID), BrightnessDaemon.LightSensor.INTERMEDIATE)
+            bd.calculateBrightnessFraction(kotlinx.datetime.LocalDateTime(2019, 1, 23, 17, 21).toInstant(WARSAW_ZONE_ID), BrightnessDemon.LightSensor.INTERMEDIATE)
         )
         assertEquals(
             4,
-            bd.calculateBrightnessFraction(kotlinx.datetime.LocalDateTime(2019, 1, 23, 8, 21).toInstant(WARSAW_ZONE_ID), BrightnessDaemon.LightSensor.FULLY_LIGHT)
+            bd.calculateBrightnessFraction(kotlinx.datetime.LocalDateTime(2019, 1, 23, 8, 21).toInstant(WARSAW_ZONE_ID), BrightnessDemon.LightSensor.FULLY_LIGHT)
         )
 
         runBlocking {
@@ -82,9 +82,9 @@ class BrightnessDaemonTest {
 
     @Test
     fun testCalculateFromData() {
-        fun cr(sleepTime: LocalTime, sleepDurationHours: Int, time: LocalTime) = BrightnessDaemon.calculateFromData(
+        fun cr(sleepTime: LocalTime, sleepDurationHours: Int, time: LocalTime) = BrightnessDemon.calculateFromData(
             LocalTime(7, 32), LocalTime(17, 23),
-            sleepTime, sleepDurationHours.hours, time, BrightnessDaemon.LightSensor.INTERMEDIATE,
+            sleepTime, sleepDurationHours.hours, time, BrightnessDemon.LightSensor.INTERMEDIATE,
         )
 
         (LocalTime(23, 31) to 8).let { (st, d) ->

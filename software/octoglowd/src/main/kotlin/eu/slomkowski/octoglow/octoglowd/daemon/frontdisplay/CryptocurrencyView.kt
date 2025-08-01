@@ -1,32 +1,33 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.*
+import eu.slomkowski.octoglow.octoglowd.Config
+import eu.slomkowski.octoglow.octoglowd.Cryptocurrency
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
+import eu.slomkowski.octoglow.octoglowd.datacollectors.StandardMeasurementReport
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
+@OptIn(ExperimentalTime::class)
 class CryptocurrencyView(
     private val config: Config,
     private val database: DatabaseLayer,
     hardware: Hardware,
-) : FrontDisplayView(
+) : FrontDisplayView2<CryptocurrencyView.CurrentReport, Unit>(
     hardware,
     "Cryptocurrencies",
-    10.minutes,
-    15.seconds,
+    null,
+    logger,
 ) {
     override val preferredDisplayTime: Duration = 13.seconds
 
@@ -34,17 +35,6 @@ class CryptocurrencyView(
         private val logger = KotlinLogging.logger {}
 
         private const val HISTORIC_VALUES_LENGTH = 14
-
-        private const val COINPAPRIKA_API_BASE = "https://api.coinpaprika.com/v1"
-
-        suspend fun getLatestOhlc(coinId: String): OhlcDto {
-            val url = "$COINPAPRIKA_API_BASE/coins/$coinId/ohlcv/today"
-            logger.debug { "Downloading OHLC info from $url" }
-
-            return httpClient.get {
-                url(url)
-            }.body<List<OhlcDto>>().single()
-        }
 
         fun formatDollars(amount: Double?): String {
             return when (amount) {
@@ -55,40 +45,6 @@ class CryptocurrencyView(
                 in 10.0..100.0 -> String.format("$%5.2f", amount)
                 else -> String.format("$%5.3f", amount)
             }
-        }
-
-        fun fillAvailableCryptocurrencies(): Set<CoinInfoDto> = CryptocurrencyView::class.java
-            .getResourceAsStream("/coinpaprika-cryptocurrencies.json").use {
-                jsonSerializer.decodeFromString(it.readToString())
-            }
-    }
-
-    @Serializable
-    data class CoinInfoDto(
-        val id: String,
-        val name: String,
-        val symbol: String
-    )
-
-    @Serializable
-    data class OhlcDto(
-        @Serializable(InstantSerializer::class)
-        @SerialName("time_open")
-        val timeOpen: Instant,
-
-        @Serializable(InstantSerializer::class)
-        @SerialName("time_close")
-        val timeClose: Instant,
-
-        val open: Double,
-        val close: Double,
-        val low: Double,
-        val high: Double
-    ) {
-        init {
-            require(timeClose >= timeOpen)
-            require(low <= high)
-            doubleArrayOf(low, high, open, close).forEach { require(it > 0) }
         }
     }
 
@@ -104,18 +60,55 @@ class CryptocurrencyView(
 
     data class CurrentReport(
         val timestamp: Instant,
+        val cycleLength: Duration,
         val coins: Map<String, CoinReport>
     )
 
-    private val availableCoins: Set<CoinInfoDto> = fillAvailableCryptocurrencies()
+    override suspend fun onNewMeasurementReport(
+        report: MeasurementReport,
+        oldStatus: CurrentReport?
+    ): UpdateStatus = coroutineScope {
+        if (report !is StandardMeasurementReport) {
+            return@coroutineScope UpdateStatus.NoNewData
+        }
 
-    @Volatile
-    private var currentReport: CurrentReport? = null
+        suspend fun getForCoin(coinSymbol: String): CoinReport? {
+            val dbKey = Cryptocurrency(coinSymbol)
+            val coinData = report.values.firstOrNull { it.type == dbKey }?.value?.getOrNull()
+                ?: return null
 
-    private val coinKeys = config.cryptocurrencies.let { listOf(it.coin1, it.coin2, it.coin3) }
+            val history = database.getLastHistoricalValuesByHourAsync(
+                report.timestamp,
+                dbKey,
+                HISTORIC_VALUES_LENGTH,
+            ).await()
 
-    init {
-        coinKeys.forEach { findCoinId(it) }
+            return CoinReport(
+                coinSymbol,
+                coinData,
+                history
+            )
+        }
+
+        val coins = config.cryptocurrencies.let { c ->
+            listOf(c.coin1, c.coin2, c.coin3)
+                .map { async { getForCoin(it)?.let { report -> it to report } } }
+                .awaitAll()
+                .filterNotNull()
+                .toMap()
+        }
+
+        if (coins.isEmpty()) {
+            return@coroutineScope UpdateStatus.NoNewData
+        }
+
+        return@coroutineScope UpdateStatus.NewData(
+            CurrentReport(
+                report.timestamp,
+                report.cycleLength,
+                coins
+            )
+        )
     }
 
     private suspend fun drawCurrencyInfo(cr: CoinReport?, offset: Int, diffChartStep: Double) {
@@ -131,59 +124,22 @@ class CryptocurrencyView(
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
-        coroutineScope {
-            val report = currentReport
-
-            if (redrawStatus) {
-                val c = config.cryptocurrencies
-                val diffChartStep = c.diffChartFraction
-                logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
-                launch { drawCurrencyInfo(report?.coins?.get(c.coin1), 0, diffChartStep) }
-                launch { drawCurrencyInfo(report?.coins?.get(c.coin2), 7, diffChartStep) }
-                launch { drawCurrencyInfo(report?.coins?.get(c.coin3), 14, diffChartStep) }
-            }
-
-            drawProgressBar(report?.timestamp, now)
-
-            Unit
+    override suspend fun redrawDisplay(
+        redrawStatic: Boolean,
+        redrawStatus: Boolean,
+        now: Instant,
+        status: CurrentReport?,
+        instant: Unit?
+    ): Unit = coroutineScope {
+        if (redrawStatus) {
+            val c = config.cryptocurrencies
+            val diffChartStep = c.diffChartFraction
+            logger.debug { "Refreshing cryptocurrency screen, diff chart step: $diffChartStep." }
+            launch { drawCurrencyInfo(status?.coins?.get(c.coin1), 0, diffChartStep) }
+            launch { drawCurrencyInfo(status?.coins?.get(c.coin2), 7, diffChartStep) }
+            launch { drawCurrencyInfo(status?.coins?.get(c.coin3), 14, diffChartStep) }
         }
 
-    /**
-     * Progress bar is dependent only on current time so always success.
-     */
-    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.FULL_SUCCESS
-
-    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
-
-        val newReport = CurrentReport(now, coinKeys.map { symbol ->
-            async {
-                val coinId = findCoinId(symbol)
-                try {
-                    val ohlc = getLatestOhlc(coinId)
-                    val value = ohlc.close
-                    val dbKey = Cryptocurrency(symbol)
-                    logger.info { "Value of $symbol at $now is \$$value." }
-                    database.insertHistoricalValueAsync(ohlc.timeClose, dbKey, value)
-                    val history =
-                        database.getLastHistoricalValuesByHourAsync(now, dbKey, HISTORIC_VALUES_LENGTH).await()
-                    symbol to CoinReport(symbol, value, history)
-                } catch (e: Exception) {
-                    logger.error(e) { "Failed to update status on $symbol." }
-                    null
-                }
-            }
-        }.awaitAll().filterNotNull().toMap())
-
-        currentReport = newReport
-
-        when (newReport.coins.size) {
-            3 -> UpdateStatus.FULL_SUCCESS
-            0 -> UpdateStatus.FAILURE
-            else -> UpdateStatus.PARTIAL_SUCCESS
-        }
+        drawProgressBar(status?.timestamp, now, status?.cycleLength)
     }
-
-    private fun findCoinId(symbol: String): String = checkNotNull(availableCoins.find { it.symbol == symbol }?.id)
-    { "coin with symbol '$symbol' not found" }
 }

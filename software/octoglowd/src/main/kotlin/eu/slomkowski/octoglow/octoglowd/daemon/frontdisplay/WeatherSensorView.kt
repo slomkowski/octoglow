@@ -1,28 +1,31 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
 import eu.slomkowski.octoglow.octoglowd.*
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.hardware.RemoteSensorReport
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
 class WeatherSensorView(
     private val config: Config,
     private val databaseLayer: DatabaseLayer,
     hardware: Hardware
-) : FrontDisplayView(
+) : FrontDisplayView2<WeatherSensorView.CurrentReport, Unit>(
     hardware,
     "Weather sensor view",
-    5.seconds,
-    2.seconds,
+    null,
+    logger,
 ) {
     override val preferredDisplayTime: Duration = 12.seconds
 
@@ -32,246 +35,177 @@ class WeatherSensorView(
         const val HISTORIC_VALUES_LENGTH = 11
         const val TEMPERATURE_CHART_UNIT = 1.0
         const val HUMIDITY_CHART_UNIT = 5.0
-
-        private val MINIMAL_DURATION_BETWEEN_MEASUREMENTS: Duration = 2.minutes
-
-        private val MAXIMAL_DURATION_BETWEEN_MEASUREMENTS: Duration = 5.minutes
-    }
-
-    init {
-        require(MINIMAL_DURATION_BETWEEN_MEASUREMENTS < MAXIMAL_DURATION_BETWEEN_MEASUREMENTS)
-        require(config.remoteSensors.indoorChannelId != config.remoteSensors.outdoorChannelId) { "indoor and outdoor sensors cannot have identical IDs" }
     }
 
     data class RemoteReport(
-        val lastTemperature: Double,
+        val lastTemperature: Double?,
         val historicalTemperature: List<Double?>,
-        val lastHumidity: Double,
+        val lastHumidity: Double?,
         val historicalHumidity: List<Double?>,
-        val isWeakBattery: Boolean
+        val isWeakBattery: Boolean?,
     ) {
         init {
-            require(lastHumidity in (1.0..100.0)) { "invalid humidity: $lastHumidity" }
-            require(lastTemperature in (-40.0..45.0)) { "invalid temperature value: $lastTemperature" }
+            lastHumidity?.let { humidity -> require(humidity in (1.0..100.0)) { "invalid humidity: $humidity" } }
+            lastTemperature?.let { temp -> require(temp in (-40.0..45.0)) { "invalid temperature value: $temp" } }
             require(historicalTemperature.size == HISTORIC_VALUES_LENGTH)
         }
     }
 
     data class CurrentReport(
+        val cycleLength: Duration,
         val indoorSensor: Pair<Instant, RemoteReport>?,
-        val outdoorSensor: Pair<Instant, RemoteReport>?
+        val outdoorSensor: Pair<Instant, RemoteReport>?,
     )
 
-    @Volatile
-    var currentReport: CurrentReport? = null
+    private suspend fun prepareSingleStation(
+        report: MeasurementReport,
+        oldRemoteReport: RemoteReport?,
+        temperatureDbKey: DbMeasurementType,
+        humidityDbKey: DbMeasurementType,
+        weakBatteryDbKey: DbMeasurementType,
+    ): RemoteReport? {
+        val humidity = report.values.firstOrNull { it.type == humidityDbKey }?.value?.getOrNull()
+        val temperature = report.values.firstOrNull { it.type == temperatureDbKey }?.value?.getOrNull()
+        val weakBattery = report.values.firstOrNull { it.type == weakBatteryDbKey }?.value?.getOrNull()
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
-        coroutineScope {
-            val rep = currentReport
-            val fd = hardware.frontDisplay
+        if (humidity == null && temperature == null && weakBattery == null) {
+            return null
+        }
+        val historicalTemperature =
+            databaseLayer.getLastHistoricalValuesByHourAsync(report.timestamp, temperatureDbKey, HISTORIC_VALUES_LENGTH)
 
-            if (redrawStatic) {
-                launch {
-                    fd.setStaticText(9, "in:")
-                }
+        val historicalHumidity =
+            databaseLayer.getLastHistoricalValuesByHourAsync(report.timestamp, humidityDbKey, HISTORIC_VALUES_LENGTH)
+
+        return RemoteReport(
+            temperature ?: oldRemoteReport?.lastTemperature,
+            historicalTemperature.await(),
+            humidity ?: oldRemoteReport?.lastHumidity,
+            historicalHumidity.await(),
+            when (weakBattery ?: oldRemoteReport?.isWeakBattery) {
+                1.0 -> true
+                null -> null
+                else -> false
             }
-
-            if (redrawStatus) {
-                val outs = rep?.outdoorSensor?.second
-                val ins = rep?.indoorSensor?.second
-
-                fd.setStaticText(1, formatHumidity(outs?.lastHumidity))
-                fd.setStaticText(13, formatHumidity(ins?.lastHumidity))
-
-                fd.setStaticText(20, formatTemperature(outs?.lastTemperature))
-                fd.setStaticText(30, formatTemperature(ins?.lastTemperature))
-
-                outs?.let {
-                    fd.setOneLineDiffChart(
-                        5 * 5,
-                        it.lastHumidity,
-                        it.historicalHumidity,
-                        HUMIDITY_CHART_UNIT
-                    )
-                }
-
-                ins?.let {
-                    fd.setOneLineDiffChart(
-                        85,
-                        it.lastHumidity,
-                        it.historicalHumidity,
-                        HUMIDITY_CHART_UNIT
-                    )
-                }
-
-                outs?.let {
-                    fd.setOneLineDiffChart(
-                        5 * 20 + 36,
-                        it.lastTemperature,
-                        it.historicalTemperature,
-                        TEMPERATURE_CHART_UNIT
-                    )
-                }
-
-                ins?.let {
-                    fd.setOneLineDiffChart(
-                        5 * 30 + 37,
-                        it.lastTemperature,
-                        it.historicalTemperature,
-                        TEMPERATURE_CHART_UNIT
-                    )
-                }
-
-                if (outs?.isWeakBattery == true) {
-                    fd.setStaticText(4, "!")
-                }
-
-                if (ins?.isWeakBattery == true) {
-                    fd.setStaticText(16, "!")
-                }
-            }
-
-            drawProgressBar(
-                minOf(
-                    rep?.indoorSensor?.first ?: Instant.DISTANT_PAST,
-                    rep?.outdoorSensor?.first ?: Instant.DISTANT_PAST
-                ), now, MAXIMAL_DURATION_BETWEEN_MEASUREMENTS
-            )
-
-            Unit
-        }
-
-    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
-
-    private suspend fun poolRemoteSensor(
-        now: Instant,
-        receivedReport: RemoteSensorReport?,
-        channelId: Int,
-        previousReport: Pair<Instant, RemoteReport>?,
-        temperatureDbKey: MeasurementType,
-        humidityDbKey: MeasurementType,
-        weakBatteryDbKey: MeasurementType
-    ): Pair<UpdateStatus, RemoteReport?> = coroutineScope {
-
-        if (receivedReport == null || receivedReport.alreadyReadFlag) {
-            return@coroutineScope UpdateStatus.NO_NEW_DATA to null
-        }
-
-        if (channelId != receivedReport.sensorId) {
-            return@coroutineScope UpdateStatus.NO_NEW_DATA to null
-        }
-
-        // don't update report if it is younger than MINIMAL_DURATION_BETWEEN_MEASUREMENTS
-        if (now - (previousReport?.first ?: Instant.DISTANT_PAST) < MINIMAL_DURATION_BETWEEN_MEASUREMENTS) {
-            logger.debug {
-                "Values for remote sensor (channel $channelId) saved at ${previousReport?.first}, skipping."
-            }
-            return@coroutineScope UpdateStatus.NO_NEW_DATA to null
-        }
-
-        try {
-            listOf(
-                databaseLayer.insertHistoricalValueAsync(now, temperatureDbKey, receivedReport.temperature),
-                databaseLayer.insertHistoricalValueAsync(now, humidityDbKey, receivedReport.humidity),
-                databaseLayer.insertHistoricalValueAsync(
-                    now, weakBatteryDbKey, if (receivedReport.batteryIsWeak) {
-                        1.0
-                    } else {
-                        0.0
-                    }
-                )
-            ).joinAll()
-
-            val historicalTemperature =
-                databaseLayer.getLastHistoricalValuesByHourAsync(now, temperatureDbKey, HISTORIC_VALUES_LENGTH)
-
-            val historicalHumidity =
-                databaseLayer.getLastHistoricalValuesByHourAsync(now, humidityDbKey, HISTORIC_VALUES_LENGTH)
-
-            UpdateStatus.FULL_SUCCESS to RemoteReport(
-                receivedReport.temperature,
-                historicalTemperature.await(),
-                receivedReport.humidity,
-                historicalHumidity.await(),
-                receivedReport.batteryIsWeak
-            )
-        } catch (e: Exception) {
-            logger.error(e) { "Error during updating state of remote sensor (channel ${receivedReport.sensorId})." }
-            UpdateStatus.FAILURE to null
-        }
+        )
     }
 
-    override suspend fun pollStatusData(now: Instant) = coroutineScope {
 
-        // if status failure, set null; other
-        fun <T : Any> takeIfReportAppropriate(
-            repPair: Pair<UpdateStatus, T?>,
-            oldRep: Pair<Instant, T>?
-        ): Pair<Instant, T>? {
-            val (newStatus, newRep) = repPair
+    override suspend fun onNewMeasurementReport(
+        report: MeasurementReport,
+        oldStatus: CurrentReport?
+    ): UpdateStatus = coroutineScope {
+        val indoor = async {
+            prepareSingleStation(
+                report,
+                oldStatus?.indoorSensor?.second,
+                IndoorTemperature,
+                IndoorHumidity,
+                IndoorWeakBattery
+            )
+        }
 
-            return when (newStatus) {
-                UpdateStatus.FAILURE -> null
-                UpdateStatus.FULL_SUCCESS -> now to checkNotNull(newRep) { "status is $newStatus, but $newRep is null" }
-                UpdateStatus.NO_NEW_DATA -> oldRep?.takeIf { (prevTimestamp, _) -> now - prevTimestamp < MAXIMAL_DURATION_BETWEEN_MEASUREMENTS }
-                else -> error("status $newStatus not supported")
+        val outdoor = async {
+            prepareSingleStation(
+                report,
+                oldStatus?.outdoorSensor?.second,
+                OutdoorTemperature,
+                OutdoorHumidity,
+                OutdoorWeakBattery
+            )
+        }
+
+        if (indoor.await() == null && outdoor.await() == null) {
+            return@coroutineScope UpdateStatus.NoNewData
+        }
+
+        UpdateStatus.NewData(
+            CurrentReport(
+                report.cycleLength ?: oldStatus?.cycleLength ?: 5.minutes,
+            indoor.await()?.let { report.timestamp to it } ?: oldStatus?.indoorSensor,
+            outdoor.await()?.let { report.timestamp to it } ?: oldStatus?.outdoorSensor,
+        ))
+    }
+
+    override suspend fun redrawDisplay(
+        redrawStatic: Boolean,
+        redrawStatus: Boolean,
+        now: Instant,
+        status: CurrentReport?,
+        instant: Unit?
+    ): Unit = coroutineScope {
+        val fd = hardware.frontDisplay
+
+        if (redrawStatic) {
+            launch {
+                fd.setStaticText(9, "in:")
             }
         }
 
-        val oldReport = currentReport
+        if (redrawStatus) {
+            val outs = status?.outdoorSensor?.second
+            val ins = status?.indoorSensor?.second
 
-        val remoteSensorReport = hardware.clockDisplay.retrieveRemoteSensorReport()
+            fd.setStaticText(1, formatHumidity(outs?.lastHumidity))
+            fd.setStaticText(13, formatHumidity(ins?.lastHumidity))
 
-        val newIndoorReport = poolRemoteSensor(
+            fd.setStaticText(20, formatTemperature(outs?.lastTemperature))
+            fd.setStaticText(30, formatTemperature(ins?.lastTemperature))
+
+            outs?.let {
+                fd.setOneLineDiffChart(
+                    5 * 5,
+                    it.lastHumidity,
+                    it.historicalHumidity,
+                    HUMIDITY_CHART_UNIT
+                )
+            }
+
+            ins?.let {
+                fd.setOneLineDiffChart(
+                    85,
+                    it.lastHumidity,
+                    it.historicalHumidity,
+                    HUMIDITY_CHART_UNIT
+                )
+            }
+
+            outs?.let {
+                fd.setOneLineDiffChart(
+                    5 * 20 + 36,
+                    it.lastTemperature,
+                    it.historicalTemperature,
+                    TEMPERATURE_CHART_UNIT
+                )
+            }
+
+            ins?.let {
+                fd.setOneLineDiffChart(
+                    5 * 30 + 37,
+                    it.lastTemperature,
+                    it.historicalTemperature,
+                    TEMPERATURE_CHART_UNIT
+                )
+            }
+
+            if (outs?.isWeakBattery == true) {
+                fd.setStaticText(4, "!")
+            }
+
+            if (ins?.isWeakBattery == true) {
+                fd.setStaticText(16, "!")
+            }
+        }
+
+        drawProgressBar(
+            minOf(
+                status?.indoorSensor?.first ?: Instant.DISTANT_PAST,
+                status?.outdoorSensor?.first ?: Instant.DISTANT_PAST,
+            ),
             now,
-            remoteSensorReport,
-            config.remoteSensors.indoorChannelId,
-            oldReport?.indoorSensor,
-            IndoorTemperature,
-            IndoorHumidity,
-            IndoorWeakBattery
+            status?.cycleLength,
         )
 
-        val newOutdoorReport = poolRemoteSensor(
-            now,
-            remoteSensorReport,
-            config.remoteSensors.outdoorChannelId,
-            oldReport?.outdoorSensor,
-            OutdoorTemperature,
-            OutdoorHumidity,
-            OutdoorWeakBattery
-        )
-
-        val statuses = listOf(newOutdoorReport, newIndoorReport)
-            .map { it.first }
-            .groupingBy { it }
-            .eachCount()
-
-        val newReport = CurrentReport(
-            takeIfReportAppropriate(newIndoorReport, oldReport?.indoorSensor),
-            takeIfReportAppropriate(newOutdoorReport, oldReport?.outdoorSensor)
-        )
-
-        if (newReport != oldReport) {
-            currentReport = newReport
-        }
-
-        return@coroutineScope when {
-            statuses[UpdateStatus.FAILURE] == 2 -> {
-                UpdateStatus.FAILURE
-            }
-
-            statuses[UpdateStatus.NO_NEW_DATA] == 2 -> {
-                UpdateStatus.NO_NEW_DATA
-            }
-
-            (statuses[UpdateStatus.FAILURE] ?: 0) > 0 -> {
-                UpdateStatus.PARTIAL_SUCCESS
-            }
-
-            else -> {
-                UpdateStatus.FULL_SUCCESS
-            }
-        }
+        Unit
     }
 }

@@ -1,143 +1,40 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
 import eu.slomkowski.octoglow.octoglowd.Config
-import eu.slomkowski.octoglow.octoglowd.LocalDateSerializer
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
+import eu.slomkowski.octoglow.octoglowd.datacollectors.NbpDataCollector
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.httpClient
-import eu.slomkowski.octoglow.octoglowd.toLocalDate
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.*
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
 class NbpView(
     private val config: Config,
     hardware: Hardware
-) : FrontDisplayView(
+) : FrontDisplayView2<NbpView.CurrentReport, Unit>(
     hardware,
     "NBP exchange rates",
-    10.minutes,
-    15.seconds,
+    null,
+    logger,
 ) {
     override val preferredDisplayTime = 13.seconds
 
-    interface DatedPrice {
-        val date: LocalDate
-        val price: Double
-    }
-
-    @Serializable
-    data class RateDto(
-        val no: String,
-        @Serializable(LocalDateSerializer::class)
-        val effectiveDate: LocalDate,
-        val mid: Double
-    ) : DatedPrice {
-        override val date: LocalDate
-            get() = effectiveDate
-        override val price: Double
-            get() = mid
-    }
-
-    @Serializable
-    data class CurrencyDto(
-        val table: String,
-        val currency: String,
-        val code: String,
-        val rates: List<RateDto>
-    )
-
-    data class SingleCurrencyReport(
-        val code: String,
-        val isLatestFromToday: Boolean,
-        val latest: Double,
-        val historical: List<Double?>
-    ) {
-        init {
-            require(historical.size == HISTORIC_VALUES_LENGTH)
-        }
-    }
-
     data class CurrentReport(
         val timestamp: Instant,
-        val currencies: Map<String, SingleCurrencyReport>
+        val cycleLength: Duration,
+        val currencies: Map<String, NbpDataCollector.SingleNbpCurrencyMeasurement>
     )
-
-    @Serializable
-    data class GoldPrice(
-        @Serializable(LocalDateSerializer::class)
-        @SerialName("data")
-        override val date: LocalDate,
-
-        @SerialName("cena")
-        override val price: Double
-    ) : DatedPrice
 
     companion object {
         private val logger = KotlinLogging.logger {}
-
-        private const val OUNCE = 31.1034768 // grams
-
-        private const val HISTORIC_VALUES_LENGTH = 14
-
-        private const val NBP_API_BASE = "https://api.nbp.pl/api/"
-
-        suspend fun getCurrencyRates(currencyCode: String, howMany: Int): List<RateDto> {
-            require(currencyCode.isNotBlank())
-            require(howMany > 0)
-            logger.debug { "Downloading currency rates for $currencyCode." }
-            val url = "$NBP_API_BASE/exchangerates/rates/a/$currencyCode/last/$howMany"
-
-            val resp: CurrencyDto = httpClient.get(url).body()
-
-            return resp.rates
-        }
-
-        suspend fun getGoldRates(howMany: Int): List<GoldPrice> {
-            require(howMany > 0)
-            logger.debug { "Downloading gold price." }
-            val url = "$NBP_API_BASE/cenyzlota/last/$howMany"
-
-            val resp: List<GoldPrice> = httpClient.get(url).body()
-
-            return resp.apply {
-                check(isNotEmpty())
-            }
-        }
-
-        fun createReport(code: String, rates: List<DatedPrice>, today: LocalDate): SingleCurrencyReport {
-            val mostRecentRate = checkNotNull(rates.maxByOrNull { it.date })
-
-            val historical = ((1)..HISTORIC_VALUES_LENGTH).map { dayNumber ->
-                val day = today.minus(dayNumber, DateTimeUnit.DAY)
-                rates.singleOrNull { it.date == day }?.price
-            }.asReversed()
-
-            return SingleCurrencyReport(
-                code,
-                mostRecentRate.date == today,
-                mostRecentRate.price,
-                historical
-            )
-        }
-
-        suspend fun getCurrencyReport(code: String, today: LocalDate): SingleCurrencyReport {
-            val rates = when (code) {
-                "XAU" -> getGoldRates(HISTORIC_VALUES_LENGTH).map { r -> GoldPrice(r.date, OUNCE * r.price) }
-                else -> getCurrencyRates(code, HISTORIC_VALUES_LENGTH)
-            }
-            return createReport(code, rates, today)
-        }
 
         fun formatZloty(amount: Double?): String {
             return when (amount) {
@@ -152,14 +49,26 @@ class NbpView(
         }
     }
 
-    private val currencyKeys = listOf(config.nbp.currency1, config.nbp.currency2, config.nbp.currency3).onEach {
-        check(it.length == 3) { "invalid currency code $it" }
+    override suspend fun onNewMeasurementReport(
+        report: MeasurementReport,
+        oldStatus: CurrentReport?,
+    ): UpdateStatus {
+        val currenciesToUpdate = report.values.filterIsInstance<NbpDataCollector.SingleNbpCurrencyMeasurement>()
+
+        if (currenciesToUpdate.isEmpty()) {
+            return UpdateStatus.NoNewData
+        }
+
+        return UpdateStatus.NewData(
+            CurrentReport(
+                report.timestamp,
+                checkNotNull(report.cycleLength ?: oldStatus?.cycleLength),
+                (oldStatus?.currencies.orEmpty()).plus(currenciesToUpdate.associateBy { it.code }),
+            )
+        )
     }
 
-    @Volatile
-    private var currentReport: CurrentReport? = null
-
-    private suspend fun drawCurrencyInfo(cr: SingleCurrencyReport?, offset: Int, diffChartStep: Double) {
+    private suspend fun drawCurrencyInfo(cr: NbpDataCollector.SingleNbpCurrencyMeasurement?, offset: Int, diffChartStep: Double) {
         require(diffChartStep > 0)
         hardware.frontDisplay.apply {
             setStaticText(
@@ -169,59 +78,30 @@ class NbpView(
                     null -> "---"
                 }
             )
-            setStaticText(offset + 20, formatZloty(cr?.latest))
+            setStaticText(offset + 20, formatZloty(cr?.value?.getOrNull()))
 
             if (cr != null) {
-                val unit = cr.latest * diffChartStep
-                setOneLineDiffChart(5 * (offset + 3), cr.latest, cr.historical, unit)
+                val unit = cr.value.getOrElse { 1.0 } * diffChartStep
+                setOneLineDiffChart(5 * (offset + 3), cr.value.getOrNull(), cr.historical, unit)
             }
         }
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
-        coroutineScope {
-            val report = currentReport
-
-            if (redrawStatus) {
-                val diffChartStep = config.nbp.diffChartFraction
-                logger.debug { "Refreshing NBP screen, diff chart step: $diffChartStep." }
-                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency1), 0, diffChartStep) }
-                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency2), 7, diffChartStep) }
-                launch { drawCurrencyInfo(report?.currencies?.get(config.nbp.currency3), 14, diffChartStep) }
-            }
-
-            drawProgressBar(report?.timestamp, now)
-
-            Unit
+    override suspend fun redrawDisplay(
+        redrawStatic: Boolean,
+        redrawStatus: Boolean,
+        now: Instant,
+        status: CurrentReport?,
+        instant: Unit?
+    ): Unit = coroutineScope {
+        if (redrawStatus) {
+            val diffChartStep = config.nbp.diffChartFraction
+            logger.debug { "Refreshing NBP screen, diff chart step: $diffChartStep." }
+            launch { drawCurrencyInfo(status?.currencies?.get(config.nbp.currency1), 0, diffChartStep) }
+            launch { drawCurrencyInfo(status?.currencies?.get(config.nbp.currency2), 7, diffChartStep) }
+            launch { drawCurrencyInfo(status?.currencies?.get(config.nbp.currency3), 14, diffChartStep) }
         }
 
-    /**
-     * Progress bar is dependent only on current time so always success.
-     */
-    override suspend fun pollInstantData(now: Instant): UpdateStatus = UpdateStatus.NO_NEW_DATA
-
-    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
-
-        val newReport = CurrentReport(now, currencyKeys.map { code ->
-            async {
-                try {
-                    code to getCurrencyReport(
-                        code,
-                        now.toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
-                    )
-                } catch (e: Exception) {
-                    logger.error(e) { "Failed to update status on $code." }
-                    null
-                }
-            }
-        }.awaitAll().filterNotNull().toMap())
-
-        currentReport = newReport
-
-        when (newReport.currencies.size) {
-            3 -> UpdateStatus.FULL_SUCCESS
-            0 -> UpdateStatus.FAILURE
-            else -> UpdateStatus.PARTIAL_SUCCESS
-        }
+        drawProgressBar(status?.timestamp, now, status?.cycleLength)
     }
 }

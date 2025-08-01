@@ -17,9 +17,9 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 
-class AnalogGaugeDaemon(
+class AnalogGaugeDemon(
     private val hardware: Hardware,
-) : Daemon(logger, 200.milliseconds) {
+) : PollingDemon(logger, 200.milliseconds) {
 
     data class WifiSignalInfo(
         val ifName: String,

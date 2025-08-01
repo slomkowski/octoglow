@@ -43,7 +43,7 @@ interface FrontDisplay {
 
     suspend fun clear()
 
-    suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T)
+    suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T?, historicalValues: List<T?>?, unit: T)
 
     suspend fun <T : Number> setTwoLinesDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T)
 
@@ -171,7 +171,11 @@ class FrontDisplayReal(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0
         sendCommand("set end-of-construction year", 9, lastDigitsOfYear.toInt())
     }
 
-    override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
+    override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T?, historicalValues: List<T?>?, unit: T) {
+        if(currentValue == null || historicalValues == null) {
+            return // todo probably paint empty space
+        }
+
         require(historicalValues.size + 1 < MAX_VALUES_IN_CHART) { "number of values cannot exceed $MAX_VALUES_IN_CHART" }
         require(historicalValues.isNotEmpty()) { "there has to be at least one value" }
         val maxPosition = 5 * 40 - historicalValues.size + 2

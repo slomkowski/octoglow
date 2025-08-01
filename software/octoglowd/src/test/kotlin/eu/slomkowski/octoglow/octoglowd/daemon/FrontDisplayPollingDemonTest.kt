@@ -1,7 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
 
-import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDaemon.Companion.updateViewIndex
+import eu.slomkowski.octoglow.octoglowd.daemon.FrontDisplayDemon.Companion.updateViewIndex
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.FrontDisplayView
 import eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay.UpdateStatus
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
@@ -20,7 +20,7 @@ import kotlin.time.ExperimentalTime
 
 
 @OptIn(ExperimentalTime::class)
-class FrontDisplayDaemonTest {
+class FrontDisplayPollingDemonTest {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -71,7 +71,7 @@ class FrontDisplayDaemonTest {
                 coEvery { v1.redrawDisplay(true, true, any()) } just Runs
                 coEvery { v2.redrawDisplay(true, true, any()) } just Runs
 
-                val d = FrontDisplayDaemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList())
+                val d = FrontDisplayDemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList())
 
                 d.poll()
 

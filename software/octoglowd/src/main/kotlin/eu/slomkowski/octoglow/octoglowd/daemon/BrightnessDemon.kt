@@ -17,11 +17,11 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 
-class BrightnessDaemon(
+class BrightnessDemon(
     private val config: Config,
     private val database: DatabaseLayer,
     private val hardware: Hardware,
-) : Daemon(logger, 1200.milliseconds) {
+) : PollingDemon(logger, 1200.milliseconds) {
 
     // todo publish current brightness in a flow
     sealed class BrightnessValue {

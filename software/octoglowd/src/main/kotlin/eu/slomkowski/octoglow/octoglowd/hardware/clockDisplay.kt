@@ -148,10 +148,14 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
         }
     }
 
-    suspend fun setDisplay(hours: Int, minutes: Int, upperDot: Boolean, lowerDot: Boolean) {
-        require(hours in 0..24)
-        require(minutes in 0..60)
-
+    private suspend fun setDisplay(
+        hourTens: Char,
+        hourOnes: Char,
+        minuteTens: Char,
+        secondTens: Char,
+        upperDot: Boolean,
+        lowerDot: Boolean
+    ) {
         val dots = if (upperDot) {
             UPPER_DOT
         } else {
@@ -164,10 +168,42 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
 
         sendCommand(
             "set display",
-            1, when (hours < 10) {
-                true -> ' '.code
-                else -> 0x30 + hours / 10
-            }, 0x30 + hours % 10, 0x30 + minutes / 10, 0x30 + minutes % 10, dots
+            1,
+            hourTens.code,
+            hourOnes.code,
+            minuteTens.code,
+            secondTens.code,
+            dots,
+        )
+    }
+
+    suspend fun setFrontDisplayViewNumber(number: Int) {
+        setDisplay(
+            '-', '-',
+            when (number < 10) {
+                true -> ' '
+                else -> (number / 10).digitToChar()
+            },
+            (number % 10).digitToChar(),
+            upperDot = false,
+            lowerDot = false,
+        )
+    }
+
+    suspend fun setDisplay(hours: Int, minutes: Int, upperDot: Boolean, lowerDot: Boolean) {
+        require(hours in 0..24)
+        require(minutes in 0..60)
+
+        setDisplay(
+            when (hours < 10) {
+                true -> ' '
+                else -> (hours / 10).digitToChar()
+            },
+            (hours % 10).digitToChar(),
+            (minutes / 10).digitToChar(),
+            (minutes % 10).digitToChar(),
+            upperDot,
+            lowerDot
         )
     }
 }

@@ -5,23 +5,27 @@ import io.github.oshai.kotlinlogging.KLogger
 import kotlinx.coroutines.*
 import kotlin.time.Duration
 
+abstract class Demon {
+    abstract  fun createJobs(scope: CoroutineScope): List<Job>
+}
+
 /**
  * Daemons implement features which are long-running and periodical.
  */
-abstract class Daemon(
+abstract class PollingDemon(
     private val logger: KLogger,
-    private val pollInterval: Duration,
-) {
+    protected val pollInterval: Duration,
+) : Demon() {
 
     /**
      * This coroutine is polled with the interval defined for a daemon.
      */
     abstract suspend fun poll()
 
-    suspend fun createJob(): Job = coroutineScope {
+    override fun createJobs(scope: CoroutineScope): List<Job>  {
         logger.debug { "Creating repeating job." }
 
-        launch {
+        return listOf(scope.launch {
             while (isActive) {
                 try {
                     poll()
@@ -31,7 +35,7 @@ abstract class Daemon(
                     delay(5_000)
                 }
             }
-        }
+        })
     }
 
     override fun toString(): String = "[${this.javaClass.simpleName}]"

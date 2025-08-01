@@ -1,6 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.daemon
 
-import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDaemon.Companion.parseProcNetWirelessFile
+import eu.slomkowski.octoglow.octoglowd.daemon.AnalogGaugeDemon.Companion.parseProcNetWirelessFile
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.HardwareParameterResolver
 import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 
 @ExtendWith(HardwareParameterResolver::class)
-class AnalogGaugeDaemonTest {
+class AnalogGaugePollingDemonTest {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -32,7 +32,7 @@ class AnalogGaugeDaemonTest {
     @Test
     fun testBasic() {
         val hardware = mockk<Hardware>()
-        val d = AnalogGaugeDaemon(hardware)
+        val d = AnalogGaugeDemon(hardware)
 
         val dacValueSlot = slot<Int>()
         coEvery { hardware.dac.setValue(any(), capture(dacValueSlot)) } answers {
@@ -48,7 +48,7 @@ class AnalogGaugeDaemonTest {
 
     @Test
     fun testBasicRealHardware(hardware: Hardware) {
-        val d = AnalogGaugeDaemon(hardware)
+        val d = AnalogGaugeDemon(hardware)
 
         runBlocking {
             repeat(20) {
@@ -60,7 +60,7 @@ class AnalogGaugeDaemonTest {
 
     @Test
     fun testParseProcStat() {
-        val agd = AnalogGaugeDaemon(HardwareMock())
+        val agd = AnalogGaugeDemon(HardwareMock())
 
         fun getMeasurement(t: String): Double =
             javaClass.getResourceAsStream("/proc-stat/$t").use { inputStream ->
@@ -86,7 +86,7 @@ class AnalogGaugeDaemonTest {
 
     @Test
     fun testParseProcNetWirelessFile() {
-        fun getList(t: String): List<AnalogGaugeDaemon.WifiSignalInfo> =
+        fun getList(t: String): List<AnalogGaugeDemon.WifiSignalInfo> =
             javaClass.getResourceAsStream("/proc-net-wireless/$t").use { inputStream ->
                 parseProcNetWirelessFile(BufferedReader(InputStreamReader(inputStream, StandardCharsets.US_ASCII)))
             }

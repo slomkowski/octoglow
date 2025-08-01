@@ -39,7 +39,12 @@ class MqttEmiter(
         keepAliveSeconds = 15u
     }
 
+    // todo obserwuje status connected. jeżeli nie jest connected, to co 30 sekund próbuje się połączyć
+    // jeżeli  przejedzie connected, to subskrypcje i możliwość wysyłania
+
     init {
+
+
         // todo rewrite to allow situation of unconnected client, publish status in a StateChannel
         workerScope.launch {
             client.publishedPackets.collect { publish ->

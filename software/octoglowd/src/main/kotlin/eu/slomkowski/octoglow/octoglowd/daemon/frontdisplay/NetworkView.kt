@@ -142,15 +142,15 @@ class NetworkView(
                 val process = pb.start()
                 val reader = process.inputStream.bufferedReader()
 
-                while (process.isAlive) {
-                    while (reader.ready()) {
+                while (isActive && process.isAlive) {
+                    while (isActive && reader.ready()) {
                         output.append(reader.readLine())
                         output.append("\n")
                     }
                     delay(20)
                 }
 
-                while (reader.ready()) {
+                while (isActive && reader.ready()) {
                     output.append(reader.readLine())
                     output.append("\n")
                 }

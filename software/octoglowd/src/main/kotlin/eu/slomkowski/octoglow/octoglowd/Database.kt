@@ -1,8 +1,11 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd
 
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import eu.slomkowski.octoglow.octoglowd.daemon.Demon
 import eu.slomkowski.octoglow.octoglowd.db.SqlDelightDatabase
 import eu.slomkowski.octoglow.octoglowd.mqtt.MqttEmiter
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -14,6 +17,7 @@ import java.nio.file.Path
 import java.util.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.ExperimentalTime
 
 
 // "yyyy-MM-dd HH:mm:ss.SSS",
@@ -25,7 +29,8 @@ fun Instant.fmt(): String {
 class DatabaseLayer(
     databaseFile: Path,
     private val mqtt: MqttEmiter,
-) : AutoCloseable {
+    private val eventBus: HistoricalValuesEvents,
+) : Demon(), AutoCloseable {
     companion object {
         private val logger = KotlinLogging.logger {}
 
@@ -148,9 +153,9 @@ class DatabaseLayer(
         }
     }
 
-    fun insertHistoricalValueAsync(ts: Instant, key: MeasurementType, value: Double): Job {
+    fun insertHistoricalValueAsync(ts: Instant, key: DbMeasurementType, value: Double): Job {
         return workerScope.launch {
-            launch { mqtt.publishMeasurement(key, value) }
+            launch { mqtt.publishMeasurement(key, value) } // todo move to other listener
             database.transaction {
                 if (database.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
                     logger.debug { "Inserting data to DB: $key = $value." }
@@ -163,14 +168,16 @@ class DatabaseLayer(
     }
 
     fun getLastHistoricalValuesByHourAsync(
-        currentTime: Instant,
-        key: MeasurementType,
+        currentTime: kotlin.time.Instant,
+        key: DbMeasurementType,
         numberOfPastHours: Int
     ): Deferred<List<Double?>> {
         val query = createAveragedByTimeInterval(
             HISTORICAL_VALUES_TABLE_NAME,
-            listOf("value"), currentTime, 1.hours, numberOfPastHours, true, "key" to key.databaseSymbol
+            listOf("value"), currentTime.toKotlinxDatetimeInstant(), 1.hours, numberOfPastHours, true, "key" to key.databaseSymbol
         )
+
+        // TODO("dodać maxTimestamp, żeby ogarniczyć ewentualny wynik nowowstawiowny")
 
         return workerScope.async {
             val result = database.transactionWithResult {
@@ -190,4 +197,20 @@ class DatabaseLayer(
             groupByBucketNo(result, numberOfPastHours)
         }
     }
+
+    override fun createJobs(scope: CoroutineScope): List<Job> = listOf(scope.launch {
+        eventBus.events.collect { packet ->
+            packet.values
+                .filter { it.type is DbMeasurementType }
+                .forEach { savableData ->
+                    savableData.value.onSuccess {
+                        insertHistoricalValueAsync(
+                            packet.timestamp.toKotlinxDatetimeInstant(),
+                            savableData.type as DbMeasurementType,
+                            it
+                        )
+                    }
+                }
+        }
+    })
 }

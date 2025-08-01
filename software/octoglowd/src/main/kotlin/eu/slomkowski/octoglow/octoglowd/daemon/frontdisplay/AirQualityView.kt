@@ -1,89 +1,44 @@
 package eu.slomkowski.octoglow.octoglowd.daemon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.*
+import eu.slomkowski.octoglow.octoglowd.AirQuality
+import eu.slomkowski.octoglow.octoglowd.ConfSingleAirStation
+import eu.slomkowski.octoglow.octoglowd.Config
+import eu.slomkowski.octoglow.octoglowd.DatabaseLayer
+import eu.slomkowski.octoglow.octoglowd.datacollectors.AirQualityDataCollector
+import eu.slomkowski.octoglow.octoglowd.datacollectors.AirQualityMeasurement
+import eu.slomkowski.octoglow.octoglowd.datacollectors.MeasurementReport
+import eu.slomkowski.octoglow.octoglowd.datacollectors.StandardMeasurementReport
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.call.*
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.http.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
+@OptIn(ExperimentalTime::class)
 class AirQualityView(
     private val config: Config,
     private val database: DatabaseLayer,
     hardware: Hardware,
-) : FrontDisplayView(
+) : FrontDisplayView2<AirQualityView.CurrentReport, Unit>(
     hardware,
     "Air quality from powietrze.gios.gov.pl",
-    10.minutes,
-    15.seconds,
+    null,
+    logger,
 ) {
     override val preferredDisplayTime: Duration = 13.seconds
 
-    enum class AirQualityIndex(val text: String) {
-        EXCELLENT("excellent"),
-        GOOD("good"),
-        FAIR("fair"),
-        POOR("poor"),
-        BAD("BAD!"),
-        HAZARDOUS("HAZARDOUS!!")
-    }
-
-    @Serializable
-    data class AirQualityDto(
-        @SerialName("AqIndex")
-        val aqIndex: AqIndexData,
-    ) {
-        override fun toString(): String {
-            return "{${aqIndex.stationId}, ${aqIndex.level}, ${aqIndex.criticalPollutantCode}}"
-        }
-    }
-
-    @Serializable
-    data class AqIndexData(
-        @SerialName("Identyfikator stacji pomiarowej")
-        val stationId: Long,
-
-        @SerialName("Status indeksu ogólnego dla stacji pomiarowej")
-        val stIndexStatus: Boolean,
-
-        @SerialName("Nazwa kategorii indeksu")
-        val stLevelName: String,
-
-        @SerialName("Kod zanieczyszczenia krytycznego")
-        val criticalPollutantCode: String,
-
-        @SerialName("Wartość indeksu")
-        val indexLevel: Int,
-
-        @SerialName("Data danych źródłowych, z których policzono wartość indeksu dla wskaźnika st")
-        @Serializable(AirQualityInstantSerializer::class)
-        val sourceDataDate: Instant
-    ) {
-        val level: AirQualityIndex?
-            get() = when (indexLevel) {
-                -1 -> null
-                else -> AirQualityIndex.entries[indexLevel]
-            }
-    }
-
-    data class AirQualityReport(
+    data class SingleStationData(
         val name: String,
-        val level: AirQualityIndex,
-        val latest: Double,
-        val historical: List<Double?>
+        val level: AirQualityDataCollector.AirQualityIndex?,
+        val latest: Double?,
+        val historical: List<Double?>,
     ) {
         init {
             require(name.isNotBlank())
@@ -91,111 +46,94 @@ class AirQualityView(
     }
 
     data class CurrentReport(
-        val station1: AirQualityReport?,
-        val station2: AirQualityReport?
-    ) {
-        val updateStatus: UpdateStatus
-            get() = if (station1 == null && station2 == null) {
-                UpdateStatus.FAILURE
-            } else if (station1 != null && station2 != null) {
-                UpdateStatus.FULL_SUCCESS
-            } else {
-                UpdateStatus.PARTIAL_SUCCESS
-            }
-    }
-
-    @Volatile
-    private var currentReport: CurrentReport? = null
+        val timestamp: Instant,
+        val cycleLength: Duration,
+        val station1: SingleStationData?,
+        val station2: SingleStationData?,
+    )
 
     companion object {
         private val logger = KotlinLogging.logger {}
 
         private const val HISTORIC_VALUES_LENGTH = 14
-
-        suspend fun retrieveAirQualityData(stationId: Long): AirQualityDto {
-            require(stationId > 0)
-
-            logger.debug { "Downloading air quality data for station $stationId." }
-            val url = "https://api.gios.gov.pl/pjp-api/v1/rest/aqindex/getIndex/$stationId"
-
-            try {
-                val resp: AirQualityDto = httpClient.get(url) {
-                    header(HttpHeaders.Accept, "application/ld+json")
-                    timeout {
-                        requestTimeoutMillis = 10_000
-                    }
-                }.body()
-
-                check(resp.aqIndex.stIndexStatus && resp.aqIndex.level != null) { "no air quality index for station ${resp.aqIndex.stationId}" }
-                logger.debug { "Air quality is $resp." }
-
-                return resp
-            } catch (e: Exception) {
-                logger.error(e) { "Failed to retrieve air quality data from $url" }
-                throw e
-            }
-        }
     }
 
-    private suspend fun createStationReport(now: Instant, station: ConfSingleAirStation) = try {
-        val dto = retrieveAirQualityData(station.id)
+    private suspend fun getForStation(
+        report: StandardMeasurementReport,
+        station: ConfSingleAirStation
+    ): SingleStationData? {
         val dbKey = AirQuality(station.id)
-        val value = dto.aqIndex.indexLevel.toDouble()
-        database.insertHistoricalValueAsync(dto.aqIndex.sourceDataDate, dbKey, value)
+
+        val measurement = report.values.firstOrNull { it.type == dbKey } as? AirQualityMeasurement ?: return null
 
         val history =
-            database.getLastHistoricalValuesByHourAsync(now, dbKey, HISTORIC_VALUES_LENGTH).await()
+            database.getLastHistoricalValuesByHourAsync(report.timestamp, dbKey, HISTORIC_VALUES_LENGTH).await()
 
-        AirQualityReport(station.name, checkNotNull(dto.aqIndex.level), value, history)
-    } catch (e: Exception) {
-        logger.error(e) { "Failed to update air quality of station ${station.id}." }
-        null
+        return SingleStationData(
+            measurement.name,
+            measurement.level.getOrNull(),
+            measurement.value.getOrNull(),
+            history,
+        )
     }
 
-    override suspend fun pollInstantData(now: Instant) = UpdateStatus.NO_NEW_DATA
+    override suspend fun onNewMeasurementReport(report: MeasurementReport, oldStatus: CurrentReport?): UpdateStatus = coroutineScope {
+        if (report !is StandardMeasurementReport) {
+            return@coroutineScope UpdateStatus.NoNewData
+        }
 
-    override suspend fun pollStatusData(now: Instant): UpdateStatus = coroutineScope {
+        val station1 = async { getForStation(report, config.airQuality.station1) }
+        val station2 = async { getForStation(report, config.airQuality.station2) }
 
-        // todo zrobić partial success
-        val rep1 = async { createStationReport(now, config.airQuality.station1) }
-        val rep2 = async { createStationReport(now, config.airQuality.station2) }
+        if (station1.await() == null && station2.await() == null) {
+            return@coroutineScope UpdateStatus.NoNewData
+        }
 
-        val newRep = CurrentReport(rep1.await(), rep2.await())
-
-        currentReport = newRep
-
-        newRep.updateStatus
+        return@coroutineScope UpdateStatus.NewData(
+            CurrentReport(
+                report.timestamp,
+                report.cycleLength,
+                station1.await(),
+                station2.await(),
+            )
+        )
     }
 
-    override suspend fun redrawDisplay(redrawStatic: Boolean, redrawStatus: Boolean, now: Instant) =
-        coroutineScope {
+    override suspend fun redrawDisplay(
+        redrawStatic: Boolean,
+        redrawStatus: Boolean,
+        now: Instant,
+        status: CurrentReport?,
+        instant: Unit?
+    ): Unit = coroutineScope {
+        val fd = hardware.frontDisplay
 
-            val fd = hardware.frontDisplay
-            val rep = currentReport
-
+        if (redrawStatic) {
             launch {
                 fd.setStaticText(0, "A")
                 fd.setStaticText(20, "Q")
             }
-
-            fun drawForStation(offset: Int, slot: Slot, report: AirQualityReport?) {
-                report?.let {
-                    launch { fd.setOneLineDiffChart(5 * (offset + 16), it.latest, it.historical, 1.0) }
-                }
-
-                launch {
-                    fd.setScrollingText(
-                        slot,
-                        offset + 2,
-                        13,
-                        report?.let { "${it.name}: ${it.level.text}" } ?: "no air quality data"
-                    )
-                    fd.setStaticText(offset + 19, report?.level?.ordinal?.toString() ?: "-")
-                }
-            }
-
-            drawForStation(0, Slot.SLOT0, rep?.station1)
-            drawForStation(20, Slot.SLOT1, rep?.station2)
         }
 
+        fun drawForStation(offset: Int, slot: Slot, report: SingleStationData?) {
+            launch { fd.setOneLineDiffChart(5 * (offset + 16), report?.latest, report?.historical, 1.0) }
+
+            launch {
+                fd.setScrollingText(
+                    slot,
+                    offset + 2,
+                    13,
+                    report?.let { "${it.name}: ${it.level?.text ?: "no air quality data"}" } ?: "no station data"
+                )
+                fd.setStaticText(offset + 19, report?.level?.ordinal?.toString() ?: "-")
+            }
+        }
+
+        if (redrawStatus) {
+            drawForStation(0, Slot.SLOT0, status?.station1)
+            drawForStation(20, Slot.SLOT1, status?.station2)
+        }
+
+        drawProgressBar(status?.timestamp, now, status?.cycleLength)
+    }
 }
