@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.demon
 
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -6,9 +8,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDateTime
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.time.ExperimentalTime
 
 
-class RealTimeClockPollingDemonTest {
+class RealTimeClockDemonTest {
 
     @Test
     fun testBasic() {

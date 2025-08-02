@@ -11,7 +11,7 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 class HardwareParameterResolver : ParameterResolver {
 
-    class HardwareResource(private val hardware: Hardware) : ExtensionContext.Store.CloseableResource {
+    class HardwareResource(val hardware: Hardware) : ExtensionContext.Store.CloseableResource {
         override fun close() {
             hardware.close()
         }
@@ -23,11 +23,12 @@ class HardwareParameterResolver : ParameterResolver {
 
     override fun resolveParameter(context: ParameterContext, extensionContext: ExtensionContext): Any {
         val store = extensionContext.getStore(ExtensionContext.Namespace.create(Hardware::class))
-        return store.getOrComputeIfAbsent("hardware") {
+        val hardwareResource = store.getOrComputeIfAbsent("hardware") {
             val bus = I2CBus(testConfig.i2cBus)
             val hardware = HardwareReal(bus)
             HardwareResource(hardware)
-            hardware
-        }
+        } as HardwareResource
+
+        return hardwareResource.hardware
     }
 }

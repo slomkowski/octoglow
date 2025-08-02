@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 
@@ -5,14 +7,13 @@ import eu.slomkowski.octoglow.octoglowd.ConfCryptocurrencies
 import eu.slomkowski.octoglow.octoglowd.DatabaseDemon
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.now
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 
 class CryptocurrencyViewTest {
@@ -21,18 +22,6 @@ class CryptocurrencyViewTest {
         private val logger = KotlinLogging.logger {}
     }
 
-    @Test
-    fun testCoinpaprikaMethods() {
-        runBlocking {
-            CryptocurrencyView.getLatestOhlc("btc-bitcoin").apply {
-                logger.info { "Cryptocurrency is $this." }
-                assertNotNull(this)
-                assertTrue(high > low)
-                assertTrue(high > 0)
-                assertTrue(low > 0)
-            }
-        }
-    }
 
     @Test
     fun testFormatDollars() {
@@ -59,7 +48,7 @@ class CryptocurrencyViewTest {
         runBlocking {
             val view = CryptocurrencyView(config, db, hardware)
 
-            view.redrawDisplay(true, true, now())
+            view.redrawDisplay(true, true, Clock.System.now(), null, null)
 
             coVerify {
                 hardware.frontDisplay.setStaticText(0, "---")

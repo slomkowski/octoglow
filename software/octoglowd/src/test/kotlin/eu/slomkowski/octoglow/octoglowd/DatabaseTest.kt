@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd
 
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -13,9 +15,11 @@ import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 
 class DatabaseTest {
 
@@ -25,7 +29,7 @@ class DatabaseTest {
 
     private fun <T : Any> createTestDbContext(func: (DatabaseDemon) -> T): T {
         val dbFile = Files.createTempFile("unit-test-", ".db")
-        DatabaseDemon(dbFile, mockk()).use { db ->
+        DatabaseDemon(dbFile, mockk(), mockk()).use { db ->
             assertNotNull(db)
             logger.debug { "Opened DB file $dbFile" }
             return func(db)
@@ -35,7 +39,7 @@ class DatabaseTest {
     @Test
     fun testInsertHistoricalValue() {
         createTestDbContext { db ->
-            val now = now()
+            val now = Clock.System.now()
 
             runBlocking {
                 listOf(
@@ -44,7 +48,7 @@ class DatabaseTest {
                     now.minus(1.hours) to 20.0,
                     now to 25.0
                 )
-                    .map { (dt, temp) -> db.insertHistoricalValueAsync(dt, OutdoorTemperature, temp) }
+                    .map { (dt, temp) -> db.insertHistoricalValueAsync(dt.toKotlinxDatetimeInstant(), OutdoorTemperature, temp) }
                     .joinAll()
 
                 val results = db.getLastHistoricalValuesByHourAsync(now, OutdoorTemperature, 5).await()

@@ -1,11 +1,14 @@
+@file:OptIn(ExperimentalTime::class, ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Clock
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 
 class LocalSensorViewTest {
 
@@ -18,12 +21,12 @@ class LocalSensorViewTest {
             mockHardware,
         )
 
-        assertThat(localSensorView.currentReport).isNull()
-
         localSensorView.redrawDisplay(
             redrawStatic = true,
             redrawStatus = true,
-            now = Clock.System.now()
+            now = Clock.System.now(),
+            null,
+            null,
         )
 
         mockHardware.frontDisplay.assertDisplayContent(
@@ -32,8 +35,9 @@ class LocalSensorViewTest {
             "--% ---.-°C ---- ppm",
         )
 
-        localSensorView.currentReport = LocalSensorView.CurrentReport(
-            ts = Clock.System.now(),
+        val currentReport = LocalSensorView.CurrentReport(
+            timestamp = Clock.System.now(),
+            cycleLength = 5.minutes,
             bme280temperature = 23.5,
             bme280humidity = 45.0,
             scd40temperature = 24.1,
@@ -46,11 +50,13 @@ class LocalSensorViewTest {
         localSensorView.redrawDisplay(
             redrawStatic = true,
             redrawStatus = true,
-            now = Clock.System.now()
+            now = Clock.System.now(),
+            currentReport,
+            null
         )
 
         mockHardware.frontDisplay.assertDisplayContent(
-            "                    ",
+            "*                   ",
             "45% +23.5°C 1013 hPa",
             "44% +24.1°C  450 ppm",
         )

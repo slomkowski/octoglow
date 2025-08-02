@@ -2,9 +2,10 @@ package eu.slomkowski.octoglow.octoglowd.demon
 
 
 import eu.slomkowski.octoglow.octoglowd.DataSnapshot
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.demon.FrontDisplayDemon.Companion.updateViewIndex
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.FrontDisplayView
-import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
+import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.UpdateStatus
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonReport
 import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -55,10 +56,13 @@ class FrontDisplayDemonTest {
         runBlocking {
             coroutineScope {
                 val hardware = mockk<Hardware>()
+                val realTimeClockDemon = mockk<RealTimeClockDemon>()
 
                 coEvery { hardware.frontDisplay.clear() } just Runs
 
                 coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
+
+                coEvery { realTimeClockDemon.setFrontDisplayViewNumber(any()) } just Runs
 
                 val v1 = mockk<FrontDisplayView<Any, Any>>()
                 val v2 = mockk<FrontDisplayView<Any, Any>>()
@@ -69,7 +73,7 @@ class FrontDisplayDemonTest {
                 coEvery { v1.redrawDisplay(true, true, any(), any(), any()) } just Runs
                 coEvery { v2.redrawDisplay(true, true, any(), any(), any()) } just Runs
 
-                val d = FrontDisplayDemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList(), mockk(), mockk())
+                val d = FrontDisplayDemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList(), mockk(), mockk(), realTimeClockDemon)
 
                 d.poll()
 

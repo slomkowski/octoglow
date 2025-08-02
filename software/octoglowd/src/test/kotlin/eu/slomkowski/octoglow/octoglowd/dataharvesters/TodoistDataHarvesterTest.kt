@@ -1,25 +1,28 @@
-package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
+@file:OptIn(ExperimentalTime::class)
 
-import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.now
+package eu.slomkowski.octoglow.octoglowd.dataharvesters
+
+import eu.slomkowski.octoglow.octoglowd.DataSnapshotBus
 import eu.slomkowski.octoglow.octoglowd.testConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
-class TodoistViewTest {
-
+class TodoistDataHarvesterTest {
     private val logger = KotlinLogging.logger {}
 
     @Test
     fun testListening() = runBlocking {
-        val view = TodoistView(testConfig, mockk<Hardware>())
+        val dataSnapshotBus = mockk<DataSnapshotBus>(relaxed = true)
+        val harvester = TodoistDataHarvester(testConfig, dataSnapshotBus)
 
         repeat(10) {
-            view.pollStatusData(now())
+            harvester.pollForNewData(Clock.System.now())
             delay(5.seconds)
             //todo some tests
         }

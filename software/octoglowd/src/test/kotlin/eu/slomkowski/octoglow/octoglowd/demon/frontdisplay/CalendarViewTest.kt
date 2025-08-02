@@ -1,8 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.CalendarView.Companion.formatDate
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
+import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.CalendarView.Companion.formatDate
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.mockk
 import kotlinx.datetime.DatePeriod

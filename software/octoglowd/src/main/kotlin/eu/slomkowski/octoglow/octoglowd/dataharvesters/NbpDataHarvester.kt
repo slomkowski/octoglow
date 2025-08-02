@@ -37,7 +37,7 @@ data class SingleNbpCurrencyDataSample(
 }
 
 class NbpDataHarvester(
-    private val config: Config,
+    config: Config,
     eventBus: DataSnapshotBus,
 ) : DataHarvester(logger, 10.minutes, eventBus) {
 

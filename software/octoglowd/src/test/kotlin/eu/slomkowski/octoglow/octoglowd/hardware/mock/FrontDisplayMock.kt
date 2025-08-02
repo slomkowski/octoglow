@@ -70,11 +70,12 @@ class FrontDisplayMock : FrontDisplay {
         constructionYearByte = lastDigitsOfYear
     }
 
+    // todo support tylko takich, które można podzielić na 5,  rysowanie #
     override suspend fun setScrollingText(slot: Slot, position: Int, length: Int, text: String) {
         fail("Scrolling text is not implemented for mock front display")
     }
 
-    override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T, historicalValues: List<T?>, unit: T) {
+    override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T?, historicalValues: List<T?>?, unit: T) {
         fail("Graphical functions are not implemented for mock front display")
     }
 

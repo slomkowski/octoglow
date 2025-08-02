@@ -3,14 +3,17 @@ package eu.slomkowski.octoglow.octoglowd.demon
 
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.demon.BrightnessDemon.Companion.isSleeping
-import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -18,19 +21,20 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 
 
-class BrightnessPollingDemonTest {
+class BrightnessDemonTest {
     companion object {
         private val logger = KotlinLogging.logger {}
     }
 
     @Test
     fun testCalculateBrightnessFraction() {
-        val hardwareMock = mockk<Hardware>()
+        val hardwareMock = HardwareMock()
         val databaseMock = mockk<DatabaseDemon>()
 
-        coEvery { hardwareMock.setBrightness(any()) } just Runs
         coEvery { databaseMock.getChangeableSettingAsync(ChangeableSetting.BRIGHTNESS) } returns CompletableDeferred("AUTO")
         coEvery { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, any()) } returns Job()
+
+        coEvery { hardwareMock.clockDisplay.retrieveLightSensorMeasurement() } returns 300
 
         val bd = BrightnessDemon(
             defaultTestConfig.copy(
@@ -58,7 +62,7 @@ class BrightnessPollingDemonTest {
             bd.poll()
 
             coVerify(exactly = 1) { databaseMock.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, "3") }
-            coVerify(exactly = 2) { hardwareMock.setBrightness(3) }
+            assertThat(hardwareMock.brightness).isEqualTo(3)
         }
     }
 

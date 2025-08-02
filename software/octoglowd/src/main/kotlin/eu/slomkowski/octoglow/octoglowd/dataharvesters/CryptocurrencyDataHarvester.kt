@@ -17,7 +17,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 class CryptocurrencyDataHarvester(
-    private val config: Config,
+    config: Config,
     dataSnapshotBus: DataSnapshotBus,
 ) : DataHarvester(logger, 10.minutes, dataSnapshotBus) {
 

@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 
 @ExtendWith(HardwareParameterResolver::class)
-class AnalogGaugePollingDemonTest {
+class AnalogGaugeDemonTest {
 
     companion object {
         private val logger = KotlinLogging.logger {}

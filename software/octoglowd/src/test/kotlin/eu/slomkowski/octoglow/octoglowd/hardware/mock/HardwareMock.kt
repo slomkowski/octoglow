@@ -17,7 +17,10 @@ class HardwareMock : Hardware {
     override val scd40 = mockk<Scd40>(relaxed = true)
     override val bme280 = mockk<Bme280>(relaxed = true)
 
-    private val brightness: AtomicInteger = AtomicInteger(3)
+    private val _brightness: AtomicInteger = AtomicInteger(3)
+
+    val brightness: Int
+        get() = _brightness.get()
 
     override fun close() {
         logger.info { "Closing hardware mock." }
@@ -25,7 +28,7 @@ class HardwareMock : Hardware {
 
     override suspend fun setBrightness(brightness: Int) {
         logger.info { "Setting brightness to $brightness." }
-        this.brightness.set(brightness)
+        this._brightness.set(brightness)
     }
 
     override suspend fun doWrite(i2cAddress: Int, writeData: IntArray) {
