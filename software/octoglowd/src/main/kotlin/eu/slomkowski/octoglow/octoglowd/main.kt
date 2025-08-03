@@ -23,9 +23,9 @@ fun main() {
     val commandBus = CommandBus()
     val eventBus = DataSnapshotBus()
 
-    val mqttEmiter = MqttEmiter(config, workerScope, commandBus)
+    val mqttEmiter = MqttEmiter(config, workerScope, eventBus, commandBus)
     val hardware = HardwareReal(config)
-    val database = DatabaseDemon(config.databaseFile, mqttEmiter, eventBus)
+    val database = DatabaseDemon(config.databaseFile, eventBus)
     val closeable = listOf(database, hardware)
 
     Runtime.getRuntime().addShutdownHook(Thread {
@@ -40,7 +40,7 @@ fun main() {
 
     val frontDisplayViews2 = listOf(
         CalendarView(config, hardware),
-        GeigerView(config, database, hardware),
+        GeigerView(database, hardware),
         CryptocurrencyView(config, database, hardware),
         AirQualityView(config, database, hardware),
         LocalSensorView(config, database, hardware),
@@ -54,8 +54,11 @@ fun main() {
 
     val brightnessDaemon = BrightnessDemon(config, database, hardware)
 
+    val magicEyeMenu = MagicEyeMenu(eventBus, commandBus)
+
     val menus = listOf(
-        BrightnessMenu(brightnessDaemon)
+        BrightnessMenu(brightnessDaemon),
+        magicEyeMenu,
     )
 
     val realTimeClockDemon = RealTimeClockDemon(hardware)
@@ -67,6 +70,9 @@ fun main() {
         AnalogGaugeDemon(hardware),
         brightnessDaemon,
         RadmonOrgSenderDemon(config, eventBus),
+        MagicEyeDemon(hardware, eventBus, commandBus),
+        magicEyeMenu,
+        mqttEmiter,
 
         AirQualityDataHarvester(config, eventBus),
         CryptocurrencyDataHarvester(config, eventBus),

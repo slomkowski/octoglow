@@ -105,8 +105,8 @@ class CalendarView(
             .let { it.replaceFirstChar { char -> char.uppercase() } }
     }
 
-    override suspend fun onNewDataSnapshot(report: DataSnapshot, oldStatus: LocalDate?): UpdateStatus {
-        val today = report.timestamp.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
+    override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: LocalDate?): UpdateStatus {
+        val today = snapshot.timestamp.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
 
         return if (today == oldStatus) {
             UpdateStatus.NoNewData

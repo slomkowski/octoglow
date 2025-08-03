@@ -3,7 +3,7 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.DataSnapshot
+import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.TodoistDataSnapshot
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.toKotlinxDatetimeInstant
@@ -36,14 +36,14 @@ class TodoistView(
         override fun toString(): String = "${todayTasks.size} today, ${tomorrowTasks.size} tomorrow, ${overdueTasks.size} overdue"
     }
 
-    override suspend fun onNewDataSnapshot(report: DataSnapshot, oldReport: Report?): UpdateStatus {
-        if (report !is TodoistDataSnapshot) {
+    override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: Report?): UpdateStatus {
+        if (snapshot !is TodoistDataSnapshot) {
             return UpdateStatus.NoNewData
         }
 
-        val items = report.dataItem.getOrNull() ?: return UpdateStatus.NoNewData // todo na pewno?
+        val items = snapshot.dataItem.getOrNull() ?: return UpdateStatus.NoNewData // todo na pewno?
 
-        val today = report.timestamp.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = snapshot.timestamp.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).date
 
         fun createGroupOfTasks(oldTasks: Set<Task>?, dateFilter: (LocalDate) -> Boolean): Set<Task> {
             val tasks = oldTasks?.toMutableSet() ?: mutableSetOf()
@@ -58,9 +58,9 @@ class TodoistView(
             return tasks
         }
 
-        val newTodayTasks = createGroupOfTasks(oldReport?.todayTasks) { it == today }
-        val newTomorrowTasks = createGroupOfTasks(oldReport?.tomorrowTasks) { today.plus(1, DateTimeUnit.DAY) == it }
-        val newOverdueTasks = createGroupOfTasks(oldReport?.overdueTasks) { it < today }
+        val newTodayTasks = createGroupOfTasks(oldStatus?.todayTasks) { it == today }
+        val newTomorrowTasks = createGroupOfTasks(oldStatus?.tomorrowTasks) { today.plus(1, DateTimeUnit.DAY) == it }
+        val newOverdueTasks = createGroupOfTasks(oldStatus?.overdueTasks) { it < today }
 
         val newReport = Report(
             todayTasks = newTodayTasks,

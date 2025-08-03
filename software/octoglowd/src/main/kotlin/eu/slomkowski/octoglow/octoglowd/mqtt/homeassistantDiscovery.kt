@@ -127,7 +127,6 @@ fun createDiscoveryMessageDto(): DeviceConfig {
                     name = "Oko magiczne",
                     stateTopic = magicEyeSwitchTopic,
                     commandTopic = magicEyeSwitchSetTopic,
-                    "{{ value_json.state }}",
                     uniqueId = "${DEVICE_ID}_$magicEyeIdentifier",
                 ),
                 "${dialIdentifier}_$dialCommandCcw" to DeviceConfig.Component.Button(

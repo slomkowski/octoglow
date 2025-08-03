@@ -4,10 +4,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 class DataSnapshotBus {
-    private val _snapshots = MutableSharedFlow<DataSnapshot>(replay = 100)
+    private val _snapshots = MutableSharedFlow<Snapshot>(replay = 100)
     val snapshots = _snapshots.asSharedFlow()
 
-    suspend fun publish(dataSnapshot: DataSnapshot) {
+    suspend fun publish(dataSnapshot: Snapshot) {
         _snapshots.emit(dataSnapshot)
     }
 }

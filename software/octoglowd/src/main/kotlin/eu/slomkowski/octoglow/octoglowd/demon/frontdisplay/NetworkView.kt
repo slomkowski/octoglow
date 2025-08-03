@@ -6,6 +6,7 @@ package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.DataSnapshot
 import eu.slomkowski.octoglow.octoglowd.PingTimeGateway
 import eu.slomkowski.octoglow.octoglowd.PingTimeRemoteHost
+import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.NetworkDataHarvester
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.NetworkDataSnapshot
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -51,25 +52,29 @@ class NetworkView(
     }
 
     override suspend fun onNewDataSnapshot(
-        report: DataSnapshot,
+        snapshot: Snapshot,
         oldStatus: CurrentReport?
     ): UpdateStatus {
 
-        if (report is NetworkDataSnapshot && report.interfaceInfo == null) {
+        if (snapshot !is DataSnapshot) {
+            return UpdateStatus.NoNewData
+        }
+
+        if (snapshot is NetworkDataSnapshot && snapshot.interfaceInfo == null) {
             return UpdateStatus.NewData(null)
         }
 
-        val newRemotePing = when (val v = report.values.firstOrNull { it.type == PingTimeRemoteHost }?.value) {
+        val newRemotePing = when (val v = snapshot.values.firstOrNull { it.type == PingTimeRemoteHost }?.value) {
             null -> oldStatus?.remotePing
             else -> v.getOrNull()?.milliseconds
         }
 
-        val newGwPing = when (val v = report.values.firstOrNull { it.type == PingTimeGateway }?.value) {
+        val newGwPing = when (val v = snapshot.values.firstOrNull { it.type == PingTimeGateway }?.value) {
             null -> oldStatus?.gwPing
             else -> v.getOrNull()?.milliseconds
         }
 
-        val interfaceInfo = (report as? NetworkDataSnapshot)?.interfaceInfo
+        val interfaceInfo = (snapshot as? NetworkDataSnapshot)?.interfaceInfo
 
         if (newRemotePing != null && newGwPing != null && interfaceInfo == null) {
             return UpdateStatus.NoNewData
@@ -77,8 +82,8 @@ class NetworkView(
 
         return UpdateStatus.NewData(
             CurrentReport(
-                report.timestamp,
-                report.cycleLength ?: oldStatus?.cycleLength ?: 5.minutes,
+                snapshot.timestamp,
+                snapshot.cycleLength ?: oldStatus?.cycleLength ?: 5.minutes,
                 interfaceInfo ?: oldStatus?.interfaceInfo,
                 newRemotePing ?: oldStatus?.remotePing,
                 newGwPing ?: oldStatus?.gwPing,

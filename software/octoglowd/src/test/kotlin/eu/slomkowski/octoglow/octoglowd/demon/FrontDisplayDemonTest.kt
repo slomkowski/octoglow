@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.demon
 
 
 import eu.slomkowski.octoglow.octoglowd.DataSnapshot
+import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.demon.FrontDisplayDemon.Companion.updateViewIndex
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.FrontDisplayView
@@ -43,7 +44,7 @@ class FrontDisplayDemonTest {
             logger.info { "Screen redrawn." }
         }
 
-        override suspend fun onNewDataSnapshot(report: DataSnapshot, oldStatus: Any?): UpdateStatus {
+        override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: Any?): UpdateStatus {
             TODO("Not yet implemented")
         }
 
@@ -66,10 +67,7 @@ class FrontDisplayDemonTest {
 
                 val v1 = mockk<FrontDisplayView<Any, Any>>()
                 val v2 = mockk<FrontDisplayView<Any, Any>>()
-
-                coEvery { v1.getMenus() } returns listOf()
-                coEvery { v2.getMenus() } returns listOf()
-
+                
                 coEvery { v1.redrawDisplay(true, true, any(), any(), any()) } just Runs
                 coEvery { v2.redrawDisplay(true, true, any(), any(), any()) } just Runs
 

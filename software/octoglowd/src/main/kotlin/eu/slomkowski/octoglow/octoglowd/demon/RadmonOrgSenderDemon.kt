@@ -20,7 +20,7 @@ import kotlin.time.ExperimentalTime
 class RadmonOrgSenderDemon(
     private val config: Config,
     private val eventBus: DataSnapshotBus,
-) : Demon() {
+) : Demon {
 
     companion object {
         private val logger = KotlinLogging.logger { }
@@ -87,9 +87,9 @@ class RadmonOrgSenderDemon(
         }
         return listOf(scope.launch {
             eventBus.snapshots.collect { packet ->
-                packet.values
-                    .filter { it.type == RadioactivityCpm && it.value.isSuccess }
-                    .forEach { radioactivityCpm ->
+                (packet as? DataSnapshot)?.values
+                    ?.filter { it.type == RadioactivityCpm && it.value.isSuccess }
+                    ?.forEach { radioactivityCpm ->
                         submitToRadmonOrg(
                             config.radmon.username,
                             config.radmon.password,

@@ -19,11 +19,9 @@ import kotlin.time.Instant
 
 data class SimplemonitorDataSnapshot(
     override val timestamp: Instant,
-    override val cycleLength: Duration,
+    val cycleLength: Duration,
     val data: SimpleMonitorJson?,
-) : DataSnapshot {
-    override val values: List<DataSample> = emptyList()
-}
+) : Snapshot
 
 class SimplemonitorDataHarvester(
     private val config: Config,

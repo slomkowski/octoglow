@@ -29,7 +29,7 @@ class DatabaseTest {
 
     private fun <T : Any> createTestDbContext(func: (DatabaseDemon) -> T): T {
         val dbFile = Files.createTempFile("unit-test-", ".db")
-        DatabaseDemon(dbFile, mockk(), mockk()).use { db ->
+        DatabaseDemon(dbFile, mockk()).use { db ->
             assertNotNull(db)
             logger.debug { "Opened DB file $dbFile" }
             return func(db)

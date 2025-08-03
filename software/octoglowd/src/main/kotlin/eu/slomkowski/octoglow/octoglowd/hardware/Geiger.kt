@@ -141,6 +141,7 @@ class Geiger(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x18, 5.mil
     }
 
     suspend fun setEyeConfiguration(enabled: Boolean, mode: EyeDisplayMode = EyeDisplayMode.ANIMATION) {
+        logger.info { "Setting eye enabled: $enabled." }
         sendCommand(
             "set eye configuration",
             5, when (enabled) {

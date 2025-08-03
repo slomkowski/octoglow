@@ -1,9 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
-import eu.slomkowski.octoglow.octoglowd.ChangeableSetting
-import eu.slomkowski.octoglow.octoglowd.DatabaseDemon
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.demon.BrightnessDemon
+import eu.slomkowski.octoglow.octoglowd.demon.Demon
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 
 data class MenuOption(val text: String) {
@@ -30,6 +33,9 @@ abstract class Menu(val text: String) {
     override fun toString(): String = text
 }
 
+private val optOn = MenuOption("ON")
+private val optOff = MenuOption("OFF")
+
 class BooleanChangeableSettingMenu(
     private val database: DatabaseDemon,
     private val key: ChangeableSetting,
@@ -37,9 +43,6 @@ class BooleanChangeableSettingMenu(
 ) : Menu(text) {
     companion object {
         private val logger = KotlinLogging.logger {}
-
-        private val optOn = MenuOption("ON")
-        private val optOff = MenuOption("OFF")
     }
 
     override val options: List<MenuOption>
@@ -74,5 +77,47 @@ class BrightnessMenu(private val brightnessDaemon: BrightnessDemon) : Menu("Brig
     override suspend fun saveCurrentOption(current: MenuOption) {
         logger.info { "Setting brightness mode to $current." }
         brightnessDaemon.setForcedMode(current.text.toIntOrNull())
+    }
+}
+
+class MagicEyeMenu(
+    private val snapshotBus: DataSnapshotBus,
+    private val commandBus: CommandBus,
+) : Menu("Magic eye"), Demon {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
+    @Volatile
+    private var eyeEnabled: Boolean? = null
+
+    override val options: List<MenuOption>
+        get() = listOf(optOn, optOff)
+
+    override suspend fun loadCurrentOption(): MenuOption {
+        logger.debug { "Eye state is $eyeEnabled." }
+        return if (eyeEnabled == true) optOn else optOff
+    }
+
+    override suspend fun saveCurrentOption(current: MenuOption) {
+        logger.info { "Magic eye set to $current." }
+        commandBus.publish(
+            MagicEyeCommand(
+                when (current) {
+                    optOn -> true
+                    else -> false
+                }
+            )
+        )
+    }
+
+    override fun createJobs(scope: CoroutineScope): List<Job> {
+        return listOf(scope.launch {
+            snapshotBus.snapshots.collect { snapshot ->
+                if (snapshot is MagicEyeStateChanged) {
+                    eyeEnabled = snapshot.enabled
+                }
+            }
+        })
     }
 }

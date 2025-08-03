@@ -7,7 +7,6 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import eu.slomkowski.octoglow.octoglowd.db.SqlDelightDatabase
 import eu.slomkowski.octoglow.octoglowd.demon.Demon
-import eu.slomkowski.octoglow.octoglowd.mqtt.MqttEmiter
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.Instant
@@ -28,9 +27,8 @@ fun Instant.fmt(): String {
 
 class DatabaseDemon(
     databaseFile: Path,
-    private val mqtt: MqttEmiter,
     private val eventBus: DataSnapshotBus,
-) : Demon(), AutoCloseable {
+) : Demon, AutoCloseable {
     companion object {
         private val logger = KotlinLogging.logger {}
 
@@ -155,7 +153,6 @@ class DatabaseDemon(
 
     fun insertHistoricalValueAsync(ts: Instant, key: DbDataSampleType, value: Double): Job {
         return workerScope.launch {
-            launch { mqtt.publishMeasurement(key, value) } // todo move to other listener
             database.transaction {
                 if (database.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
                     logger.debug { "Inserting data to DB: $key = $value." }
@@ -200,6 +197,9 @@ class DatabaseDemon(
 
     override fun createJobs(scope: CoroutineScope): List<Job> = listOf(scope.launch {
         eventBus.snapshots.collect { packet ->
+            if (packet !is DataSnapshot) {
+                return@collect
+            }
             packet.values
                 .filter { it.type is DbDataSampleType }
                 .forEach { savableData ->

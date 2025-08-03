@@ -72,13 +72,13 @@ class AirQualityView(
         )
     }
 
-    override suspend fun onNewDataSnapshot(report: DataSnapshot, oldStatus: CurrentReport?): UpdateStatus = coroutineScope {
-        if (report !is StandardDataSnapshot) {
+    override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: CurrentReport?): UpdateStatus = coroutineScope {
+        if (snapshot !is StandardDataSnapshot) {
             return@coroutineScope UpdateStatus.NoNewData
         }
 
-        val station1 = async { getForStation(report, config.airQuality.station1) }
-        val station2 = async { getForStation(report, config.airQuality.station2) }
+        val station1 = async { getForStation(snapshot, config.airQuality.station1) }
+        val station2 = async { getForStation(snapshot, config.airQuality.station2) }
 
         if (station1.await() == null && station2.await() == null) {
             return@coroutineScope UpdateStatus.NoNewData
@@ -86,8 +86,8 @@ class AirQualityView(
 
         return@coroutineScope UpdateStatus.NewData(
             CurrentReport(
-                report.timestamp,
-                report.cycleLength,
+                snapshot.timestamp,
+                snapshot.cycleLength,
                 station1.await(),
                 station2.await(),
             )

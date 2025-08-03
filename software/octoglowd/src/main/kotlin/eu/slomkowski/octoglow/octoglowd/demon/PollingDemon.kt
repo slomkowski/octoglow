@@ -5,8 +5,8 @@ import io.github.oshai.kotlinlogging.KLogger
 import kotlinx.coroutines.*
 import kotlin.time.Duration
 
-abstract class Demon {
-    abstract fun createJobs(scope: CoroutineScope): List<Job>
+interface Demon {
+    fun createJobs(scope: CoroutineScope): List<Job>
 }
 
 /**
@@ -15,7 +15,7 @@ abstract class Demon {
 abstract class PollingDemon(
     private val logger: KLogger,
     protected val pollingInterval: Duration,
-) : Demon() {
+) : Demon {
 
     /**
      * This coroutine is polled with the interval defined for a daemon.

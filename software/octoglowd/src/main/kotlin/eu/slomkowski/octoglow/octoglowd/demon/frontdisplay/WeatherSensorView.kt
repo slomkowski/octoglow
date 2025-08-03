@@ -10,7 +10,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -91,12 +90,16 @@ class WeatherSensorView(
 
 
     override suspend fun onNewDataSnapshot(
-        report: DataSnapshot,
+        snapshot: Snapshot,
         oldStatus: CurrentReport?
     ): UpdateStatus = coroutineScope {
+        if(snapshot !is DataSnapshot) {
+            return@coroutineScope UpdateStatus.NoNewData
+        }
+
         val indoor = async {
             prepareSingleStation(
-                report,
+                snapshot,
                 oldStatus?.indoorSensor?.second,
                 IndoorTemperature,
                 IndoorHumidity,
@@ -106,7 +109,7 @@ class WeatherSensorView(
 
         val outdoor = async {
             prepareSingleStation(
-                report,
+                snapshot,
                 oldStatus?.outdoorSensor?.second,
                 OutdoorTemperature,
                 OutdoorHumidity,
@@ -120,9 +123,9 @@ class WeatherSensorView(
 
         UpdateStatus.NewData(
             CurrentReport(
-                report.cycleLength ?: oldStatus?.cycleLength ?: 5.minutes,
-                indoor.await()?.let { report.timestamp to it } ?: oldStatus?.indoorSensor,
-                outdoor.await()?.let { report.timestamp to it } ?: oldStatus?.outdoorSensor,
+                snapshot.cycleLength,
+                indoor.await()?.let { snapshot.timestamp to it } ?: oldStatus?.indoorSensor,
+                outdoor.await()?.let { snapshot.timestamp to it } ?: oldStatus?.outdoorSensor,
             ))
     }
 

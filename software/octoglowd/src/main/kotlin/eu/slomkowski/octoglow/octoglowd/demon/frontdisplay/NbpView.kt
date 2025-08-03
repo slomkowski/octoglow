@@ -5,6 +5,7 @@ package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.DataSnapshot
+import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.SingleNbpCurrencyDataSample
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -50,10 +51,14 @@ class NbpView(
     }
 
     override suspend fun onNewDataSnapshot(
-        report: DataSnapshot,
+        snapshot: Snapshot,
         oldStatus: CurrentReport?,
     ): UpdateStatus {
-        val currenciesToUpdate = report.values.filterIsInstance<SingleNbpCurrencyDataSample>()
+        if(snapshot !is DataSnapshot) {
+            return UpdateStatus.NoNewData
+        }
+
+        val currenciesToUpdate = snapshot.values.filterIsInstance<SingleNbpCurrencyDataSample>()
 
         if (currenciesToUpdate.isEmpty()) {
             return UpdateStatus.NoNewData
@@ -61,8 +66,8 @@ class NbpView(
 
         return UpdateStatus.NewData(
             CurrentReport(
-                report.timestamp,
-                checkNotNull(report.cycleLength ?: oldStatus?.cycleLength),
+                snapshot.timestamp,
+                checkNotNull(snapshot.cycleLength ?: oldStatus?.cycleLength),
                 (oldStatus?.currencies.orEmpty()).plus(currenciesToUpdate.associateBy { it.code }),
             )
         )

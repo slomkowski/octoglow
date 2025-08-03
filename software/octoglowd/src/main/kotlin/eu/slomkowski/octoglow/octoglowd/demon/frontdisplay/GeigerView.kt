@@ -18,7 +18,6 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 class GeigerView(
-    private val config: Config,
     private val database: DatabaseDemon,
     hardware: Hardware,
 ) : FrontDisplayView<CounterReport, GeigerDeviceState>(
@@ -135,35 +134,6 @@ class GeigerView(
         Unit
     }
 
-    override fun getMenus(): List<Menu> {
-        val optOn = MenuOption("ON")
-        val optOff = MenuOption("OFF")
-
-        return listOf(object : Menu("Magic eye") {
-            override val options: List<MenuOption>
-                get() = listOf(optOn, optOff)
-
-            override suspend fun loadCurrentOption(): MenuOption {
-                val eyeState = hardware.geiger.getDeviceState().eyeState
-                logger.info { "Eye state is $eyeState." }
-                return when (eyeState) {
-                    EyeInverterState.DISABLED -> optOff
-                    else -> optOn
-                }
-            }
-
-            override suspend fun saveCurrentOption(current: MenuOption) {
-                logger.info { "Magic eye set to $current." }
-                hardware.geiger.setEyeConfiguration(
-                    when (current) {
-                        optOn -> true
-                        else -> false
-                    }
-                )
-            }
-        })
-    }
-
     override suspend fun pollForNewInstantData(now: Instant, oldInstant: GeigerDeviceState?): UpdateStatus {
         return try {
             UpdateStatus.NewData(hardware.geiger.getDeviceState())
@@ -173,20 +143,15 @@ class GeigerView(
         }
     }
 
-    override suspend fun onNewDataSnapshot(report: DataSnapshot, oldStatus: CounterReport?): UpdateStatus {
-        if (report !is GeigerDataSnapshot) {
+    override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: CounterReport?): UpdateStatus {
+        if (snapshot !is GeigerDataSnapshot) {
             return UpdateStatus.NoNewData
         }
 
-        progress = report.currentCycleProgress // todo nie wrzucać jakoś do devicestatus?
+        progress = snapshot.currentCycleProgress // todo nie wrzucać jakoś do devicestatus?
 
-        val valueCpm = report.values.firstOrNull { it.type == RadioactivityCpm }?.value
-        val valueUsVh = report.values.firstOrNull { it.type == RadioactivityUSVH }?.value
-
-        if (report.cycleLength == null) {
-            // invalid reading should remove the state
-            return UpdateStatus.NewData(null)
-        }
+        val valueCpm = snapshot.values.firstOrNull { it.type == RadioactivityCpm }?.value
+        val valueUsVh = snapshot.values.firstOrNull { it.type == RadioactivityUSVH }?.value
 
         if (valueCpm == null && valueUsVh == null && oldStatus?.timeSpan != null) {
             // no updates on the radioactivity values, just the progress
@@ -194,13 +159,13 @@ class GeigerView(
         }
 
         val historicalRadioactivity =
-            database.getLastHistoricalValuesByHourAsync(report.timestamp, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
+            database.getLastHistoricalValuesByHourAsync(snapshot.timestamp, RadioactivityUSVH, HISTORIC_VALUES_LENGTH)
 
         return UpdateStatus.NewData(
             CounterReport(
                 valueCpm?.getOrNull(),
                 valueUsVh?.getOrNull(),
-                report.cycleLength,
+                snapshot.cycleLength,
                 historicalRadioactivity.await(),
             )
         )

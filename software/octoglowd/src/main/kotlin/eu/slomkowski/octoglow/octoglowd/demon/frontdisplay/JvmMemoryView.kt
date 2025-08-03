@@ -4,7 +4,7 @@ package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 
 import com.sun.management.OperatingSystemMXBean
-import eu.slomkowski.octoglow.octoglowd.DataSnapshot
+import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
@@ -43,7 +43,7 @@ class JvmMemoryView(
         private val logger = KotlinLogging.logger {}
     }
 
-    override suspend fun onNewDataSnapshot(report: DataSnapshot, oldStatus: Unit?) = UpdateStatus.NoNewData
+    override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: Unit?) = UpdateStatus.NoNewData
 
     override suspend fun pollForNewInstantData(now: Instant, oldInstant: CurrentReport?): UpdateStatus = UpdateStatus.NewData(
         try {

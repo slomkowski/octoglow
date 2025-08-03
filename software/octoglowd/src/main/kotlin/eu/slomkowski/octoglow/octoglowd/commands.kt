@@ -4,3 +4,5 @@ interface Command
 
 data class DialTurned(val delta: Int) : Command
 object DialPressed : Command
+
+data class MagicEyeCommand(val enabled: Boolean) : Command

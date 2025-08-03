@@ -64,15 +64,18 @@ class LocalSensorView(
         drawProgressBar(status?.timestamp, now, status?.cycleLength)
     }
 
-    override suspend fun onNewDataSnapshot(report: DataSnapshot, oldStatus: CurrentReport?): UpdateStatus {
+    override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: CurrentReport?): UpdateStatus {
+        if(snapshot !is DataSnapshot) {
+            return UpdateStatus.NoNewData
+        }
 
-        val bme280temperature = report.values.find { it.type == Bme280Temperature }?.value?.getOrNull()
-        val bme280humidity = report.values.find { it.type == Bme280Humidity }?.value?.getOrNull()
-        val scd40temperature = report.values.find { it.type == Scd40Temperature }?.value?.getOrNull()
-        val scd40humidity = report.values.find { it.type == Scd40Humidity }?.value?.getOrNull()
-        val mslPressure = report.values.find { it.type == MSLPressure }?.value?.getOrNull()
-        val realPressure = report.values.find { it.type == RealPressure }?.value?.getOrNull()
-        val co2concentration = report.values.find { it.type == IndoorCo2 }?.value?.getOrNull()
+        val bme280temperature = snapshot.values.find { it.type == Bme280Temperature }?.value?.getOrNull()
+        val bme280humidity = snapshot.values.find { it.type == Bme280Humidity }?.value?.getOrNull()
+        val scd40temperature = snapshot.values.find { it.type == Scd40Temperature }?.value?.getOrNull()
+        val scd40humidity = snapshot.values.find { it.type == Scd40Humidity }?.value?.getOrNull()
+        val mslPressure = snapshot.values.find { it.type == MSLPressure }?.value?.getOrNull()
+        val realPressure = snapshot.values.find { it.type == RealPressure }?.value?.getOrNull()
+        val co2concentration = snapshot.values.find { it.type == IndoorCo2 }?.value?.getOrNull()
 
         if (listOf(
                 bme280temperature, bme280humidity, scd40temperature, scd40humidity,
@@ -83,8 +86,8 @@ class LocalSensorView(
         }
 
         val newReport = CurrentReport(
-            timestamp = report.timestamp,
-            cycleLength = report.cycleLength ?: oldStatus?.cycleLength,
+            timestamp = snapshot.timestamp,
+            cycleLength = snapshot.cycleLength ?: oldStatus?.cycleLength,
             bme280temperature = bme280temperature ?: oldStatus?.bme280temperature,
             bme280humidity = bme280humidity ?: oldStatus?.bme280humidity,
             scd40temperature = scd40temperature ?: oldStatus?.scd40temperature,

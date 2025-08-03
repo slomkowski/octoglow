@@ -90,8 +90,6 @@ class FrontDisplayDemon(
         @Volatile
         var currentInstant: TimestampedObject = NO_TIMESTAMPED_VALUE
 
-        val menus = view.getMenus()
-
         override fun toString(): String = "$view ($number)"
 
         fun bumpLastStatusAndInstantRedraw() {
@@ -174,7 +172,7 @@ class FrontDisplayDemon(
     private val views =
         frontDisplayViews.mapIndexed { idx, fdv -> ViewInfo(idx + 1, fdv as FrontDisplayView<Any, Any>) }
 
-    private val allMenus = additionalMenus.plus(views.flatMap { it.menus }).plus(exitMenu)
+    private val allMenus = additionalMenus.plus(exitMenu)
 
     private val stateExecutor: StateMachine<State, Event, SideEffect>
 
@@ -289,7 +287,7 @@ class FrontDisplayDemon(
 
     private inline fun <reified S : State.ViewCycle> StateMachine.GraphBuilder<State, Event, SideEffect>.StateDefinitionBuilder<S>.createCommonViewCycleActions() {
         on<Event.ButtonPressed> {
-            val menu = info.menus.firstOrNull() ?: allMenus.first()
+            val menu = allMenus.first()
 
             logger.info { "Going to menu overview: $menu." }
             val current = menu.loadCurrentOption()

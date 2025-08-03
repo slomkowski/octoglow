@@ -21,11 +21,9 @@ import kotlin.time.Instant
 
 data class TodoistDataSnapshot(
     override val timestamp: Instant,
-    override val cycleLength: Duration,
+    val cycleLength: Duration,
     val dataItem: Result<List<Item>>,
-) : DataSnapshot {
-    override val values: List<DataSample> = emptyList()
-}
+) : Snapshot
 
 class TodoistDataHarvester(
     private val config: Config,

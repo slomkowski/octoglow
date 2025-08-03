@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.DataSnapshot
+import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KLogger
@@ -30,7 +31,7 @@ abstract class FrontDisplayView<StatusType, InstantType>(
     }
 
     abstract suspend fun onNewDataSnapshot(
-        report: DataSnapshot,
+        snapshot : Snapshot,
         oldStatus: StatusType?,
     ): UpdateStatus
 
@@ -39,8 +40,6 @@ abstract class FrontDisplayView<StatusType, InstantType>(
     open suspend fun pollForNewInstantData(now: Instant, oldInstant: InstantType?): UpdateStatus {
         error("Should not be called if instant polling interval not defined. Otherwise, implement it.")
     }
-
-    open fun getMenus(): List<Menu> = emptyList()
 
     abstract suspend fun redrawDisplay(
         redrawStatic: Boolean,

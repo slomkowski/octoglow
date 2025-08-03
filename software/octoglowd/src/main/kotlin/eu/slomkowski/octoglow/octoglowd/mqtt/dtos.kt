@@ -45,7 +45,6 @@ data class DeviceConfig(
             val name: String,
             @SerialName("state_topic") val stateTopic: String,
             @SerialName("command_topic") val commandTopic: String,
-            @SerialName("value_template") val valueTemplate: String,
             @SerialName("unique_id") val uniqueId: String,
         ) : Component("switch")
 
@@ -107,3 +106,5 @@ enum class SwitchStateEnum(val active: Boolean) {
     OFF(false),
     ON(true),
 }
+
+fun Boolean.toSwitchStateEnum() = if (this) SwitchStateEnum.ON else SwitchStateEnum.OFF

@@ -3,14 +3,11 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.DataSnapshot
-import eu.slomkowski.octoglow.octoglowd.abbreviate
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.SimplemonitorDataHarvester
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.SimplemonitorDataSnapshot
-import eu.slomkowski.octoglow.octoglowd.formatJustHoursMinutes
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
-import eu.slomkowski.octoglow.octoglowd.toLocalTime
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -46,18 +43,18 @@ class SimpleMonitorView(
     }
 
     override suspend fun onNewDataSnapshot(
-        report: DataSnapshot,
+        snapshot: Snapshot,
         oldStatus: CurrentReport?
     ): UpdateStatus {
-        if (report !is SimplemonitorDataSnapshot) {
+        if (snapshot !is SimplemonitorDataSnapshot) {
             return UpdateStatus.NoNewData
         }
 
         return UpdateStatus.NewData(
             CurrentReport(
-                report.timestamp,
-                report.cycleLength,
-                report.data,
+                snapshot.timestamp,
+                snapshot.cycleLength,
+                snapshot.data,
             )
         )
     }

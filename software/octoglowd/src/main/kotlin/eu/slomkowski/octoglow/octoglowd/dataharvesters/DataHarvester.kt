@@ -4,6 +4,7 @@ package eu.slomkowski.octoglow.octoglowd.dataharvesters
 
 import eu.slomkowski.octoglow.octoglowd.DataSnapshot
 import eu.slomkowski.octoglow.octoglowd.DataSnapshotBus
+import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.demon.PollingDemon
 import io.github.oshai.kotlinlogging.KLogger
 import kotlin.time.Clock
@@ -19,7 +20,7 @@ abstract class DataHarvester(
 
     abstract suspend fun pollForNewData(now: Instant)
 
-    protected suspend fun publish(dataSnapshot: DataSnapshot) {
+    protected suspend fun publish(dataSnapshot: Snapshot) {
         dataSnapshotBus.publish(dataSnapshot)
     }
 

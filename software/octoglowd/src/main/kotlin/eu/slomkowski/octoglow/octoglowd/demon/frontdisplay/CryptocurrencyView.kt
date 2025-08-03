@@ -61,20 +61,20 @@ class CryptocurrencyView(
     )
 
     override suspend fun onNewDataSnapshot(
-        report: DataSnapshot,
+        snapshot: Snapshot,
         oldStatus: CurrentReport?
     ): UpdateStatus = coroutineScope {
-        if (report !is StandardDataSnapshot) {
+        if (snapshot !is StandardDataSnapshot) {
             return@coroutineScope UpdateStatus.NoNewData
         }
 
         suspend fun getForCoin(coinSymbol: String): CoinReport? {
             val dbKey = Cryptocurrency(coinSymbol)
-            val coinData = report.values.firstOrNull { it.type == dbKey }?.value?.getOrNull()
+            val coinData = snapshot.values.firstOrNull { it.type == dbKey }?.value?.getOrNull()
                 ?: return null
 
             val history = database.getLastHistoricalValuesByHourAsync(
-                report.timestamp,
+                snapshot.timestamp,
                 dbKey,
                 HISTORIC_VALUES_LENGTH,
             ).await()
@@ -100,8 +100,8 @@ class CryptocurrencyView(
 
         return@coroutineScope UpdateStatus.NewData(
             CurrentReport(
-                report.timestamp,
-                report.cycleLength,
+                snapshot.timestamp,
+                snapshot.cycleLength,
                 coins
             )
         )

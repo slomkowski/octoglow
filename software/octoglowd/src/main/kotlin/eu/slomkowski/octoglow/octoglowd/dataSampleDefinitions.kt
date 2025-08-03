@@ -86,6 +86,11 @@ data object PingTimeRemoteHost : DataSampleType
 
 data object PingTimeGateway : DbDataSampleType
 
+data class MagicEyeStateChanged(
+    override val timestamp: Instant,
+    val enabled: Boolean
+) : Snapshot
+
 interface DataSample {
     val type: DataSampleType
     val value: Result<Double>
@@ -96,9 +101,12 @@ data class StandardDataSample(
     override val value: Result<Double>,
 ) : DataSample
 
-interface DataSnapshot {
+interface Snapshot {
     val timestamp: Instant
-    val cycleLength: Duration // todo not null??
+}
+
+interface DataSnapshot : Snapshot {
+    val cycleLength: Duration
     val values: List<DataSample>
 }
 
