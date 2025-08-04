@@ -18,7 +18,7 @@ org-junit-jupiter-junit = "5.12.2"
 tinylog = "2.7.0"
 org-glassfish-jaxb-jaxb-runtime = "2.3.1"
 javax-xml-bind-jaxb-api = "2.3.1"
-de-kempmobil-ktor-mqtt = "0.6.2"
+de-kempmobil-ktor-mqtt = "0.6.3"
 
 [libraries]
 org-tinylog-tinylog-api-kotlin = { module = "org.tinylog:tinylog-api-kotlin", version.ref = "tinylog" }

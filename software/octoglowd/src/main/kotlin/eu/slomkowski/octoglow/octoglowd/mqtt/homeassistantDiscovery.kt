@@ -7,6 +7,8 @@ const val magicEyeIdentifier = "magic_eye"
 const val magicEyeSwitchSetTopic = "$DEVICE_ID/switch/$magicEyeIdentifier/set"
 const val magicEyeSwitchTopic = "$DEVICE_ID/switch/$magicEyeIdentifier"
 
+const val availabilityTopic = "$DEVICE_ID/status"
+
 const val dialIdentifier = "dial"
 const val dialButtonTopic = "$DEVICE_ID/button/$dialIdentifier/commands"
 
@@ -111,6 +113,7 @@ fun createDiscoveryMessageDto(): DeviceConfig {
     }
 
     return DeviceConfig(
+        availability = DeviceConfig.Availability(availabilityTopic),
         device = DeviceConfig.DeviceInfo(
             identifiers = listOf("octoglow"),
             name = "Octoglow",

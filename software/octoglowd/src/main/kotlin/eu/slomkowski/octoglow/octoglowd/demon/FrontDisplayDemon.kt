@@ -80,6 +80,10 @@ class FrontDisplayDemon(
             private set
 
         @Volatile
+        var lastInstantRedraw: Instant = Instant.DISTANT_PAST
+            private set
+
+        @Volatile
         var lastInstantPoll: Instant = Instant.DISTANT_PAST
             private set
 
@@ -95,21 +99,26 @@ class FrontDisplayDemon(
         fun bumpLastStatusAndInstantRedraw() {
             clock.now().let {
                 lastStatusRedraw = it
-                lastInstantPoll = it
+                lastInstantRedraw = it
             }
         }
 
-        fun bumpLastInstant() {
+        fun bumpLastInstantRedraw() {
+            lastInstantRedraw = clock.now()
+        }
+
+        fun bumpLastInstantPool() {
             lastInstantPoll = clock.now()
         }
 
-        suspend fun redrawAll() {
+        suspend fun redrawAll(byTimeout: Boolean) {
             val now = clock.now()
             lastViewed = now
             logger.debug { "Redrawing $this." }
             coroutineScope {
                 hardware.frontDisplay.clear()
-                launch { realTimeClockDemon.setFrontDisplayViewNumber(number) }
+                launch { realTimeClockDemon.setFrontDisplayViewNumber(number, byTimeout) }
+                bumpLastStatusAndInstantRedraw()
                 view.redrawDisplay(
                     redrawStatic = true,
                     redrawStatus = true,
@@ -125,6 +134,7 @@ class FrontDisplayDemon(
             lastViewed = now
             workerScope.launch {
                 logger.debug { "Updating state of active $view." }
+                bumpLastStatusAndInstantRedraw()
                 view.redrawDisplay(
                     redrawStatic = false,
                     redrawStatus = true,
@@ -138,6 +148,7 @@ class FrontDisplayDemon(
         fun redrawInstant() {
             workerScope.launch {
                 logger.debug { "Updating instant of ${this@ViewInfo}." }
+                bumpLastInstantRedraw()
                 view.redrawDisplay(
                     redrawStatic = false,
                     redrawStatus = false,
@@ -280,7 +291,7 @@ class FrontDisplayDemon(
     }
 
     sealed class SideEffect {
-        data class ViewInfoRedrawAll(val info: ViewInfo) : SideEffect()
+        data class ViewInfoRedrawAll(val info: ViewInfo, val byTimeout: Boolean) : SideEffect()
         data class ViewInfoRedrawStatus(val info: ViewInfo) : SideEffect()
         data class ViewInfoRedrawInstant(val info: ViewInfo) : SideEffect()
     }
@@ -297,7 +308,6 @@ class FrontDisplayDemon(
         }
 
         on<Event.StatusUpdate> { event ->
-            info.bumpLastStatusAndInstantRedraw()
             if (event.info == info) {
                 dontTransition(SideEffect.ViewInfoRedrawStatus(event.info))
             } else {
@@ -318,7 +328,7 @@ class FrontDisplayDemon(
             check(event.delta != 0)
             val newView = getNeighbourView(info, event.delta)
             logger.info { "Switching view from $info to $newView by dial." }
-            transitionTo(State.ViewCycle.Manual(newView), SideEffect.ViewInfoRedrawAll(newView))
+            transitionTo(State.ViewCycle.Manual(newView), SideEffect.ViewInfoRedrawAll(newView, false))
         }
     }
 
@@ -341,7 +351,7 @@ class FrontDisplayDemon(
 
                 on<Event.Timeout> {
                     logger.info { "Switching to auto mode because of the timeout." }
-                    transitionTo(State.ViewCycle.Auto(this.info), SideEffect.ViewInfoRedrawAll(this.info))
+                    transitionTo(State.ViewCycle.Auto(this.info), SideEffect.ViewInfoRedrawAll(this.info, true))
                 }
             }
 
@@ -352,7 +362,7 @@ class FrontDisplayDemon(
                     if (event.now - info.lastViewed >= info.view.preferredDisplayTime(info.currentStatus.obj)) {
                         val newView = getMostSuitableViewInfo(clock, views)
                         logger.info { "Going to view $newView because of timeout." }
-                        transitionTo(State.ViewCycle.Auto(newView), SideEffect.ViewInfoRedrawAll(this.info))
+                        transitionTo(State.ViewCycle.Auto(newView), SideEffect.ViewInfoRedrawAll(this.info, true))
                     } else {
                         dontTransition()
                     }
@@ -384,7 +394,7 @@ class FrontDisplayDemon(
                     when (this.menu) {
                         exitMenu -> {
                             logger.info { "Leaving menu." }
-                            transitionTo(State.ViewCycle.Manual(calledFrom), SideEffect.ViewInfoRedrawAll(calledFrom))
+                            transitionTo(State.ViewCycle.Manual(calledFrom), SideEffect.ViewInfoRedrawAll(calledFrom, false))
                         }
 
                         else -> {
@@ -425,7 +435,7 @@ class FrontDisplayDemon(
             onTransition {
                 val validTransition = it as? StateMachine.Transition.Valid ?: return@onTransition
                 when (val se = validTransition.sideEffect) {
-                    is SideEffect.ViewInfoRedrawAll -> se.info.redrawAll()
+                    is SideEffect.ViewInfoRedrawAll -> se.info.redrawAll(se.byTimeout)
                     is SideEffect.ViewInfoRedrawStatus -> se.info.redrawStatus()
                     is SideEffect.ViewInfoRedrawInstant -> se.info.redrawInstant()
                     null -> {
@@ -438,17 +448,15 @@ class FrontDisplayDemon(
 
     private suspend fun pollStatusAndInstant(now: Instant) = coroutineScope {
         for (info in views) {
-            if (info.view.pollInstantEvery == null && (info.lastInstantPoll + DEFAULT_INSTANT_REDRAW_INTERVAL) < now) {
-                info.bumpLastInstant()
+            if (info.view.pollInstantEvery == null && (info.lastInstantRedraw + DEFAULT_INSTANT_REDRAW_INTERVAL) < now) {
                 // pollInstantData is not called, but redraw is called, probably just for the progress bar
                 if ((stateExecutor.state as? State.ViewCycle)?.info == info) {
                     launch { stateExecutor.transition(Event.InstantUpdate(info)) }
                 }
             } else if ((info.lastInstantPoll + (info.view.pollInstantEvery ?: Duration.INFINITE)) < now) {
-                info.bumpLastInstant()
-
                 if ((stateExecutor.state as? State.ViewCycle)?.info == info) {
                     launch {
+                        info.bumpLastInstantPool()
                         val newInstant = info.view.pollForNewInstantData(
                             clock.now(),
                             info.currentInstant.obj,

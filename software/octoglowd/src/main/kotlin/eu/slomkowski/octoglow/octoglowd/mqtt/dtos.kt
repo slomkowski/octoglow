@@ -5,10 +5,16 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class DeviceConfig(
+    val availability: Availability,
     val device: DeviceInfo,
     val origin: DeviceDetails,
     val components: Map<String, Component>,
 ) {
+    @Serializable
+    data class Availability(
+        val topic: String,
+    )
+
     @Serializable
     data class DeviceInfo(
         val identifiers: List<String>,

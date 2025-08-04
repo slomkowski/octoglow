@@ -23,7 +23,9 @@ class RealTimeClockDemon(
     companion object {
         private val logger = KotlinLogging.logger {}
 
-        private val maxTimeTheFrontDisplayNumberIsVisible = 400.milliseconds
+        private val maxTimeTheFrontDisplayNumberIsVisibleManually = 1000.milliseconds
+
+        private val maxTimeTheFrontDisplayNumberIsVisibleByTimeout = 300.milliseconds
     }
 
     data class DisplayContent(
@@ -45,11 +47,12 @@ class RealTimeClockDemon(
         data class DisplayFrontDisplayNumber(
             val number: Int,
             val visibleSince: Instant,
+            val byTimeout: Boolean,
         ) : State()
     }
 
     sealed class Event {
-        data class FrontDisplayNumberSet(val number: Int) : Event()
+        data class FrontDisplayNumberSet(val number: Int, val byTimeout: Boolean) : Event()
         data class UpdateTime(val time: LocalDateTime) : Event()
     }
 
@@ -59,9 +62,7 @@ class RealTimeClockDemon(
     }
 
     private val stateExecutor: StateMachine<State, Event, SideEffect> = StateMachine.create {
-        initialState(State.DisplayFrontDisplayNumber(0, Instant.DISTANT_PAST))
-
-        // todo add timeout
+        initialState(State.DisplayFrontDisplayNumber(0, Instant.DISTANT_PAST, true))
 
         state<State.DisplayTime> {
             on<Event.UpdateTime> { event ->
@@ -74,13 +75,17 @@ class RealTimeClockDemon(
             }
 
             on<Event.FrontDisplayNumberSet> { event ->
-                transitionTo(State.DisplayFrontDisplayNumber(event.number, clock.now()), SideEffect.DrawNumberSet(event.number))
+                transitionTo(State.DisplayFrontDisplayNumber(event.number, clock.now(), event.byTimeout), SideEffect.DrawNumberSet(event.number))
             }
         }
 
         state<State.DisplayFrontDisplayNumber> {
             on<Event.UpdateTime> { event ->
-                if (clock.now() > visibleSince + maxTimeTheFrontDisplayNumberIsVisible) {
+                val timeout = when (byTimeout) {
+                    true -> maxTimeTheFrontDisplayNumberIsVisibleByTimeout
+                    else -> maxTimeTheFrontDisplayNumberIsVisibleManually
+                }
+                if (clock.now() > visibleSince + timeout) {
                     val newDisplayContent = DisplayContent.ofTimestamp(event.time)
                     transitionTo(State.DisplayTime(newDisplayContent), SideEffect.DrawTimer(newDisplayContent))
                 } else {
@@ -89,7 +94,7 @@ class RealTimeClockDemon(
             }
 
             on<Event.FrontDisplayNumberSet> { event ->
-                transitionTo(State.DisplayFrontDisplayNumber(event.number, clock.now()), SideEffect.DrawNumberSet(event.number))
+                transitionTo(State.DisplayFrontDisplayNumber(event.number, clock.now(), event.byTimeout), SideEffect.DrawNumberSet(event.number))
             }
         }
 
@@ -112,8 +117,8 @@ class RealTimeClockDemon(
         stateExecutor.transition(Event.UpdateTime(now().toLocalDateTime(TimeZone.currentSystemDefault())))
     }
 
-    suspend fun setFrontDisplayViewNumber(number: Int) {
+    suspend fun setFrontDisplayViewNumber(number: Int, byTimeout: Boolean) {
         require(number in 0..99) { "Front display number must be between 0 and 99" }
-        stateExecutor.transition(Event.FrontDisplayNumberSet(number))
+        stateExecutor.transition(Event.FrontDisplayNumberSet(number, byTimeout))
     }
 }
