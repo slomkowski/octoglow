@@ -32,6 +32,22 @@ class FrontDisplayMock : FrontDisplay {
     val line2content: String
         get() = displayContent.copyOfRange(20, 40).joinToString("")
 
+    data class ScrollingTextHandle(
+        val slot: Slot,
+        val position: Int,
+        val text: String,
+    ) {
+        init {
+            assertThat(text.length).isGreaterThan(0)
+            assertThat(text.length).isLessThanOrEqualTo(slot.capacity)
+        }
+    }
+
+    val scrollingTextContent: Map<Slot, String>
+        get() = scrollingTextBuffer.mapValues { it.value.text }
+
+    private val scrollingTextBuffer = mutableMapOf<Slot, ScrollingTextHandle>()
+
     override suspend fun initDevice() {
     }
 
@@ -44,11 +60,39 @@ class FrontDisplayMock : FrontDisplay {
     }
 
     override suspend fun clear() {
+        scrollingTextBuffer.clear()
         upperBar.fill(false)
         displayContent.fill(' ')
     }
 
     override suspend fun setText(textBytes: ByteArray, header: IntArray) {
+        when (header[0]) {
+            4 -> setStatic(textBytes, header)
+            5 -> setScrolling(textBytes, header)
+        }
+    }
+
+    private fun setScrolling(textBytes: ByteArray, header: IntArray) {
+        assertThat(header.size).isEqualTo(4)
+        assertThat(header[0]).isEqualTo(5)
+        val slot = Slot.entries[header[1]]
+        val position = header[2]
+        val windowLength = header[3]
+
+        val text = textBytes.toString(StandardCharsets.UTF_8)
+
+        require(position in 0..39) { "Invalid position: $position" }
+        require(position + windowLength <= 40) { "Text exceeds display boundaries." }
+        for (index in 0..<windowLength) {
+            displayContent[position + index] = '#'
+        }
+
+        scrollingTextBuffer[slot] = ScrollingTextHandle(
+            slot, position, text
+        )
+    }
+
+    private fun setStatic(textBytes: ByteArray, header: IntArray) {
         assertThat(header.size).isEqualTo(3)
         assertThat(header[0]).isEqualTo(4) // support only static text
         val position = header[1]
@@ -68,11 +112,6 @@ class FrontDisplayMock : FrontDisplay {
 
     override suspend fun setEndOfConstructionYearInternal(lastDigitsOfYear: Byte) {
         constructionYearByte = lastDigitsOfYear
-    }
-
-    // todo support tylko takich, które można podzielić na 5,  rysowanie #
-    override suspend fun setScrollingText(slot: Slot, position: Int, length: Int, text: String) {
-        fail("Scrolling text is not implemented for mock front display")
     }
 
     override suspend fun <T : Number> setOneLineDiffChart(position: Int, currentValue: T?, historicalValues: List<T?>?, unit: T) {
@@ -114,6 +153,15 @@ class FrontDisplayMock : FrontDisplay {
         stringBuilder.append("<", upperBarContent, ">\n")
         stringBuilder.append("|", line1content, "|\n")
         stringBuilder.append("|", line2content, "|")
-        return stringBuilder.toString()
+
+        if (scrollingTextBuffer.isNotEmpty()) {
+            stringBuilder.append("\nScrolling text:\n")
+        }
+
+        scrollingTextBuffer.values.map { "* slot ${it.slot}: ${it.text}" }.sorted().forEach {
+            stringBuilder.appendLine(it)
+        }
+
+        return stringBuilder.toString().trim()
     }
 }

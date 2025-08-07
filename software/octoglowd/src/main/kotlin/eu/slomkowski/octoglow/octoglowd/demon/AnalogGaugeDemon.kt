@@ -73,7 +73,10 @@ class AnalogGaugeDemon(
         return 1.0 - (deltaIdle.toDouble() / deltaTotal.toDouble())
     }
 
+    @Volatile
     private var cpuLastIdle: Long = 0
+
+    @Volatile
     private var cpuLastTotal: Long = 0
 
     override suspend fun poll() = coroutineScope {
@@ -110,6 +113,8 @@ class AnalogGaugeDemon(
 
     private class BufferState {
         val buffer: DoubleArray = DoubleArray(NUMBER_OF_SAMPLES_TO_AVERAGE) { 0.5 }
+
+        @Volatile
         var currentIndex: Int = 0
     }
 

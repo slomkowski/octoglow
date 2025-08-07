@@ -506,6 +506,7 @@ class FrontDisplayDemon(
             commandBus.commands.collect { command ->
                 when (command) {
                     is DialPressed -> {
+                        // todo bumping clocks should be in the transitions
                         lastDialActivity = clock.now()
                         stateExecutor.transition(Event.ButtonPressed)
                     }

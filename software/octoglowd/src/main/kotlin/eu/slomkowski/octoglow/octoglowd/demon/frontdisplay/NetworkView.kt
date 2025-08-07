@@ -3,16 +3,13 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.DataSnapshot
-import eu.slomkowski.octoglow.octoglowd.PingTimeGateway
-import eu.slomkowski.octoglow.octoglowd.PingTimeRemoteHost
-import eu.slomkowski.octoglow.octoglowd.Snapshot
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.NetworkDataHarvester
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.NetworkDataSnapshot
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
+import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
@@ -36,6 +33,7 @@ class NetworkView(
         val interfaceInfo: NetworkDataHarvester.InterfaceInfo?,
         val remotePing: Duration?,
         val gwPing: Duration?,
+        val mqttConnected: Boolean,
     )
 
     companion object {
@@ -55,6 +53,19 @@ class NetworkView(
         snapshot: Snapshot,
         oldStatus: CurrentReport?
     ): UpdateStatus {
+
+        if (snapshot is MqttConnectionChanged) {
+            return UpdateStatus.NewData(
+                CurrentReport(
+                    snapshot.timestamp,
+                    oldStatus?.cycleLength ?: 5.minutes,
+                    oldStatus?.interfaceInfo,
+                    oldStatus?.remotePing,
+                    oldStatus?.gwPing,
+                    snapshot.connected,
+                )
+            )
+        }
 
         if (snapshot !is DataSnapshot) {
             return UpdateStatus.NoNewData
@@ -83,10 +94,11 @@ class NetworkView(
         return UpdateStatus.NewData(
             CurrentReport(
                 snapshot.timestamp,
-                snapshot.cycleLength ?: oldStatus?.cycleLength ?: 5.minutes,
+                snapshot.cycleLength,
                 interfaceInfo ?: oldStatus?.interfaceInfo,
                 newRemotePing ?: oldStatus?.remotePing,
                 newGwPing ?: oldStatus?.gwPing,
+                oldStatus?.mqttConnected ?: false,
             )
         )
     }
@@ -96,38 +108,35 @@ class NetworkView(
         redrawStatus: Boolean,
         now: Instant,
         status: CurrentReport?,
-        instant: Unit?
+        instant: Unit?,
     ): Unit = coroutineScope {
         val fd = hardware.frontDisplay
 
         if (redrawStatic) {
-            launch { fd.setStaticText(0, "IP:") }
-            launch { fd.setStaticText(20, "ping") }
-            launch { fd.setStaticText(32, "gw") }
+            fd.setStaticText(0, "ping")
+            fd.setStaticText(11, "gw")
+            fd.setStaticText(20, "mqtt")
         }
 
         if (redrawStatus) {
+            fd.setStaticText(4, formatPingRtt(status?.remotePing))
+            fd.setStaticText(14, formatPingRtt(status?.gwPing))
 
-            val text = status?.interfaceInfo?.ip?.hostAddress ?: "---.---.---.---"
-            launch { fd.setStaticText(4, text) }
-
-            if (status != null) {
-                launch {
-                    fd.setStaticText(
-                        16,
-                        when (status.interfaceInfo?.isWifi) {
-                            false -> "wire"
-                            true -> "wifi"
-                            else -> "----"
-                        }
-                    )
+            fd.setStaticText(
+                25, when (status?.mqttConnected) {
+                    true -> "OK   "
+                    false -> "FAIL!"
+                    null -> "---  "
                 }
-
-                launch {
-                    fd.setStaticText(24, formatPingRtt(status.remotePing))
-                    fd.setStaticText(34, formatPingRtt(status.gwPing))
-                }
-            }
+            )
+            fd.setScrollingText(
+                Slot.SLOT0, 31, 9,
+                (when (status?.interfaceInfo?.isWifi) {
+                    false -> "eth"
+                    true -> "wl"
+                    else -> ""
+                } + " IP: " + (status?.interfaceInfo?.ip?.hostAddress ?: "---.---.---.---")).trim()
+            )
         }
 
         drawProgressBar(status?.timestamp, now, status?.cycleLength)

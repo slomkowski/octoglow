@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     kotlin("jvm") version libs.versions.kotlin
     kotlin("plugin.serialization") version libs.versions.kotlin
@@ -59,6 +62,11 @@ dependencies {
     testImplementation(libs.de.jollyday.jollyday)
     testImplementation(libs.javax.xml.bind.jaxb.api)
     testImplementation(libs.org.glassfish.jaxb.jaxb.runtime)
+    testImplementation(libs.de.fraunhofer.iosb.io.moquette.broker) {
+        exclude(group = "ch.qos.reload4j", module = "reload4j")
+    }
+
+
 }
 
 sqldelight {
@@ -128,4 +136,8 @@ tasks.shadowJar {
 //        exclude(dependency("io.ktor:ktor-client-content-negotiation-jvm"))
 //        exclude(dependency("io.ktor:ktor-serialization-kotlinx-json-jvm"))
 //    }
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.compilerOptions {
+    languageVersion.set(KotlinVersion.KOTLIN_2_2)
 }

@@ -136,7 +136,7 @@ fun formatPpmConcentration(t: Double?): String = when (t) {
  * Used to calculate which segment to light of the upper progress bar on the front display.
  */
 fun getSegmentNumber(currentTime: kotlin.time.Duration, maxTime: kotlin.time.Duration): Int =
-    floor(20.0 * (currentTime.toDouble(DurationUnit.MILLISECONDS) / maxTime.toDouble(DurationUnit.MILLISECONDS))).roundToInt().coerceIn(0, 19)
+    floor(20.0 * (max(currentTime.toDouble(DurationUnit.MILLISECONDS), 0.0) / maxTime.toDouble(DurationUnit.MILLISECONDS))).roundToInt().coerceIn(0, 19)
 
 suspend fun <T : Any> trySeveralTimes(
     numberOfTries: Int,
@@ -191,3 +191,10 @@ fun String.abbreviate(maxLength: Int): String {
 
 private val uppercaseLetters = Regex("([A-Z])")
 fun toSnakeCase(s: String) = uppercaseLetters.replace(s, "_$1").uppercase().trim('_')
+
+fun String.centerText(length: Int): String {
+    if (this.length >= length) return this
+    val spaces = length - this.length
+    val padStart = spaces / 2
+    return " ".repeat(padStart) + this + " ".repeat(spaces - padStart)
+}

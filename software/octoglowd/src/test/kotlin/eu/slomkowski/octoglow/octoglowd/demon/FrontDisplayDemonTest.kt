@@ -63,7 +63,7 @@ class FrontDisplayDemonTest {
 
                 coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
 
-                coEvery { realTimeClockDemon.setFrontDisplayViewNumber(any()) } just Runs
+                coEvery { realTimeClockDemon.setFrontDisplayViewNumber(any(), any()) } just Runs
 
                 val v1 = mockk<FrontDisplayView<Any, Any>>()
                 val v2 = mockk<FrontDisplayView<Any, Any>>()

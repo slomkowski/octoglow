@@ -64,11 +64,6 @@ data class DeviceConfig(
     }
 }
 
-@Serializable
-data class SwitchState(
-    val state: SwitchStateEnum
-)
-
 typealias PayloadFunc = (Double) -> SensorPayload
 
 // todo remove 'type' from mqtt json

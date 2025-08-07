@@ -82,13 +82,18 @@ data class Stock(val symbol: String) : DbDataSampleType {
         get() = "STOCK_" + symbol.replace(NON_ALPHANUMERIC_REGEX, "_").uppercase()
 }
 
-data object PingTimeRemoteHost : DataSampleType
+data object PingTimeRemoteHost : DbDataSampleType
 
 data object PingTimeGateway : DbDataSampleType
 
 data class MagicEyeStateChanged(
     override val timestamp: Instant,
     val enabled: Boolean
+) : Snapshot
+
+data class MqttConnectionChanged(
+    override val timestamp: Instant,
+    val connected: Boolean,
 ) : Snapshot
 
 interface DataSample {

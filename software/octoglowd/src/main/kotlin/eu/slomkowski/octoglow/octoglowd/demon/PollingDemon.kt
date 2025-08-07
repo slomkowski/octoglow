@@ -7,6 +7,10 @@ import kotlin.time.Duration
 
 interface Demon {
     fun createJobs(scope: CoroutineScope): List<Job>
+
+    fun close(scope: CoroutineScope) {
+        // do nothing
+    }
 }
 
 /**

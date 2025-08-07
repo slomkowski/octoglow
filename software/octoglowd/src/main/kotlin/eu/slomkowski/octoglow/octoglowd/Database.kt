@@ -28,7 +28,7 @@ fun Instant.fmt(): String {
 class DatabaseDemon(
     databaseFile: Path,
     private val eventBus: DataSnapshotBus,
-) : Demon, AutoCloseable {
+) : Demon {
     companion object {
         private val logger = KotlinLogging.logger {}
 
@@ -107,7 +107,7 @@ class DatabaseDemon(
     }
 
     private val threadContext = newSingleThreadContext("Database")
-    private val workerScope = CoroutineScope(SupervisorJob() + threadContext)
+    private val threadWorkerScope = CoroutineScope(SupervisorJob() + threadContext)
 
     private val driver: SqlDriver
 
@@ -120,13 +120,13 @@ class DatabaseDemon(
         database = SqlDelightDatabase(driver)
     }
 
-    override fun close() {
-        workerScope.cancel()
+    override fun close(scope: CoroutineScope) {
+        threadWorkerScope.cancel()
         threadContext.close()
         driver.close()
     }
 
-    fun getChangeableSettingAsync(key: ChangeableSetting): Deferred<String?> = workerScope.async {
+    fun getChangeableSettingAsync(key: ChangeableSetting): Deferred<String?> = threadWorkerScope.async {
         database.transactionWithResult {
             val row = database.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
             row?.value_
@@ -134,7 +134,7 @@ class DatabaseDemon(
     }
 
     fun setChangeableSettingAsync(key: ChangeableSetting, value: String?): Job {
-        return workerScope.launch {
+        return threadWorkerScope.launch {
             logger.info { "Saving $key as $value." }
 
             database.transaction {
@@ -152,10 +152,10 @@ class DatabaseDemon(
     }
 
     fun insertHistoricalValueAsync(ts: Instant, key: DbDataSampleType, value: Double): Job {
-        return workerScope.launch {
+        return threadWorkerScope.launch {
             database.transaction {
                 if (database.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
-                    logger.debug { "Inserting data to DB: $key = $value." }
+                    logger.debug { "Inserting data to DB: $key = ${"%.4f".format(value)}." }
                     database.historicalValuesQueries.insertHistoricalValue(ts.fmt(), key.databaseSymbol, value)
                 } else {
                     logger.debug { "Value with timestamp $ts is already in DB." }
@@ -176,7 +176,7 @@ class DatabaseDemon(
 
         // TODO("dodać maxTimestamp, żeby ogarniczyć ewentualny wynik nowowstawiowny")
 
-        return workerScope.async {
+        return threadWorkerScope.async {
             val result = database.transactionWithResult {
                 driver.executeQuery(null, query, mapper = {
                     val result = mutableListOf<Pair<Int, Double>>()

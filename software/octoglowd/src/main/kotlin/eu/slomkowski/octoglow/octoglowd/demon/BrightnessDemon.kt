@@ -4,8 +4,10 @@ package eu.slomkowski.octoglow.octoglowd.demon
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalTime
@@ -162,6 +164,12 @@ class BrightnessDemon(
             database.getChangeableSettingAsync(ChangeableSetting.BRIGHTNESS).await()?.toIntOrNull()?.apply {
                 hardware.setBrightness(this)
             }
+        }
+    }
+
+    override fun close(scope: CoroutineScope) {
+        scope.launch {
+            hardware.setBrightness(3)
         }
     }
 

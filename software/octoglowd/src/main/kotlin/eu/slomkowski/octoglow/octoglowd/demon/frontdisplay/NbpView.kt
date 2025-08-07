@@ -54,7 +54,7 @@ class NbpView(
         snapshot: Snapshot,
         oldStatus: CurrentReport?,
     ): UpdateStatus {
-        if(snapshot !is DataSnapshot) {
+        if (snapshot !is DataSnapshot) {
             return UpdateStatus.NoNewData
         }
 

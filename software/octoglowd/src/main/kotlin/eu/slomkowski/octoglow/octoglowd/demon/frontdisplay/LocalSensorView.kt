@@ -65,7 +65,7 @@ class LocalSensorView(
     }
 
     override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: CurrentReport?): UpdateStatus {
-        if(snapshot !is DataSnapshot) {
+        if (snapshot !is DataSnapshot) {
             return UpdateStatus.NoNewData
         }
 

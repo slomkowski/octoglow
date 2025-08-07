@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.1.21"
+kotlin = "2.2.0"
 shadow-plugin = "8.3.6"
 app-cash-sqldelight = "2.1.0"
 
@@ -19,11 +19,13 @@ tinylog = "2.7.0"
 org-glassfish-jaxb-jaxb-runtime = "2.3.1"
 javax-xml-bind-jaxb-api = "2.3.1"
 de-kempmobil-ktor-mqtt = "0.6.3"
+de-fraunhofer-iosb-io-moquette-broker = "0.18.3"
 
 [libraries]
 org-tinylog-tinylog-api-kotlin = { module = "org.tinylog:tinylog-api-kotlin", version.ref = "tinylog" }
 org-tinylog-tinylog-impl = { module = "org.tinylog:tinylog-impl", version.ref = "tinylog" }
 org-tinylog-tinylog-slf4j = { module = "org.tinylog:slf4j-tinylog", version.ref = "tinylog" }
+de-fraunhofer-iosb-io-moquette-broker = { module = "de.fraunhofer.iosb.io.moquette:moquette-broker", version.ref = "de-fraunhofer-iosb-io-moquette-broker" }
 com-thedeanda-lorem = { module = "com.thedeanda:lorem", version.ref = "com-thedeanda-lorem" }
 de-jollyday-jollyday = { module = "de.jollyday:jollyday", version.ref = "de-jollyday-jollyday" }
 io-helins-linux-i2c = { module = "io.helins:linux-i2c", version.ref = "io-helins-linux-i2c" }

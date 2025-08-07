@@ -200,4 +200,68 @@ class UtilsTest {
         assertEquals("a...", "abcdefg".abbreviate(4))
         assertEquals("", "".abbreviate(4))
     }
+
+    @Test
+    fun `should return original string when it fits within the specified length`() {
+        val input = "Hello"
+        val length = 5
+        val result = input.centerText(length)
+        assertThat(result).isEqualTo("Hello")
+    }
+
+    @Test
+    fun `should add spaces equally on both sides when string is shorter than the specified length`() {
+        val input = "Hi"
+        val length = 6
+        val result = input.centerText(length)
+        assertThat(result).isEqualTo("  Hi  ")
+    }
+
+    @Test
+    fun `should add one extra space to the right when spaces are uneven`() {
+        val input = "Test"
+        val length = 7
+        val result = input.centerText(length)
+        assertThat(result).isEqualTo(" Test  ")
+    }
+
+    @Test
+    fun `should return the original string when length is less than or equal to the string length`() {
+        val input = "World"
+        val length = 4
+        val result = input.centerText(length)
+        assertThat(result).isEqualTo("World")
+    }
+
+    @Test
+    fun `should handle empty string and produce centered spaces`() {
+        val input = ""
+        val length = 4
+        val result = input.centerText(length)
+        assertThat(result).isEqualTo("    ")
+    }
+
+    @Test
+    fun `should handle a single character and center it within the specified length`() {
+        val input = "A"
+        val length = 5
+        val result = input.centerText(length)
+        assertThat(result).isEqualTo("  A  ")
+    }
+
+    @Test
+    fun `should handle strings with spaces correctly`() {
+        val input = "Hi there"
+        val length = 11
+        val result = input.centerText(length)
+        assertThat(result).isEqualTo(" Hi there ")
+    }
+
+    @Test
+    fun `should produce a string with only spaces when input is empty and length is provided`() {
+        val input = ""
+        val length = 10
+        val result = input.centerText(length)
+        assertThat(result).isEqualTo("          ")
+    }
 }

@@ -3,11 +3,14 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 
-import eu.slomkowski.octoglow.octoglowd.*
+import eu.slomkowski.octoglow.octoglowd.Snapshot
+import eu.slomkowski.octoglow.octoglowd.abbreviate
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.SimplemonitorDataHarvester
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.SimplemonitorDataSnapshot
+import eu.slomkowski.octoglow.octoglowd.formatJustHoursMinutes
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
+import eu.slomkowski.octoglow.octoglowd.toLocalTime
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch

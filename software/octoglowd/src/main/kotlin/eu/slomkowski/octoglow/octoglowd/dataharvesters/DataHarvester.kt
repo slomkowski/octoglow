@@ -2,7 +2,6 @@
 
 package eu.slomkowski.octoglow.octoglowd.dataharvesters
 
-import eu.slomkowski.octoglow.octoglowd.DataSnapshot
 import eu.slomkowski.octoglow.octoglowd.DataSnapshotBus
 import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.demon.PollingDemon

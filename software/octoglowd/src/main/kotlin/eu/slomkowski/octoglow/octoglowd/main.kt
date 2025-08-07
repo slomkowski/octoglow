@@ -4,7 +4,7 @@ import eu.slomkowski.octoglow.octoglowd.dataharvesters.*
 import eu.slomkowski.octoglow.octoglowd.demon.*
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.*
 import eu.slomkowski.octoglow.octoglowd.hardware.HardwareReal
-import eu.slomkowski.octoglow.octoglowd.mqtt.MqttEmiter
+import eu.slomkowski.octoglow.octoglowd.mqtt.MqttDemon
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import java.nio.file.Paths
@@ -23,33 +23,27 @@ fun main() {
     val commandBus = CommandBus()
     val eventBus = DataSnapshotBus()
 
-    val mqttEmiter = MqttEmiter(config, workerScope, eventBus, commandBus)
+    val mqttDemon = MqttDemon(config, eventBus, commandBus)
     val hardware = HardwareReal(config)
     val database = DatabaseDemon(config.databaseFile, eventBus)
-    val closeable = listOf(database, hardware)
-
-    Runtime.getRuntime().addShutdownHook(Thread {
-        logger.info { "Shutting down. Calling workers to stop." }
-        workerScope.cancel()
-        runBlocking {
-            workerScope.coroutineContext[Job]?.join()
-        }
-        closeable.forEach { it.close() }
-        logger.info { "Shut down." }
-    })
 
     val frontDisplayViews2 = listOf(
         CalendarView(config, hardware),
+
         GeigerView(database, hardware),
+
         CryptocurrencyView(config, database, hardware),
-        AirQualityView(config, database, hardware),
-        LocalSensorView(config, database, hardware),
-        JvmMemoryView(hardware),
         NbpView(config, hardware),
+
+        AirQualityView(config, database, hardware),
         WeatherSensorView(config, database, hardware),
+        LocalSensorView(config, database, hardware),
+
         SimpleMonitorView(hardware),
         TodoistView(hardware),
+
         NetworkView(hardware),
+        JvmMemoryView(hardware),
     )
 
     val brightnessDaemon = BrightnessDemon(config, database, hardware)
@@ -72,7 +66,7 @@ fun main() {
         RadmonOrgSenderDemon(config, eventBus),
         MagicEyeDemon(hardware, eventBus, commandBus),
         magicEyeMenu,
-        mqttEmiter,
+        mqttDemon,
 
         AirQualityDataHarvester(config, eventBus),
         CryptocurrencyDataHarvester(config, eventBus),
@@ -85,9 +79,20 @@ fun main() {
         NetworkDataHarvester(config, eventBus),
     )
 
+    Runtime.getRuntime().addShutdownHook(Thread {
+        logger.info { "Shutting down. Calling workers to stop." }
+        demons.forEach { it.close(workerScope) }
+        Thread.sleep(2000)
+        workerScope.cancel()
+        runBlocking {
+            workerScope.coroutineContext[Job]?.join()
+        }
+        hardware.close()
+        logger.info { "Shut down." }
+    })
+
     runBlocking {
         demons.forEach { it.createJobs(workerScope) }
-
         awaitCancellation()
     }
 }

@@ -23,7 +23,7 @@ class GeigerView(
 ) : FrontDisplayView<CounterReport, GeigerDeviceState>(
     hardware,
     "Geiger counter",
-    2.seconds,
+    1.seconds,
     logger,
 ) {
     override fun preferredDisplayTime(status: CounterReport?) = 11.seconds

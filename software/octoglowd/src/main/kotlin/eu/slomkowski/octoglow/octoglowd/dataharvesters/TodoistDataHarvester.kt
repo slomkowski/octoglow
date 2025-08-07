@@ -2,9 +2,12 @@
 
 package eu.slomkowski.octoglow.octoglowd.dataharvesters
 
-import eu.slomkowski.octoglow.octoglowd.*
+import eu.slomkowski.octoglow.octoglowd.Config
+import eu.slomkowski.octoglow.octoglowd.DataSnapshotBus
+import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.TodoistDataHarvester.Item
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.TodoistView.Task
+import eu.slomkowski.octoglow.octoglowd.httpClient
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*

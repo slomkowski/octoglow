@@ -1,6 +1,5 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
-import eu.slomkowski.octoglow.octoglowd.DataSnapshot
 import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.getSegmentNumber
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
@@ -31,7 +30,7 @@ abstract class FrontDisplayView<StatusType, InstantType>(
     }
 
     abstract suspend fun onNewDataSnapshot(
-        snapshot : Snapshot,
+        snapshot: Snapshot,
         oldStatus: StatusType?,
     ): UpdateStatus
 
@@ -59,7 +58,6 @@ abstract class FrontDisplayView<StatusType, InstantType>(
         val fd = hardware.frontDisplay
         if (statusTimestamp != null && period != null) {
             val currentCycleDuration = now - statusTimestamp
-            check(!currentCycleDuration.isNegative())
             launch { fd.setUpperBar(listOf(getSegmentNumber(currentCycleDuration, period))) }
         } else {
             launch { fd.setUpperBar(emptyList()) }

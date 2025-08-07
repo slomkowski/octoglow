@@ -93,7 +93,7 @@ class WeatherSensorView(
         snapshot: Snapshot,
         oldStatus: CurrentReport?
     ): UpdateStatus = coroutineScope {
-        if(snapshot !is DataSnapshot) {
+        if (snapshot !is DataSnapshot) {
             return@coroutineScope UpdateStatus.NoNewData
         }
 
