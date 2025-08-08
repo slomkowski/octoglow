@@ -6,7 +6,6 @@ import eu.slomkowski.octoglow.octoglowd.Config
 import eu.slomkowski.octoglow.octoglowd.DataSnapshotBus
 import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.TodoistDataHarvester.Item
-import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.TodoistView.Task
 import eu.slomkowski.octoglow.octoglowd.httpClient
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.call.*
@@ -31,43 +30,24 @@ data class TodoistDataSnapshot(
 class TodoistDataHarvester(
     private val config: Config,
     eventBus: DataSnapshotBus,
-) : DataHarvester(logger, 90.seconds, eventBus) {
-
-    @Serializable
-    data class TaskDto(
-        val id: String,
-        val content: String,
-        val due: Due?,
-    )
+) : DataHarvester(logger, 55.seconds, eventBus) {
 
     @Serializable
     data class Due(
         val date: String
     )
 
-
     @Serializable
     data class Item(
         val id: String,
-        @SerialName("project_id")
-        val projectId: String,
+        val description: String,
         val content: String,
         val priority: Int,
         val due: Due?,
-//        val completed: Boolean,
         @SerialName("user_id")
         val userId: String,
-        val labels: List<String>,
-        @SerialName("parent_id")
-        val parentId: String?,
-//        val order: Int,
-        @SerialName("child_order")
-        val childOrder: Int,
-//        @SerialName("date_added")
-//        val dateAdded: String,
         @SerialName("checked")
         val isChecked: Boolean,
-        val description: String,
         @SerialName("is_deleted")
         val isDeleted: Boolean,
     ) {
@@ -84,8 +64,6 @@ class TodoistDataHarvester(
                     }
                 }
             }
-
-        fun toTask() = Task(id, dueDate)
     }
 
     @Serializable
@@ -93,14 +71,8 @@ class TodoistDataHarvester(
         @SerialName("full_sync")
         val fullSync: Boolean,
 
-//        @SerialName("completed_info")
-//        val completedInfo: List<CompletedInfo>,
-
         @SerialName("items")
         val items: List<Item>,
-
-//        @SerialName("live_notifications")
-//        val liveNotifications: List<LiveNotification>,
 
         @SerialName("sync_token")
         val syncToken: String,
