@@ -14,6 +14,7 @@ _saved_*
 *-save.pro
 
 rescue-backup/
+*-backups/
 
 *.sch-bak
 

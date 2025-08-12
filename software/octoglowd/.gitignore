@@ -8,6 +8,7 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
+*.hprof
 
 build
 .gradle
@@ -27,3 +28,5 @@ test-config.yml
 
 /config.json
 /test-config.json
+
+data/
