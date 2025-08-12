@@ -14,7 +14,7 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 class IndoorWeatherViewTest {
-    
+
     @Test
     fun testFormatCo2() {
         assertThat(formatCo2(null)).isEqualTo("---- ppm")
@@ -26,7 +26,7 @@ class IndoorWeatherViewTest {
     }
 
     @Test
-    fun testRedrawDisplayEmpty() : Unit = runBlocking {
+    fun testRedrawDisplayEmpty(): Unit = runBlocking {
         val hardware = HardwareMock()
         val view = IndoorWeatherView(testConfig, mockk(), hardware)
 
@@ -35,7 +35,8 @@ class IndoorWeatherViewTest {
             redrawStatus = true,
             now = Clock.System.now(),
             status = null,
-            instant = Unit)
+            instant = Unit
+        )
 
         println(hardware.frontDisplay.renderDisplayContent())
         assertThat(hardware.frontDisplay.line1content).isEqualTo("ping -- ms gw  -- ms")

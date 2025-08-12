@@ -65,8 +65,6 @@ dependencies {
     testImplementation(libs.de.fraunhofer.iosb.io.moquette.broker) {
         exclude(group = "ch.qos.reload4j", module = "reload4j")
     }
-
-
 }
 
 sqldelight {

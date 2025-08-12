@@ -1,7 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.demon
 
 
-import eu.slomkowski.octoglow.octoglowd.DataSnapshot
 import eu.slomkowski.octoglow.octoglowd.Snapshot
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.demon.FrontDisplayDemon.Companion.updateViewIndex
@@ -67,7 +66,7 @@ class FrontDisplayDemonTest {
 
                 val v1 = mockk<FrontDisplayView<Any, Any>>()
                 val v2 = mockk<FrontDisplayView<Any, Any>>()
-                
+
                 coEvery { v1.redrawDisplay(true, true, any(), any(), any()) } just Runs
                 coEvery { v2.redrawDisplay(true, true, any(), any(), any()) } just Runs
 

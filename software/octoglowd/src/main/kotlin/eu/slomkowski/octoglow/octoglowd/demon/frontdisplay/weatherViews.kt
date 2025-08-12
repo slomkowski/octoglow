@@ -3,11 +3,6 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.*
-import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.WeatherSensorView.Companion.CO2_CHART_UNIT
-import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.WeatherSensorView.Companion.HISTORIC_VALUES_LENGTH
-import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.WeatherSensorView.Companion.HUMIDITY_CHART_UNIT
-import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.WeatherSensorView.Companion.PRESSURE_CHART_UNIT
-import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.WeatherSensorView.Companion.TEMPERATURE_CHART_UNIT
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.async
@@ -94,12 +89,17 @@ abstract class AbstractWeatherView<StatusType>(
 
     companion object {
         protected val logger = KotlinLogging.logger {}
-    }
 
+        const val HISTORIC_VALUES_LENGTH = 5 * 3 - 1
+        const val TEMPERATURE_CHART_UNIT = 1.0
+        const val CO2_CHART_UNIT = 100.0
+        const val PRESSURE_CHART_UNIT = 10.0
+        const val HUMIDITY_CHART_UNIT = 5.0
+    }
 }
 
 class IndoorWeatherView(
-    private val config: Config,
+    config: Config,
     private val database: DatabaseDemon,
     hardware: Hardware,
 ) : AbstractWeatherView<IndoorWeatherView.CurrentReport>(
@@ -303,7 +303,7 @@ class IndoorWeatherView(
 }
 
 class OutdoorWeatherView(
-    private val config: Config,
+    config: Config,
     private val database: DatabaseDemon,
     hardware: Hardware,
 ) : AbstractWeatherView<OutdoorWeatherView.CurrentReport>(
