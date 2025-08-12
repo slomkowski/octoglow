@@ -70,11 +70,11 @@ class CalendarView(
         )
 
         private fun formatDateShort(day: LocalDate): String {
-            return "${shortDaysOfTheWeek[day.dayOfWeek.ordinal]}, ${day.dayOfMonth} ${shortMonthNames[day.month.value - 1]}"
+            return "${shortDaysOfTheWeek[day.dayOfWeek.ordinal]}, ${day.day} ${shortMonthNames[day.month.ordinal]}"
         }
 
         private fun formatDateLong(day: LocalDate): String {
-            return "${daysOfTheWeek[day.dayOfWeek.ordinal]} ${day.dayOfMonth} ${shortMonthNames[day.month.value - 1]}"
+            return "${daysOfTheWeek[day.dayOfWeek.ordinal]} ${day.day} ${shortMonthNames[day.month.ordinal]}"
         }
 
         fun formatDate(day: LocalDate): String {
@@ -106,7 +106,7 @@ class CalendarView(
     }
 
     override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: LocalDate?): UpdateStatus {
-        val today = snapshot.timestamp.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
+        val today = snapshot.timestamp.toLocalDateTime(TimeZone.currentSystemDefault()).date
 
         return if (today == oldStatus) {
             UpdateStatus.NoNewData

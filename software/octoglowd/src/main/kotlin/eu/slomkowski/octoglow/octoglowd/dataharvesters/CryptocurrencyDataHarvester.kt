@@ -32,11 +32,11 @@ class CryptocurrencyDataHarvester(
     data class OhlcDto(
         @Serializable(InstantSerializer::class)
         @SerialName("time_open")
-        val timeOpen: kotlinx.datetime.Instant,
+        val timeOpen: Instant,
 
         @Serializable(InstantSerializer::class)
         @SerialName("time_close")
-        val timeClose: kotlinx.datetime.Instant,
+        val timeClose: Instant,
 
         val open: Double,
         val close: Double,

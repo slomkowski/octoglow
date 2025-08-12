@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.demon
 
 
@@ -9,14 +11,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
 class BrightnessDemon(
@@ -177,9 +181,8 @@ class BrightnessDemon(
         val br = (forced ?: run {
             val lightSensorValue = hardware.clockDisplay.retrieveLightSensorMeasurement()
             val lightSensorCategory = LightSensor.entries.first { lightSensorValue in it.valueRange }
-            calculateBrightnessFraction(now(), lightSensorCategory)
+            calculateBrightnessFraction(Clock.System.now(), lightSensorCategory)
         }).coerceIn(1, 5)
-//        logger.debug { "Setting brightness to $br." }
         hardware.setBrightness(br)
         _brightnessValue.value = when (forced) {
             null -> BrightnessValue.Auto(br)

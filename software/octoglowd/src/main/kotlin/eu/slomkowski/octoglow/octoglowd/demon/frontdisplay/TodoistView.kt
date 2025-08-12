@@ -8,7 +8,6 @@ import eu.slomkowski.octoglow.octoglowd.dataharvesters.TodoistDataHarvester
 import eu.slomkowski.octoglow.octoglowd.dataharvesters.TodoistDataSnapshot
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
-import eu.slomkowski.octoglow.octoglowd.toKotlinxDatetimeInstant
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.*
@@ -84,7 +83,7 @@ class TodoistView(
 
         val items = snapshot.dataItem.getOrNull() ?: return UpdateStatus.NoNewData // todo na pewno?
 
-        val today = snapshot.timestamp.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = snapshot.timestamp.toLocalDateTime(TimeZone.currentSystemDefault()).date
 
         fun createGroupOfTasks(oldTasks: Set<Task>?, dateFilter: (LocalDate) -> Boolean): Set<Task> {
             val tasks = oldTasks?.toMutableSet() ?: mutableSetOf()

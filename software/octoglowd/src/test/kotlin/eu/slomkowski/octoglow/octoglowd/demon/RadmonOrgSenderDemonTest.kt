@@ -1,20 +1,23 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd.demon
 
 import eu.slomkowski.octoglow.octoglowd.demon.RadmonOrgSenderDemon.Companion.getLastReading
 import eu.slomkowski.octoglow.octoglowd.demon.RadmonOrgSenderDemon.Companion.phpDateTimeFormat
 import eu.slomkowski.octoglow.octoglowd.demon.RadmonOrgSenderDemon.Companion.submitToRadmonOrg
-import eu.slomkowski.octoglow.octoglowd.now
 import eu.slomkowski.octoglow.octoglowd.testConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Instant
 import kotlinx.datetime.format
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.data.Percentage
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import kotlin.random.Random
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 class RadmonOrgSenderDemonTest {
 
@@ -33,7 +36,7 @@ class RadmonOrgSenderDemonTest {
             submitToRadmonOrg(
                 cfg.username,
                 cfg.password,
-                now(),
+                Clock.System.now(),
                 sentValue,
             )
 

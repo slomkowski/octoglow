@@ -54,7 +54,7 @@ class DatabaseTest {
                     now.minus(1.hours) to 20.0,
                     now to 25.0
                 )
-                    .map { (dt, temp) -> db.insertHistoricalValueAsync(dt.toKotlinxDatetimeInstant(), OutdoorTemperature, temp) }
+                    .map { (dt, temp) -> db.insertHistoricalValueAsync(dt, OutdoorTemperature, temp) }
                     .joinAll()
 
                 val results = db.getLastHistoricalValuesByHourAsync(now, OutdoorTemperature, 5).await()

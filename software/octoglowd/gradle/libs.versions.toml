@@ -18,7 +18,7 @@ org-junit-jupiter-junit = "5.12.2"
 tinylog = "2.7.0"
 org-glassfish-jaxb-jaxb-runtime = "2.3.1"
 javax-xml-bind-jaxb-api = "2.3.1"
-de-kempmobil-ktor-mqtt = "0.6.3"
+de-kempmobil-ktor-mqtt = "0.6.4"
 de-fraunhofer-iosb-io-moquette-broker = "0.18.3"
 
 [libraries]

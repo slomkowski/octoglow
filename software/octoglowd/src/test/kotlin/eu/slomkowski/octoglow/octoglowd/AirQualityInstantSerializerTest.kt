@@ -1,10 +1,13 @@
+@file:OptIn(ExperimentalTime::class)
+
 package eu.slomkowski.octoglow.octoglowd
 
-import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.test.assertFails
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 class AirQualityInstantSerializerTest {
     @Test

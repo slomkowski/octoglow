@@ -169,15 +169,7 @@ fun IntArray.contentToBitString(): String =
 
 fun InputStream.readToString(): String = this.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
 
-fun LocalDateTime.toLocalDate() = LocalDate(year, month, dayOfMonth)
-fun LocalDateTime.toLocalTime() = LocalTime(hour, minute, second, nanosecond)
-
-fun now(): Instant = Clock.System.now()
-
 fun LocalTime.formatJustHoursMinutes() = "${hour.toString().padStart(2, ' ')}:${minute.toString().padStart(2, '0')}"
-
-@OptIn(ExperimentalTime::class)
-fun kotlin.time.Instant.toKotlinxDatetimeInstant(): Instant = Instant.fromEpochSeconds(this.epochSeconds, this.nanosecondsOfSecond)
 
 fun String.abbreviate(maxLength: Int): String {
     require(maxLength > 0) { "maxLength must be positive" }
@@ -191,10 +183,3 @@ fun String.abbreviate(maxLength: Int): String {
 
 private val uppercaseLetters = Regex("([A-Z])")
 fun toSnakeCase(s: String) = uppercaseLetters.replace(s, "_$1").uppercase().trim('_')
-
-fun String.centerText(length: Int): String {
-    if (this.length >= length) return this
-    val spaces = length - this.length
-    val padStart = spaces / 2
-    return " ".repeat(padStart) + this + " ".repeat(spaces - padStart)
-}

@@ -143,7 +143,7 @@ class NbpDataHarvester(
                 try {
                     getCurrencyReport(
                         code,
-                        now.toKotlinxDatetimeInstant().toLocalDateTime(TimeZone.currentSystemDefault()).toLocalDate()
+                        now.toLocalDateTime(TimeZone.currentSystemDefault()).date
                     )
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to update status on $code." }

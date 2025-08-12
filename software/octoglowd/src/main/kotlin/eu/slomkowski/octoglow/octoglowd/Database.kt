@@ -9,14 +9,15 @@ import eu.slomkowski.octoglow.octoglowd.db.SqlDelightDatabase
 import eu.slomkowski.octoglow.octoglowd.demon.Demon
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.nio.file.Path
 import java.util.*
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
 // "yyyy-MM-dd HH:mm:ss.SSS",
@@ -139,13 +140,14 @@ class DatabaseDemon(
 
             database.transaction {
                 val existingRow = database.changeableSettingsQueries.selectSetting(key.name).executeAsOneOrNull()
+                val now = Clock.System.now()
 
                 if (existingRow != null) {
                     logger.debug { "Updating existing setting $key." }
-                    database.changeableSettingsQueries.updateSetting(value, now().fmt(), key.name)
+                    database.changeableSettingsQueries.updateSetting(value, now.fmt(), key.name)
                 } else {
                     logger.debug { "Inserting new setting $key." }
-                    database.changeableSettingsQueries.insertSetting(value, now().fmt(), key.name)
+                    database.changeableSettingsQueries.insertSetting(value, now.fmt(), key.name)
                 }
             }
         }
@@ -165,13 +167,13 @@ class DatabaseDemon(
     }
 
     fun getLastHistoricalValuesByHourAsync(
-        currentTime: kotlin.time.Instant,
+        currentTime: Instant,
         key: DbDataSampleType,
         numberOfPastHours: Int
     ): Deferred<List<Double?>> {
         val query = createAveragedByTimeInterval(
             HISTORICAL_VALUES_TABLE_NAME,
-            listOf("value"), currentTime.toKotlinxDatetimeInstant(), 1.hours, numberOfPastHours, true, "key" to key.databaseSymbol
+            listOf("value"), currentTime, 1.hours, numberOfPastHours, true, "key" to key.databaseSymbol
         )
 
         // TODO("dodać maxTimestamp, żeby ogarniczyć ewentualny wynik nowowstawiowny")
@@ -205,7 +207,7 @@ class DatabaseDemon(
                 .forEach { savableData ->
                     savableData.value.onSuccess {
                         insertHistoricalValueAsync(
-                            packet.timestamp.toKotlinxDatetimeInstant(),
+                            packet.timestamp,
                             savableData.type as DbDataSampleType,
                             it
                         )

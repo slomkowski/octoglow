@@ -3,7 +3,6 @@ package eu.slomkowski.octoglow.octoglowd.demon
 
 import eu.slomkowski.octoglow.octoglowd.StateMachine
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
-import eu.slomkowski.octoglow.octoglowd.now
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -114,7 +113,7 @@ class RealTimeClockDemon(
     }
 
     override suspend fun poll() {
-        stateExecutor.transition(Event.UpdateTime(now().toLocalDateTime(TimeZone.currentSystemDefault())))
+        stateExecutor.transition(Event.UpdateTime(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())))
     }
 
     suspend fun setFrontDisplayViewNumber(number: Int, byTimeout: Boolean) {

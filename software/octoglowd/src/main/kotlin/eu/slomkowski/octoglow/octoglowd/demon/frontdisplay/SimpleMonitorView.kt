@@ -10,7 +10,6 @@ import eu.slomkowski.octoglow.octoglowd.dataharvesters.SimplemonitorDataSnapshot
 import eu.slomkowski.octoglow.octoglowd.formatJustHoursMinutes
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
-import eu.slomkowski.octoglow.octoglowd.toLocalTime
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -79,7 +78,7 @@ class SimpleMonitorView(
 
             launch {
                 val time = status?.data?.generated?.toLocalDateTime(TimeZone.currentSystemDefault())
-                    ?.toLocalTime()
+                    ?.time
                     ?.formatJustHoursMinutes()
                     ?: "--:--"
                 fd.setStaticText(0, "*$time")

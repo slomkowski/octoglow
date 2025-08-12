@@ -8,12 +8,12 @@ import io.ktor.client.statement.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeComponents
 import kotlinx.datetime.format.char
 import kotlin.math.roundToInt
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
 @OptIn(ExperimentalTime::class)
@@ -32,7 +32,7 @@ class RadmonOrgSenderDemon(
             char('-')
             monthNumber()
             char('-')
-            dayOfMonth()
+            day()
             char(' ')
             hour()
             char(':')
@@ -93,7 +93,7 @@ class RadmonOrgSenderDemon(
                         submitToRadmonOrg(
                             config.radmon.username,
                             config.radmon.password,
-                            packet.timestamp.toKotlinxDatetimeInstant(),
+                            packet.timestamp,
                             radioactivityCpm.value.getOrThrow(),
                         )
                     }

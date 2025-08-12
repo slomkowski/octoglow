@@ -187,7 +187,7 @@ class MqttDemon(
                             val rootCause = generateSequence(exp) { it.cause }.last()
                             logger.warn { "Failed to connect to $mqttServerString: ${rootCause.message}, retrying in $connectRetryInterval." }
                         }
-                        delay(10.seconds)
+                        delay(connectRetryInterval)
                     }
                 }
             }
