@@ -50,11 +50,8 @@ ISR(TWI_vect) {
         TWDR = data;
 
         prepareForNextByte();
-    } else if ((TWSR & 0xF8) == TW_SR_STOP) {
-        onStop();
-        prepareForNextByte();
     } else {
         // if none of the above, apply the 'prepare TWI' to be addressed again
-        TWCR = _BV(TWIE) | _BV(TWEA) | _BV(TWEN);
+        TWCR |= (1 << TWIE) | (1 << TWEA) | (1 << TWEN);
     }
 }

@@ -30,14 +30,14 @@ fun main() {
     val frontDisplayViews2 = listOf(
         CalendarView(config, hardware),
 
+        IndoorWeatherView(config, database, hardware),
+        OutdoorWeatherView(config, database, hardware),
+        AirQualityView(config, database, hardware),
+
         GeigerView(database, hardware),
 
         CryptocurrencyView(config, database, hardware),
         NbpView(config, hardware),
-
-        AirQualityView(config, database, hardware),
-        WeatherSensorView(config, database, hardware),
-        LocalSensorView(config, database, hardware),
 
         SimpleMonitorView(hardware),
         TodoistView(hardware),

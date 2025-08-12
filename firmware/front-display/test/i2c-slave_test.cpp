@@ -6,6 +6,8 @@
 #include <iostream>
 #include <cstdint>
 
+#include "encoder.hpp"
+
 using namespace octoglow::front_display;
 using namespace octoglow::front_display::i2c;
 
@@ -52,10 +54,33 @@ TEST(I2C, GetEncoderState) {
     onReceive(0x1);
 
     onStart();
-    assertReadIs(152);
+    assertReadIs(107);
     assertReadIs(1);
     assertReadIs(0);
-    assertReadIs(255);
+    assertReadIs(0);
+
+    onStart();
+    onReceive(0x7);
+    onReceive(0x1);
+
+    onStart();
+    assertReadIs(107);
+    assertReadIs(1);
+    assertReadIs(0);
+    assertReadIs(0);
+
+    encoder::_currentEncoderSteps = 3;
+    encoder::_currentButtonState = encoder::ButtonState::JUST_PRESSED;
+
+    onStart();
+    onReceive(0x7);
+    onReceive(0x1);
+
+    onStart();
+    assertReadIs(83);
+    assertReadIs(1);
+    assertReadIs(3);
+    assertReadIs(1);
 
     onStart();
     onReceive(0x7);

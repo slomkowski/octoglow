@@ -1,4 +1,5 @@
 #include "display.hpp"
+#include "encoder.hpp"
 
 #include <gtest/gtest.h>
 
@@ -9,6 +10,19 @@ using namespace octoglow::front_display;
 void display::hd::displayPool() {
     std::cout << "displayPool" << std::endl;
 }
+
+int8_t encoder::getValueAndClear() {
+    const auto v = _currentEncoderSteps;
+    _currentEncoderSteps = 0;
+    return v;
+}
+
+encoder::ButtonState encoder::getButtonStateAndClear() {
+    const auto v = _currentButtonState;
+    _currentButtonState = ButtonState::NO_CHANGE;
+    return v;
+}
+
 
 TEST(Display, Clear) {
     display::writeStaticText(5, 10, const_cast<char *>("lorem ipsum dolor "));

@@ -13,6 +13,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 
+@Deprecated("weather views")
 class LocalSensorView(
     private val config: Config,
     private val database: DatabaseDemon,

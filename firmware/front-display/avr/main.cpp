@@ -60,7 +60,6 @@ static inline void showDemoOnDisplay() {
 
     while (true) {
         display::pool();
-        i2c::processDataIfAvailable();
 
         if (WATCHDOG_ENABLE) {
             wdt_reset();

@@ -6,6 +6,7 @@ package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -15,6 +16,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 
+@Deprecated("indoor and outdoor weather replace it")
 class WeatherSensorView(
     private val config: Config,
     private val database: DatabaseDemon,
@@ -30,8 +32,10 @@ class WeatherSensorView(
     companion object {
         private val logger = KotlinLogging.logger {}
 
-        const val HISTORIC_VALUES_LENGTH = 11
+        const val HISTORIC_VALUES_LENGTH = 5 * 3 - 1
         const val TEMPERATURE_CHART_UNIT = 1.0
+        const val CO2_CHART_UNIT = 100.0 // todo dopracować
+        const val PRESSURE_CHART_UNIT = 100.0 // todo dopracować
         const val HUMIDITY_CHART_UNIT = 5.0
     }
 
