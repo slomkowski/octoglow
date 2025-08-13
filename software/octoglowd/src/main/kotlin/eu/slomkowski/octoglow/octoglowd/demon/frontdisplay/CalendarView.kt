@@ -106,7 +106,7 @@ class CalendarView(
     }
 
     override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: LocalDate?): UpdateStatus {
-        val today = snapshot.timestamp.toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = snapshot.timestamp.toLocalDateInCurrentTimeZone()
 
         return if (today == oldStatus) {
             UpdateStatus.NoNewData

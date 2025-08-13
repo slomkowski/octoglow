@@ -10,6 +10,7 @@ import eu.slomkowski.octoglow.octoglowd.demon.Demon
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import java.nio.file.Path
 import java.util.*
@@ -23,7 +24,7 @@ import kotlin.time.Instant
 // "yyyy-MM-dd HH:mm:ss.SSS",
 fun Instant.fmt(): String {
     val d = this.toLocalDateTime(TimeZone.currentSystemDefault())
-    return String.format("%04d-%02d-%02d %02d:%02d:%02d.%03d", d.year, d.monthNumber, d.dayOfMonth, d.hour, d.minute, d.second, d.nanosecond / 1000000)
+    return String.format("%04d-%02d-%02d %02d:%02d:%02d.%03d", d.year, d.month.number, d.day, d.hour, d.minute, d.second, d.nanosecond / 1000000)
 }
 
 class DatabaseDemon(

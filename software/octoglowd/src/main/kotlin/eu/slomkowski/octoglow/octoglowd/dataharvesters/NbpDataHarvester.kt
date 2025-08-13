@@ -143,7 +143,7 @@ class NbpDataHarvester(
                 try {
                     getCurrencyReport(
                         code,
-                        now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                        now.toLocalDateInCurrentTimeZone(),
                     )
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to update status on $code." }

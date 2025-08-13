@@ -116,6 +116,17 @@ data class ConfRadmon(
 }
 
 @Serializable
+data class ConfGarbageCollectionTimetable(
+    val streetName: String,
+    val buildingNumber: String,
+) {
+    init {
+        require(streetName.isNotBlank()) { "street name must not be blank" }
+        require(buildingNumber.isNotBlank()) { "building number must not be blank" }
+    }
+}
+
+@Serializable
 data class Config(
     val i2cBus: Int,
     val databaseFile: Path = Paths.get("data.db"),
@@ -146,6 +157,8 @@ data class Config(
     val todoist: ConfTodoist,
 
     val radmon: ConfRadmon? = null,
+
+    val garbageCollectionTimetable: ConfGarbageCollectionTimetable,
 ) {
     init {
         require(i2cBus >= 0)

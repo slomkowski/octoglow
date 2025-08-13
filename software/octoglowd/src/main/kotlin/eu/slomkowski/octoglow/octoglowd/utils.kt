@@ -9,12 +9,16 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.delay
-import kotlinx.datetime.*
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import kotlin.math.*
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
 const val DEGREE: Char = '\u00B0'
@@ -162,6 +166,7 @@ suspend fun <T : Any> trySeveralTimes(
     error("cannot be ever called")
 }
 
+fun Instant.toLocalDateInCurrentTimeZone() = this.toLocalDateTime(TimeZone.currentSystemDefault()).date
 
 fun IntArray.contentToBitString(): String =
     this.joinToString(" ") { it.toString(2).padStart(8, '0') }

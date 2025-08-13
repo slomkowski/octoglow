@@ -36,5 +36,9 @@ val defaultTestConfig = Config(
     ),
     todoist = ConfTodoist(
         apiKey = "api-key-here"
+    ),
+    garbageCollectionTimetable = ConfGarbageCollectionTimetable(
+        streetName = "KOLEGIACKI",
+        buildingNumber = "17",
     )
 )

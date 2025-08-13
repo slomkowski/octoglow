@@ -70,7 +70,7 @@ class AirQualityDataHarvester(
 
         @SerialName("Data danych źródłowych, z których policzono wartość indeksu dla wskaźnika st")
         @Serializable(AirQualityInstantSerializer::class)
-        val sourceDataDate: kotlinx.datetime.Instant
+        val sourceDataDate: Instant
     ) {
         val level: AirQualityIndex?
             get() = when (indexLevel) {

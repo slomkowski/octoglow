@@ -2,6 +2,7 @@
 kotlin = "2.2.0"
 shadow-plugin = "8.3.6"
 app-cash-sqldelight = "2.1.0"
+org-jsoup = "1.21.1"
 
 com-thedeanda-lorem = "2.2"
 de-jollyday-jollyday = "0.5.10"
@@ -50,3 +51,4 @@ org-glassfish-jaxb-jaxb-runtime = { module = "org.glassfish.jaxb:jaxb-runtime", 
 javax-xml-bind-jaxb-api = { module = "javax.xml.bind:jaxb-api", version.ref = "javax-xml-bind-jaxb-api" }
 de-kempmobil-ktor-mqtt-core = { module = "de.kempmobil.ktor.mqtt:mqtt-core", version.ref = "de-kempmobil-ktor-mqtt" }
 de-kempmobil-ktor-mqtt-client = { module = "de.kempmobil.ktor.mqtt:mqtt-client", version.ref = "de-kempmobil-ktor-mqtt" }
+org-jsoup-jsoup = { module = "org.jsoup:jsoup", version.ref = "org-jsoup" }

@@ -87,6 +87,7 @@ class TodoistDataHarvester(
         private const val TODOIST_SYNC_ENDPOINT = "https://api.todoist.com/api/v1/sync"
 
         suspend fun callSyncApi(apiToken: String, syncToken: String = "*"): Pair<String, List<Item>> {
+            logger.info { "Calling Todoist API, syncToken: $syncToken." }
             val response = httpClient.post(TODOIST_SYNC_ENDPOINT) {
                 parameter("sync_token", syncToken)
                 parameter("resource_types", """["items"]""")

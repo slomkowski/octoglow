@@ -8,6 +8,7 @@ import eu.slomkowski.octoglow.octoglowd.mqtt.MqttDemon
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import java.nio.file.Paths
+import kotlin.random.Random
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -41,6 +42,7 @@ fun main() {
 
         SimpleMonitorView(hardware),
         TodoistView(hardware),
+        PoznanGarbageCollectionTimetableView(hardware),
 
         NetworkView(hardware),
         JvmMemoryView(hardware),
@@ -77,6 +79,7 @@ fun main() {
         SimplemonitorDataHarvester(config, eventBus),
         TodoistDataHarvester(config, eventBus),
         NetworkDataHarvester(config, eventBus),
+        PoznanGarbageCollectionTimetableDataHarvester(config, eventBus),
     )
 
     Runtime.getRuntime().addShutdownHook(Thread {
@@ -92,7 +95,12 @@ fun main() {
     })
 
     runBlocking {
-        demons.forEach { it.createJobs(workerScope) }
+        demons.forEach {
+            launch {
+                delay(Random.nextLong(1500, 4000))
+                it.createJobs(workerScope)
+            }
+        }
         awaitCancellation()
     }
 }

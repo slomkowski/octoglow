@@ -47,9 +47,9 @@ dependencies {
     implementation(libs.io.ktor.ktor.serialization.kotlinx.json.jvm)
     implementation(libs.de.kempmobil.ktor.mqtt.core)
     implementation(libs.de.kempmobil.ktor.mqtt.client)
+    implementation(libs.org.jsoup.jsoup)
 
     implementation(libs.app.cash.sqldelight.sqlite.driver)
-
     testImplementation(libs.org.jetbrains.kotlin.kotlin.test.junit)
     testRuntimeOnly(libs.org.junit.platform.junit.platform.launcher)
     testImplementation(libs.org.junit.jupiter.junit.jupiter)

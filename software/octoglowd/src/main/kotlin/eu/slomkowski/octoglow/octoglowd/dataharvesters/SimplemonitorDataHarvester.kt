@@ -50,7 +50,7 @@ class SimplemonitorDataHarvester(
     @Serializable
     data class SimpleMonitorJson(
         @Serializable(SimpleMonitorInstantSerializer::class)
-        val generated: kotlinx.datetime.Instant,
+        val generated: Instant,
         val monitors: Map<String, Monitor>
     )
 

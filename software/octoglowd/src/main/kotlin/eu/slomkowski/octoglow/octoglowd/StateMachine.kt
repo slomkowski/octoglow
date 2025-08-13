@@ -77,14 +77,14 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
         abstract val fromState: STATE
         abstract val event: EVENT
 
-        data class Valid<out STATE : Any, out EVENT : Any, out SIDE_EFFECT : Any> internal constructor(
+        data class Valid<out STATE : Any, out EVENT : Any, out SIDE_EFFECT : Any>(
             override val fromState: STATE,
             override val event: EVENT,
             val toState: STATE,
             val sideEffect: SIDE_EFFECT?
         ) : Transition<STATE, EVENT, SIDE_EFFECT>()
 
-        data class Invalid<out STATE : Any, out EVENT : Any, out SIDE_EFFECT : Any> internal constructor(
+        data class Invalid<out STATE : Any, out EVENT : Any, out SIDE_EFFECT : Any>(
             override val fromState: STATE,
             override val event: EVENT
         ) : Transition<STATE, EVENT, SIDE_EFFECT>()
@@ -101,7 +101,7 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
             val onExitListeners = mutableListOf<(STATE, EVENT) -> Unit>()
             val transitions = linkedMapOf<Matcher<EVENT, EVENT>, suspend (STATE, EVENT) -> TransitionTo<STATE, SIDE_EFFECT>>()
 
-            data class TransitionTo<out STATE : Any, out SIDE_EFFECT : Any> internal constructor(
+            data class TransitionTo<out STATE : Any, out SIDE_EFFECT : Any>(
                 val toState: STATE,
                 val sideEffect: SIDE_EFFECT?
             )

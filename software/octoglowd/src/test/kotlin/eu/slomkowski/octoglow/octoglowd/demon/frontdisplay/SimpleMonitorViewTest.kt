@@ -21,7 +21,7 @@ class SimpleMonitorViewTest {
             Instant.parse("2023-06-19T20:39:18.387530Z"),
             3.minutes,
             SimplemonitorDataHarvester.SimpleMonitorJson(
-                kotlinx.datetime.Instant.parse("2023-06-19T20:39:18.387530Z"),
+                Instant.parse("2023-06-19T20:39:18.387530Z"),
                 (1..10).map {
                     "failing-monitor-$it-${UUID.randomUUID()}" to SimplemonitorDataHarvester.Monitor(
                         SimplemonitorDataHarvester.MonitorStatus.FAIL,
