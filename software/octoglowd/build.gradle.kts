@@ -1,5 +1,15 @@
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import proguard.gradle.ProGuardTask
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.guardsquare:proguard-gradle:7.7.0") {
+            exclude("com.android.tools.build")
+        }
+    }
+}
 
 plugins {
     kotlin("jvm") version libs.versions.kotlin
@@ -14,7 +24,11 @@ version = "1.0-SNAPSHOT"
 description = "octoglowd"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 application {
@@ -75,6 +89,7 @@ sqldelight {
     }
 }
 
+
 // todo call tests
 tasks.test {
     useJUnitPlatform {
@@ -121,21 +136,43 @@ tasks.shadowJar {
     exclude("com/sun/jna/linux-ppc*/**")
     exclude("com/sun/jna/linux-s390x/**")
     exclude("com/sun/jna/linux-x86/**")
-
-
-//    minimize {
-//        exclude(dependency("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm"))
-//
-//        exclude(dependency("org.jetbrains.kotlinx:kotlinx-datetime-jvm"))
-//
-//        exclude(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-core"))
-//
-//        exclude(dependency("io.ktor:ktor-client-cio-jvm"))
-//        exclude(dependency("io.ktor:ktor-client-content-negotiation-jvm"))
-//        exclude(dependency("io.ktor:ktor-serialization-kotlinx-json-jvm"))
-//    }
 }
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.compilerOptions {
-    languageVersion.set(KotlinVersion.KOTLIN_2_2)
+
+
+tasks.register<ProGuardTask>("proguard") {
+    dependsOn("shadowJar")
+
+    injars("${layout.buildDirectory.get()}/libs/${project.name}-all.jar")
+    outjars("${layout.buildDirectory.get()}/libs/${project.name}-min.jar")
+
+    libraryjars("${System.getProperty("java.home")}/jmods")
+
+    keep("class eu.slomkowski.octoglow.octoglowd.MainKt { public static void main(java.lang.String[]); }")
+    keep("class eu.slomkowski.octoglow.** { public *; }")
+    keep("class eu.slomkowski.octoglow.octoglowd.db.** { *; }")
+
+    keep("class com.sun.** { *; }")
+    keep("class io.helins.linux.** { *; }")
+    keepclassmembers("class io.helins.linux.** { <fields>; <methods>; }")
+    keepclasseswithmembernames("class * { native <methods>; }")
+
+    keep("class org.sqlite.** { *; }")
+
+    keep("class io.ktor.serialization.kotlinx.json.** { *; }")
+
+    keep("class org.tinylog.** { *; }")
+    keep("class io.github.oshai.kotlinlogging.** { *; }")
+    assumenosideeffects("class io.github.oshai.kotlinlogging.logback.** { *; }")
+
+    dontobfuscate()
+    dontoptimize()
+//    optimizationpasses(3)
+
+    dontwarn()
+
+    ignorewarnings()
+    verbose()
+
+    // Print mapping for debugging
+    printmapping("${layout.buildDirectory.get()}/proguard-mapping.txt")
 }

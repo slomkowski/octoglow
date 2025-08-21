@@ -69,7 +69,7 @@ class RadioWeatherSensorDataHarvester(
 
         // don't update the report if it is younger than MINIMAL_DURATION_BETWEEN_MEASUREMENTS
         if (now.toEpochMilliseconds() - (previousReportTimestamp ?: Instant.DISTANT_PAST).toEpochMilliseconds() < MINIMAL_DURATION_BETWEEN_MEASUREMENTS.inWholeMilliseconds) {
-            logger.debug { "Values for remote sensor (channel $channelId) received previously at ${previousReport}, skipping current report." }
+            logger.debug { "Values for remote sensor (channel $channelId) already received, skipping current report." }
             return null
         }
 

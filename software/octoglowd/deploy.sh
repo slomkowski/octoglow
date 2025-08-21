@@ -3,10 +3,11 @@
 set -e
 set -u
 
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk/ ./gradlew shadowJar
+rm -f build/libs/octoglowd-min.jar
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk/ ./gradlew proguard
 
 OCTOGLOW_HOST='octoglow'
-JAR_FILE='build/libs/octoglowd-all.jar'
+JAR_FILE='build/libs/octoglowd-min.jar'
 
 ls -l --block-size=1K ${JAR_FILE}
 

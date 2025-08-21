@@ -92,8 +92,8 @@ data class GeigerDeviceState(
     }
 
     init {
-        require(geigerVoltage in 0.0..500.0)
-        require(eyeVoltage in 0.0..300.0)
+        require(geigerVoltage in 0.0..500.0) { "Geiger voltage must be between 0 V and 500 V, but was $geigerVoltage V" }
+        require(eyeVoltage in 0.0..300.0) { "Eye voltage must be between 0 V and 300 V, but was $eyeVoltage V" }
     }
 }
 
