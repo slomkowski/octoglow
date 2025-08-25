@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.2.10"
 shadow-plugin = "8.3.6"
-proguard-plugin = "7.4.2"
+proguard-plugin = "7.7.0"
 app-cash-sqldelight = "2.1.0"
 org-jsoup = "1.21.1"
 
@@ -20,7 +20,7 @@ org-junit-jupiter-junit = "5.13.4"
 tinylog = "2.7.0"
 org-glassfish-jaxb-jaxb-runtime = "2.3.1"
 javax-xml-bind-jaxb-api = "2.3.1"
-de-kempmobil-ktor-mqtt = "0.6.4"
+de-kempmobil-ktor-mqtt = "0.7.0"
 de-fraunhofer-iosb-io-moquette-broker = "0.18.3"
 
 [libraries]

@@ -2,10 +2,11 @@ import proguard.gradle.ProGuardTask
 
 buildscript {
     repositories {
+        mavenLocal()
         mavenCentral()
     }
     dependencies {
-        classpath("com.guardsquare:proguard-gradle:7.7.0") {
+        classpath("com.guardsquare:proguard-gradle:${libs.versions.proguard.plugin.get()}") {
             exclude("com.android.tools.build")
         }
     }
@@ -136,6 +137,8 @@ tasks.shadowJar {
     exclude("com/sun/jna/linux-ppc*/**")
     exclude("com/sun/jna/linux-s390x/**")
     exclude("com/sun/jna/linux-x86/**")
+
+    exclude("io/github/oshai/kotlinlogging/logback/**")
 }
 
 
@@ -162,6 +165,7 @@ tasks.register<ProGuardTask>("proguard") {
 
     keep("class org.tinylog.** { *; }")
     keep("class io.github.oshai.kotlinlogging.** { *; }")
+    assumenosideeffects("class ch.qos.logback.** { *; }")
     assumenosideeffects("class io.github.oshai.kotlinlogging.logback.** { *; }")
 
     dontobfuscate()
@@ -170,7 +174,6 @@ tasks.register<ProGuardTask>("proguard") {
 
     dontwarn()
 
-    ignorewarnings()
     verbose()
 
     // Print mapping for debugging

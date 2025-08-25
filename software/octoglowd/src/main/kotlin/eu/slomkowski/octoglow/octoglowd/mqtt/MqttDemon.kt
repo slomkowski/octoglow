@@ -1,18 +1,13 @@
-@file:OptIn(ExperimentalTime::class)
-
 package eu.slomkowski.octoglow.octoglowd.mqtt
 
-import de.kempmobil.ktor.mqtt.MqttClient
-import de.kempmobil.ktor.mqtt.PublishRequest
-import de.kempmobil.ktor.mqtt.QoS
-import de.kempmobil.ktor.mqtt.buildFilterList
+import de.kempmobil.ktor.mqtt.*
 import de.kempmobil.ktor.mqtt.packet.Publish
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.demon.Demon
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.io.bytestring.decodeToString
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.ClassDiscriminatorMode
@@ -47,8 +42,8 @@ class MqttDemon(
 
     private val mqttServerString = "${config.mqtt.host}:${config.mqtt.port}"
 
-    private val messagesToPublish = Channel<PublishRequest>(
-        capacity = 100,
+    private val messagesToPublish = MutableSharedFlow<PublishRequest>(
+        extraBufferCapacity = 100,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
@@ -74,8 +69,8 @@ class MqttDemon(
         mqttClient.close()
     }
 
-    private suspend fun schedulePublish(topic: String, payload: String) {
-        messagesToPublish.send(PublishRequest(topic) {
+    private fun schedulePublish(topic: String, payload: String) {
+        messagesToPublish.tryEmit(PublishRequest(topic) {
             payload(payload)
             desiredQoS = QoS.AT_LEAST_ONCE
         })
@@ -139,7 +134,7 @@ class MqttDemon(
         val topic = sensor.topic
 
         launch {
-            logger.info { "Adding data sample ${"%.4f".format(value)} ${sensor.unitOfMeasurement} to queue as $topic." }
+            logger.info { "Adding data sample ${"%.4f".format(value)} ${sensor.unitOfMeasurement.orEmpty()} to queue as $topic." }
             schedulePublish(sensor.topic, mqttJsonSerializer.encodeToString(payloadMsg))
         }
     }
@@ -155,6 +150,7 @@ class MqttDemon(
         })
     }
 
+    @OptIn(ExperimentalTime::class)
     private fun createConnectionStateListener(workerScope: CoroutineScope): Job = workerScope.launch {
         mqttClient.connectionState.collect { state ->
             senderOrTryToConnectJob?.cancelAndJoin()
@@ -164,36 +160,60 @@ class MqttDemon(
                 actionsOnConnect()
 
                 // this launches the sender job
-                workerScope.launch {
-                    while (isActive) {
-                        val publishRequest = messagesToPublish.receive()
-                        logger.debug { "Publishing message to ${publishRequest.topic.name}." }
-                        mqttClient.publish(publishRequest)
-                    }
-                }
+                createPublicationJob(workerScope)
             } else {
                 logger.warn { "Lost connection to MQTT server $mqttServerString." }
 
                 // this launches the try-to-connect job
-                workerScope.launch {
-                    while (isActive) {
-                        mqttClient.connect().onSuccess { connack ->
-                            if (connack.isSuccess) {
-                                break
-                            } else {
-                                logger.warn { "Failed to connect to $mqttServerString: $connack, retrying in $connectRetryInterval." }
-                            }
-                        }.onFailure { exp ->
-                            val rootCause = generateSequence(exp) { it.cause }.last()
-                            logger.warn { "Failed to connect to $mqttServerString: ${rootCause.message}, retrying in $connectRetryInterval." }
-                        }
-                        delay(connectRetryInterval)
-                    }
-                }
+                createConnectionAttemptJob(workerScope, state)
             }
 
             workerScope.launch { snapshotBus.publish(MqttConnectionChanged(Clock.System.now(), state.isConnected)) }
         }
+    }
+
+    private fun createPublicationJob(workerScope: CoroutineScope) = workerScope.launch {
+        messagesToPublish.collect { publishRequest ->
+            logger.debug { "Publishing message to ${publishRequest.topic.name}." }
+            val result: Result<PublishResponse>? = withTimeoutOrNull(15.seconds) {
+                mqttClient.publish(publishRequest)
+            }
+
+            if (result == null) {
+                logger.error { "Timeout when publishing message to $publishRequest. Waiting $connectRetryInterval." }
+                delay(connectRetryInterval)
+            } else if (result.isFailure) {
+                logger.error { "Failure when publishing message to $publishRequest: ${result.exceptionOrNull()?.message}. Waiting $connectRetryInterval." }
+                delay(connectRetryInterval)
+            }
+        }
+    }
+
+    private fun createConnectionAttemptJob(workerScope: CoroutineScope, state: ConnectionState) = workerScope.launch {
+        while (isActive) {
+            val result = mqttClient.connect()
+            val exception = result.exceptionOrNull()
+            val connAck = result.getOrNull()
+
+            if (connAck != null) { // managed to connect
+                if (connAck.isSuccess) {
+                    break
+                } else {
+                    logger.warn { "Failed to connect to $mqttServerString: $connAck, retrying in $connectRetryInterval." }
+                }
+            } else {
+                if (exception != null) {
+                    logger.warn {
+                        val rootCause = generateSequence(exception) { it.cause }.last()
+                        "Failed to connect to $mqttServerString: ${rootCause.message}, retrying in $connectRetryInterval."
+                    }
+                } else {
+                    logger.warn { "Failed to connect, but no exception, retrying in $connectRetryInterval." }
+                }
+                delay(connectRetryInterval)
+            }
+        }
+        logger.warn { "Exited connection acquiring job, state $state, connected: ${state.isConnected}" }
     }
 
     private fun createSnapshotBusListener(workerScope: CoroutineScope): Job = workerScope.launch {
