@@ -102,7 +102,7 @@ class MagicEyeMenu(
     override suspend fun saveCurrentOption(current: MenuOption) {
         logger.info { "Magic eye set to $current." }
         commandBus.publish(
-            MagicEyeCommand(
+            MagicEyeChangeStateCommand(
                 when (current) {
                     optOn -> true
                     else -> false

@@ -27,6 +27,8 @@ class MqttDemon(
     companion object {
         private val logger = KotlinLogging.logger { }
 
+        private val messagePublicationTimeout = 15.seconds
+
         private val mqttJsonSerializer = kotlinx.serialization.json.Json {
             prettyPrint = true
             encodeDefaults = false
@@ -58,6 +60,7 @@ class MqttDemon(
         keepAliveSeconds = 15u
 
         willMessage(availabilityTopic) {
+            retainWillMessage = true
             payload("offline")
         }
     }
@@ -85,10 +88,15 @@ class MqttDemon(
 
         sendHomeassistantDiscoveryMessage()
 
-        mqttClient.publish(PublishRequest(availabilityTopic) {
-            payload("online")
-            desiredQoS = QoS.AT_LEAST_ONCE
-        })
+        logger.info { "Publishing 'online' to $availabilityTopic." }
+        withTimeout(messagePublicationTimeout) {
+            mqttClient.publish(PublishRequest(availabilityTopic) {
+                payload("online")
+                desiredQoS = QoS.AT_LEAST_ONCE
+            })
+        }
+
+        commandBus.publish(MagicEyePublishStateCommand)
     }
 
     private suspend fun handlePublishedPacket(publish: Publish): Unit = coroutineScope {
@@ -98,7 +106,7 @@ class MqttDemon(
                     val payloadStr = publish.payloadAsString().uppercase().trim()
                     val state = SwitchStateEnum.valueOf(payloadStr)
                     logger.info { "Magic eye set to '$state' from MQTT." }
-                    commandBus.publish(MagicEyeCommand(state.active))
+                    commandBus.publish(MagicEyeChangeStateCommand(state.active))
                 }
 
                 dialButtonTopic -> {
@@ -143,11 +151,13 @@ class MqttDemon(
         val payload = createDiscoveryMessageDto()
         val topic = "${config.mqtt.homeassistantDiscoveryPrefix}/device/$DEVICE_ID/config"
         logger.info { "Sending Homeassistant discovery message to $topic." }
-        mqttClient.publish(PublishRequest(topic) {
-            desiredQoS = QoS.AT_LEAST_ONCE
-            isRetainMessage = true
-            payload(mqttJsonSerializer.encodeToString(payload))
-        })
+        withTimeout(messagePublicationTimeout) {
+            mqttClient.publish(PublishRequest(topic) {
+                desiredQoS = QoS.AT_LEAST_ONCE
+                isRetainMessage = true
+                payload(mqttJsonSerializer.encodeToString(payload))
+            })
+        }
     }
 
     @OptIn(ExperimentalTime::class)
@@ -175,7 +185,7 @@ class MqttDemon(
     private fun createPublicationJob(workerScope: CoroutineScope) = workerScope.launch {
         messagesToPublish.collect { publishRequest ->
             logger.debug { "Publishing message to ${publishRequest.topic.name}." }
-            val result: Result<PublishResponse>? = withTimeoutOrNull(15.seconds) {
+            val result: Result<PublishResponse>? = withTimeoutOrNull(messagePublicationTimeout) {
                 mqttClient.publish(publishRequest)
             }
 
@@ -213,7 +223,7 @@ class MqttDemon(
                 delay(connectRetryInterval)
             }
         }
-        logger.warn { "Exited connection acquiring job, state $state, connected: ${state.isConnected}" }
+        logger.warn { "Exited connection acquiring job, state $state, connected: ${state.isConnected}." }
     }
 
     private fun createSnapshotBusListener(workerScope: CoroutineScope): Job = workerScope.launch {

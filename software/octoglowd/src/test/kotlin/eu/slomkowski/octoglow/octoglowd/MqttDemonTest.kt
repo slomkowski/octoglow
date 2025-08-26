@@ -83,7 +83,7 @@ class MqttDemonTest {
                 })
                 delay(100.milliseconds)
                 commandBus.commands.take(1).collect { cmd ->
-                    cmd as MagicEyeCommand
+                    cmd as MagicEyeChangeStateCommand
                     assertThat(cmd.enabled).isTrue()
                 }
                 client2.publish(PublishRequest(magicEyeSwitchSetTopic) {
@@ -91,7 +91,7 @@ class MqttDemonTest {
                 })
                 delay(100.milliseconds)
                 commandBus.commands.drop(1).take(1).collect { cmd ->
-                    cmd as MagicEyeCommand
+                    cmd as MagicEyeChangeStateCommand
                     assertThat(cmd.enabled).isFalse()
                 }
             }

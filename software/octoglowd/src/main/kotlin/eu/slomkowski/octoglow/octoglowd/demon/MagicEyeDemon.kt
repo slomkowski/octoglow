@@ -1,10 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.demon
 
 
-import eu.slomkowski.octoglow.octoglowd.CommandBus
-import eu.slomkowski.octoglow.octoglowd.DataSnapshotBus
-import eu.slomkowski.octoglow.octoglowd.MagicEyeCommand
-import eu.slomkowski.octoglow.octoglowd.MagicEyeStateChanged
+import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.hardware.EyeInverterState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -28,18 +25,29 @@ class MagicEyeDemon(
     }
 
     override fun createJobs(scope: CoroutineScope): List<Job> = listOf(scope.launch {
+
+        queryAndPublishEyeState()
+
+        commandBus.commands.collect { command ->
+            when (command) {
+                is MagicEyeChangeStateCommand -> {
+                    hardware.geiger.setEyeConfiguration(command.enabled)
+                    snapshotBus.publish(MagicEyeStateChanged(clock.now(), command.enabled))
+                }
+
+                is MagicEyePublishStateCommand -> {
+                    queryAndPublishEyeState()
+                }
+            }
+        }
+    })
+
+    private suspend fun queryAndPublishEyeState() {
         val eyeEnabled = when (hardware.geiger.getDeviceState().eyeState) {
             EyeInverterState.DISABLED -> false
             else -> true
         }
         logger.info { "Eye enabled: $eyeEnabled, publishing its state." }
         snapshotBus.publish(MagicEyeStateChanged(clock.now(), eyeEnabled))
-
-        commandBus.commands.collect { command ->
-            if (command is MagicEyeCommand) {
-                hardware.geiger.setEyeConfiguration(command.enabled)
-                snapshotBus.publish(MagicEyeStateChanged(clock.now(), command.enabled))
-            }
-        }
-    })
+    }
 }
