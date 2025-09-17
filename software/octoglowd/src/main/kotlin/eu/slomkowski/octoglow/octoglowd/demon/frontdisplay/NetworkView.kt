@@ -30,23 +30,39 @@ class NetworkView(
     data class CurrentReport(
         val timestamp: Instant,
         val cycleLength: Duration,
-        val interfaceInfo: NetworkDataHarvester.InterfaceInfo?,
-        val remotePing: Duration?,
-        val gwPing: Duration?,
+        val interfaceInfo: TimestampedObject<NetworkDataHarvester.InterfaceInfo?>?,
+        val remotePing: TimestampedObject<Duration?>?,
+        val gwPing: TimestampedObject<Duration?>?,
         val mqttConnected: Boolean,
     )
 
     companion object {
         private val logger = KotlinLogging.logger {}
 
-        fun formatPingRtt(d: Duration?): String = when (val ms = d?.inWholeMilliseconds) {
-            null -> " -- ms"
-            0L -> " <1 ms"
-            in 1..99 -> String.format(" %2d ms", ms)
-            in 100..999 -> String.format(" %3dms", ms)
-            else -> ">999ms"
+        private val pingMaxAge = 1.minutes
+
+        fun formatPingRtt(now: Instant, d: TimestampedObject<Duration?>?): String {
+            if (now - (d?.timestamp ?: Instant.DISTANT_PAST) > pingMaxAge || d?.obj == null) {
+                return " -- ms"
+            }
+
+            return when (val ms = d.obj.inWholeMilliseconds) {
+                0L -> " <1 ms"
+                in 1..99 -> String.format(" %2d ms", ms)
+                in 100..999 -> String.format(" %3dms", ms)
+                else -> ">999ms"
+            }
         }
 
+        fun formatInterfaceInfo(now: Instant, interfaceInfo: TimestampedObject<NetworkDataHarvester.InterfaceInfo?>?): String {
+            val status = interfaceInfo?.takeIf { now - it.timestamp <= pingMaxAge }?.obj
+
+            return (when (status?.isWifi) {
+                false -> "eth"
+                true -> "wl"
+                else -> ""
+            } + " IP: " + (status?.ip?.hostAddress ?: "---.---.---.---")).trim()
+        }
     }
 
     override suspend fun onNewDataSnapshot(
@@ -75,21 +91,15 @@ class NetworkView(
             return UpdateStatus.NewData(null)
         }
 
-        val newRemotePing = when (val v = snapshot.values.firstOrNull { it.type == PingTimeRemoteHost }?.value) {
-            null -> oldStatus?.remotePing
-            else -> v.getOrNull()?.milliseconds
-        }
+        val newRemotePing = snapshot.values
+            .firstOrNull { it.type == PingTimeRemoteHost }?.value
+            ?.let { TimestampedObject(snapshot.timestamp, it.getOrNull()?.milliseconds) }
 
-        val newGwPing = when (val v = snapshot.values.firstOrNull { it.type == PingTimeGateway }?.value) {
-            null -> oldStatus?.gwPing
-            else -> v.getOrNull()?.milliseconds
-        }
+        val newGwPing = snapshot.values
+            .firstOrNull { it.type == PingTimeGateway }?.value
+            ?.let { TimestampedObject(snapshot.timestamp, it.getOrNull()?.milliseconds) }
 
-        val interfaceInfo = (snapshot as? NetworkDataSnapshot)?.interfaceInfo
-
-        if (newRemotePing != null && newGwPing != null && interfaceInfo == null) {
-            return UpdateStatus.NoNewData
-        }
+        val interfaceInfo = (snapshot as? NetworkDataSnapshot)?.interfaceInfo?.let { TimestampedObject<NetworkDataHarvester.InterfaceInfo?>(snapshot.timestamp, it) }
 
         return UpdateStatus.NewData(
             CurrentReport(
@@ -119,8 +129,8 @@ class NetworkView(
         }
 
         if (redrawStatus) {
-            fd.setStaticText(4, formatPingRtt(status?.remotePing))
-            fd.setStaticText(14, formatPingRtt(status?.gwPing))
+            fd.setStaticText(4, formatPingRtt(now, status?.remotePing))
+            fd.setStaticText(14, formatPingRtt(now, status?.gwPing))
 
             fd.setStaticText(
                 25, when (status?.mqttConnected) {
@@ -131,11 +141,7 @@ class NetworkView(
             )
             fd.setScrollingText(
                 Slot.SLOT0, 31, 9,
-                (when (status?.interfaceInfo?.isWifi) {
-                    false -> "eth"
-                    true -> "wl"
-                    else -> ""
-                } + " IP: " + (status?.interfaceInfo?.ip?.hostAddress ?: "---.---.---.---")).trim()
+                formatInterfaceInfo(now, status?.interfaceInfo),
             )
         }
 

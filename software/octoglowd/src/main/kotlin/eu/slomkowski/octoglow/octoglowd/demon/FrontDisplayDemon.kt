@@ -59,13 +59,8 @@ class FrontDisplayDemon(
             })
         }
 
-        private val NO_TIMESTAMPED_VALUE = TimestampedObject(Instant.DISTANT_PAST, null)
+        private val NO_TIMESTAMPED_VALUE = TimestampedObject<Any?>(Instant.DISTANT_PAST, null)
     }
-
-    data class TimestampedObject(
-        val timestamp: Instant,
-        val obj: Any?,
-    )
 
     inner class ViewInfo(
         val number: Int,
@@ -88,11 +83,11 @@ class FrontDisplayDemon(
             private set
 
         @Volatile
-        var currentStatus: TimestampedObject = NO_TIMESTAMPED_VALUE
+        var currentStatus: TimestampedObject<Any?> = NO_TIMESTAMPED_VALUE
             private set
 
         @Volatile
-        var currentInstant: TimestampedObject = NO_TIMESTAMPED_VALUE
+        var currentInstant: TimestampedObject<Any?> = NO_TIMESTAMPED_VALUE
 
         override fun toString(): String = "$view ($number)"
 

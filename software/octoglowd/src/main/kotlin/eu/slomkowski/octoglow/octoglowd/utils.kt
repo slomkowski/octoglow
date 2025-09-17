@@ -46,6 +46,11 @@ val httpClient = HttpClient(CIO) {
     install(ContentNegotiation) {
         json(jsonSerializer)
     }
+
+    install(HttpRequestRetry) {
+        maxRetries = 3
+        exponentialDelay()
+    }
 }
 
 /**
@@ -188,3 +193,8 @@ fun String.abbreviate(maxLength: Int): String {
 
 private val uppercaseLetters = Regex("([A-Z])")
 fun toSnakeCase(s: String) = uppercaseLetters.replace(s, "_$1").uppercase().trim('_')
+
+data class TimestampedObject<out T : Any?>(
+    val timestamp: Instant,
+    val obj: T,
+)
