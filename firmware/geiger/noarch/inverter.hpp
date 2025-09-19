@@ -2,6 +2,8 @@
 
 #include <inttypes.h>
 
+#include "main.hpp"
+
 namespace octoglow::geiger::inverter {
     void init();
 
@@ -29,7 +31,7 @@ namespace octoglow::geiger::inverter {
         constexpr double GEIGER_DIVIDER_LOWER_RESISTOR = 4.7;
         constexpr double GEIGER_PWM_MIN_DUTY = 0.02;
         constexpr double GEIGER_PWM_MAX_DUTY = 0.21;
-        constexpr uint32_t GEIGER_PWM_FREQUENCY = 40000; // 33 kHz
+        constexpr uint32_t GEIGER_PWM_FREQUENCY = 40000; // 40 kHz
         static_assert(GEIGER_PWM_MAX_DUTY > GEIGER_PWM_MIN_DUTY, "invalid geiger PWM range");
 
         constexpr double EYE_DIVIDER_UPPER_RESISTOR = 180.0 * 3;
@@ -87,4 +89,8 @@ namespace octoglow::geiger::inverter {
         constexpr uint8_t EYE_ADC_CHANNEL = 0; // channel 5
         constexpr uint8_t GEIGER_ADC_CHANNEL = 1; // channel 1
     }
+
+    extern volatile uint16_t ta0currentCycles;
+
+    constexpr uint16_t TA0_MAX_CYCLES = _private::GEIGER_PWM_FREQUENCY / TICK_TIMER_FREQ;
 }

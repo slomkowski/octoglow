@@ -42,6 +42,8 @@ namespace octoglow::geiger::inverter {
     volatile int16_t eyeAdcReadout;
     volatile int16_t geigerAdcReadout;
 
+    volatile uint16_t ta0currentCycles = 0;
+
     namespace _private {
         volatile int16_t adcBuffer[ADC_TOTAL_SAMPLES_SIZE];
     }

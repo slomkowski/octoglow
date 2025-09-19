@@ -19,10 +19,10 @@ void geiger_counter::tick() {
     if (numberOfTicks == geigerState.cycleLength * TICK_TIMER_FREQ) {
         geigerState.numOfCountsCurrentCycle = 0;
         geigerState.numOfCountsPreviousCycle = hd::numOfCountsCurrentCycle;
+        hd::numOfCountsCurrentCycle = 0;
+
         geigerState.hasNewCycleStarted = true;
         geigerState.hasCycleEverCompleted = true;
-
-        hd::numOfCountsCurrentCycle = 0;
 
         numberOfTicks = 0;
     } else {

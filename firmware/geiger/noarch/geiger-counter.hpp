@@ -16,8 +16,8 @@ namespace octoglow::geiger::geiger_counter {
     extern volatile protocol::GeigerState geigerState;
 
     /**
-             * This should be called TICK_TIMER_FREQ.
-             */
+     * This should be called TICK_TIMER_FREQ.
+     */
     void tick();
 
     namespace hd {

@@ -5,14 +5,14 @@
 
 #define PWM_BIT_EYE BIT1
 
-
-static volatile uint16_t ta0cycles = 0;
 __interrupt_vec(TIMER0_A0_VECTOR) void TIMER0_A0_ISR() {
-    ++ta0cycles;
+    using namespace octoglow::geiger::inverter;
 
-    if (ta0cycles == octoglow::geiger::inverter::_private::GEIGER_PWM_FREQUENCY / octoglow::geiger::TICK_TIMER_FREQ) {
+    ++ta0currentCycles;
+
+    if (ta0currentCycles == TA0_MAX_CYCLES) {
         octoglow::geiger::timerTicked = true;
-        ta0cycles = 0;
+        ta0currentCycles = 0;
     }
 }
 

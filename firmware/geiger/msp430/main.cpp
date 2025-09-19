@@ -68,7 +68,7 @@ __interrupt_vec(TRAPINT_VECTOR) [[noreturn]] void trapHandler() {
 
             timerTicked = false;
 
-            // code below is executed at frequency TICK_TIMER_FREQ = 100 Hz
+            // the code below is executed at the frequency TICK_TIMER_FREQ = 100 Hz
 
             inverter::tick();
             magiceye::tick();

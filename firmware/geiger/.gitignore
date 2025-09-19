@@ -14,6 +14,7 @@ Testing/
 *.iml
 cmake-build-debug
 cmake-build-release
+cmake-build-msp430
 
 *.log
 *.elf
