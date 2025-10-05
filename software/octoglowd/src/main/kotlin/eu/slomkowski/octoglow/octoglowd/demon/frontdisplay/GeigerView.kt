@@ -138,7 +138,7 @@ class GeigerView(
         return try {
             UpdateStatus.NewData(hardware.geiger.getDeviceState())
         } catch (e: Exception) {
-            logger.error(e) { "Cannot read device state." }
+            logger.error(e) { "Cannot read device state" }
             UpdateStatus.NewData(null)
         }
     }

@@ -94,7 +94,7 @@ class CryptocurrencyDataHarvester(
                     logger.info { "Value of $symbol at $now is \$$value." }
                     StandardDataSample(dbKey, Result.success(value))
                 } catch (e: Exception) {
-                    logger.error(e) { "Failed to update status on $symbol." }
+                    logger.error(e) { "Failed to update status on $symbol" }
                     StandardDataSample(dbKey, Result.failure(e))
                 }
             }

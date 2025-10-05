@@ -105,7 +105,7 @@ class TodoistDataHarvester(
         val (newSyncToken, items) = try {
             callSyncApi(config.todoist.apiKey, syncToken ?: "*").let { it.first to Result.success(it.second) }
         } catch (e: Exception) {
-            logger.error(e) { "Error while calling Todoist sync endpoint;" }
+            logger.error(e) { "Error while calling Todoist sync endpoint" }
             null to Result.failure(e)
         }
 

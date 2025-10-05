@@ -146,7 +146,7 @@ class NbpDataHarvester(
                         now.toLocalDateInCurrentTimeZone(),
                     )
                 } catch (e: Exception) {
-                    logger.error(e) { "Failed to update status on $code." }
+                    logger.error(e) { "Failed to update status on $code" }
                     SingleNbpCurrencyDataSample(
                         code,
                         null,

@@ -123,7 +123,7 @@ class HardwareReal(
                 allDevices.minus(frontDisplay).forEach { launch { it.initDevice() } }
             }
         } catch (e: Exception) {
-            logger.error(e) { "Error during hardware initialization;" }
+            logger.error(e) { "Error during hardware initialization" }
         }
     }
 
@@ -139,7 +139,7 @@ class HardwareReal(
                 try {
                     device.closeDevice()
                 } catch (e: Exception) {
-                    logger.error(e) { "Failed to close device $this." }
+                    logger.error(e) { "Failed to close device $this" }
                 }
             }
         }

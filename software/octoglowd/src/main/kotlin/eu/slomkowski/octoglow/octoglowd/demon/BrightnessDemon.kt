@@ -38,7 +38,6 @@ class BrightnessDemon(
     }
 
     private val _brightnessValue = MutableStateFlow<BrightnessValue>(BrightnessValue.Auto(3))
-    val brightnessValue: StateFlow<BrightnessValue> = _brightnessValue
 
     private data class BrightnessMode(
         val isDay: Boolean,

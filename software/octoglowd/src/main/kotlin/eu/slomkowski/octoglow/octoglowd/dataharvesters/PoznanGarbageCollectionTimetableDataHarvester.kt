@@ -82,7 +82,7 @@ class PoznanGarbageCollectionTimetableDataHarvester(
             val html = downloadTimetable(config.garbageCollectionTimetable.streetName, config.garbageCollectionTimetable.buildingNumber, null)
             Result.success(extractTimetableFromHtml(html))
         } catch (e: Exception) {
-            logger.error(e) { "Error while downloading garbage collection timetable;" }
+            logger.error(e) { "Error while downloading garbage collection timetable" }
             Result.failure(e)
         }
 

@@ -33,7 +33,7 @@ abstract class PollingDemon(
                     poll()
                     delay(pollingInterval.inWholeMilliseconds)
                 } catch (e: Exception) {
-                    logger.error(e) { "Exception caught in $coroutineContext." }
+                    logger.error(e) { "Exception caught in $coroutineContext" }
                     delay(5_000)
                 }
             }

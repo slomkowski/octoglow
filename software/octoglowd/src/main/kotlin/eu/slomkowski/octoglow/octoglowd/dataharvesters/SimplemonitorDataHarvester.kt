@@ -93,7 +93,7 @@ class SimplemonitorDataHarvester(
                     json,
                 )
             } catch (e: Exception) {
-                logger.error(e) { "Failed to download status from SimpleMonitor URL." }
+                logger.error(e) { "Failed to download status from SimpleMonitor URL" }
                 SimplemonitorDataSnapshot(
                     now,
                     pollingInterval,

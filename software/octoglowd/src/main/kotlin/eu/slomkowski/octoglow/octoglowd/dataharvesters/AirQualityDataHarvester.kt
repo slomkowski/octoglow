@@ -120,7 +120,7 @@ class AirQualityDataHarvester(
                 Result.success(checkNotNull(dto.aqIndex.level)),
             )
         } catch (e: Exception) {
-            logger.error(e) { "Failed to update air quality of station ${station.id}." }
+            logger.error(e) { "Failed to update air quality of station ${station.id}" }
             AirQualityDataSample(
                 station.id,
                 station.name,

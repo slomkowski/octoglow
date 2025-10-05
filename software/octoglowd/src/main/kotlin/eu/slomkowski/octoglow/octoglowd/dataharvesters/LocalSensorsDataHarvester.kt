@@ -50,7 +50,7 @@ class LocalSensorsDataHarvester(
 
                 bme280data
             } catch (e: Exception) {
-                logger.error(e) { "Error while reading BME280." }
+                logger.error(e) { "Error while reading BME280" }
                 publish(
                     StandardDataSnapshot(
                         now,
@@ -71,7 +71,7 @@ class LocalSensorsDataHarvester(
             val result = try {
                 Result.success(hardware.clockDisplay.retrieveLightSensorMeasurement().toDouble())
             } catch (e: Exception) {
-                logger.error(e) { "Error while reading Light sensor." }
+                logger.error(e) { "Error while reading Light sensor" }
                 Result.failure(e)
             }
             publish(StandardDataSnapshot(now, pollingInterval, listOf(StandardDataSample(LightSensorValue, result))))
@@ -93,7 +93,7 @@ class LocalSensorsDataHarvester(
                     )
                 )
             } catch (e: Exception) {
-                logger.error(e) { "Error while reading SCD40." }
+                logger.error(e) { "Error while reading SCD40" }
                 publish(
                     StandardDataSnapshot(
                         now,

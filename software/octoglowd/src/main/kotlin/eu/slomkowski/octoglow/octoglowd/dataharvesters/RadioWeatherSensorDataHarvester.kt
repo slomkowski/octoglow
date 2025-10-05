@@ -96,7 +96,7 @@ class RadioWeatherSensorDataHarvester(
         val remoteSensorReportNullable = try {
             Result.success(hardware.clockDisplay.retrieveRemoteSensorReport())
         } catch (e: Exception) {
-            logger.error(e) { "Error retrieving remote sensor report." }
+            logger.error(e) { "Error retrieving remote sensor report" }
             Result.failure(e)
         }
 

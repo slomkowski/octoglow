@@ -219,7 +219,7 @@ class NetworkDataHarvester(
             try {
                 Result.success(pingAddressAndGetRtt(iface.gatewayIp.hostAddress, iface).toDouble(DurationUnit.MILLISECONDS))
             } catch (e: Exception) {
-                logger.error(e) { "Error during gateway ping." }
+                logger.error(e) { "Error during gateway ping" }
                 Result.failure(e)
             }
         }
@@ -229,7 +229,7 @@ class NetworkDataHarvester(
                 val remoteAddress = config.networkInfo.pingAddress
                 Result.success(pingAddressAndGetRtt(remoteAddress, iface).toDouble(DurationUnit.MILLISECONDS))
             } catch (e: Exception) {
-                logger.error(e) { "Error during remote ping ping." }
+                logger.error(e) { "Error during remote ping ping" }
                 Result.failure(e)
             }
         }

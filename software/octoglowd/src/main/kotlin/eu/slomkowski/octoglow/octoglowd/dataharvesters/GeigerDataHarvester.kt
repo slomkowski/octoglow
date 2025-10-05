@@ -62,7 +62,7 @@ class GeigerDataHarvester(
                     measurementValues,
                 )
             } catch (e: Exception) {
-                logger.error(e) { "Cannot read Geiger counter state." }
+                logger.error(e) { "Cannot read Geiger counter state" }
                 GeigerDataSnapshot(
                     now,
                     null,
