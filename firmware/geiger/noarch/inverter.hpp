@@ -90,7 +90,7 @@ namespace octoglow::geiger::inverter {
         constexpr uint8_t GEIGER_ADC_CHANNEL = 1; // channel 1
     }
 
-    extern volatile uint16_t ta0currentCycles;
-
-    constexpr uint16_t TA0_MAX_CYCLES = _private::GEIGER_PWM_FREQUENCY / TICK_TIMER_FREQ;
+    constexpr uint16_t usToCycles(const double microseconds) {
+        return microseconds / (1.0 / _private::GEIGER_PWM_FREQUENCY) / 1000000.0;
+    }
 }

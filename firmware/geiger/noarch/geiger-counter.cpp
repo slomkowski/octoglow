@@ -1,19 +1,24 @@
 #include "geiger-counter.hpp"
+
+#include "inverter.hpp"
 #include "protocol.hpp"
 #include "main.hpp"
 
 namespace octoglow::geiger::geiger_counter::hd {
     volatile uint16_t numOfCountsCurrentCycle;
+
+    volatile DischargeState dischargeState = DischargeState::WAITING_FOR_RISING_VOLTAGE;
+    volatile uint16_t noCyclesSinceLastDischargeStateChange = 0;
 }
 
 namespace octoglow::geiger::geiger_counter {
     volatile protocol::GeigerState geigerState;
 }
 
-static uint16_t numberOfTicks = 0;
-
 using namespace octoglow::geiger;
 using namespace octoglow::geiger::geiger_counter;
+
+static uint16_t numberOfTicks = 0;
 
 void geiger_counter::tick() {
     if (numberOfTicks == geigerState.cycleLength * TICK_TIMER_FREQ) {
@@ -29,6 +34,22 @@ void geiger_counter::tick() {
         ++numberOfTicks;
     }
 }
+
+void geiger_counter::pollGeigerCounterState() {
+    using namespace hd;
+    using namespace inverter;
+
+    if (noCyclesSinceLastDischargeStateChange < usToCycles(2000)) {
+        noCyclesSinceLastDischargeStateChange++;
+    }
+
+    if ((dischargeState == DischargeState::RECOVERY && noCyclesSinceLastDischargeStateChange > usToCycles(250))
+        || (dischargeState == DischargeState::WAITING_FOR_FALLING_VOLTAGE && noCyclesSinceLastDischargeStateChange >
+            usToCycles(500))) {
+        resetDischargeToDefault();
+    }
+}
+
 
 void geiger_counter::updateGeigerState() {
     geigerState.numOfCountsCurrentCycle = hd::numOfCountsCurrentCycle;

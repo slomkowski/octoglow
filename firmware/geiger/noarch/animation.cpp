@@ -41,7 +41,7 @@ static inline fix16_t limitedTriangleWave(const int16_t cycle) {
     return outputValue;
 }
 
-enum class CurrentMode {
+enum class CurrentMode : uint8_t {
     NORMAL,
     RAISING_TO_MAX,
     STAY_AT_MAX,

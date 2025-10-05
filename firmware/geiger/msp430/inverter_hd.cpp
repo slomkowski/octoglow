@@ -1,14 +1,21 @@
 #include "inverter.hpp"
 #include "main.hpp"
+#include "geiger-counter.hpp"
 
 #include <msp430.h>
 
 #define PWM_BIT_EYE BIT1
 
+constexpr uint16_t TA0_MAX_CYCLES = octoglow::geiger::inverter::_private::GEIGER_PWM_FREQUENCY /
+                                    octoglow::geiger::TICK_TIMER_FREQ;
+
+// 40 kHz -> 25 us
 __interrupt_vec(TIMER0_A0_VECTOR) void TIMER0_A0_ISR() {
-    using namespace octoglow::geiger::inverter;
+    static uint16_t ta0currentCycles = 0;
 
     ++ta0currentCycles;
+
+    octoglow::geiger::geiger_counter::pollGeigerCounterState();
 
     if (ta0currentCycles == TA0_MAX_CYCLES) {
         octoglow::geiger::timerTicked = true;
