@@ -38,6 +38,8 @@ class MqttDemon(
         private fun Publish.payloadAsString(): String = this.payload.decodeToString(StandardCharsets.UTF_8)
 
         private val connectRetryInterval = 10.seconds
+
+        private const val MAX_ERRORS_TO_ATTEMPT_RECONNECT = 5
     }
 
     private val homeassistantStatusTopic = "${config.mqtt.homeassistantDiscoveryPrefix}/status"
@@ -183,6 +185,8 @@ class MqttDemon(
     }
 
     private fun createPublicationJob(workerScope: CoroutineScope) = workerScope.launch {
+        var publishErrorCounter = 0
+
         messagesToPublish.collect { publishRequest ->
             logger.debug { "Publishing message to ${publishRequest.topic.name}." }
             val result: Result<PublishResponse>? = withTimeoutOrNull(messagePublicationTimeout) {
@@ -191,10 +195,20 @@ class MqttDemon(
 
             if (result == null) {
                 logger.error { "Timeout when publishing message to $publishRequest. Waiting $connectRetryInterval." }
+                publishErrorCounter++
                 delay(connectRetryInterval)
             } else if (result.isFailure) {
                 logger.error { "Failure when publishing message to $publishRequest: ${result.exceptionOrNull()?.message}. Waiting $connectRetryInterval." }
+                publishErrorCounter++
                 delay(connectRetryInterval)
+            } else {
+                publishErrorCounter = 0
+            }
+
+            if (publishErrorCounter >= MAX_ERRORS_TO_ATTEMPT_RECONNECT) {
+                logger.error { "Number of publishing errors reached $publishErrorCounter, attempting reconnection." }
+                publishErrorCounter = 0
+                mqttClient.disconnect()
             }
         }
     }
