@@ -2,4 +2,4 @@
 
 Compiled under *avr-gcc*, *CMake* required. *burn.sh* - flashing.
 
-More details under https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display/clock-display-board/
+More details under https://slomkowski.eu/octoglow-vfd-fallout-inspired-display/

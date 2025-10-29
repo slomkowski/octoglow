@@ -40,7 +40,7 @@ val httpClient = HttpClient(CIO) {
     }
 
     install(UserAgent) {
-        agent = "octoglowd/1.0 (Linux; Octoglow; +https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display)"
+        agent = "octoglowd/1.0 (Linux; Octoglow; +https://slomkowski.eu/octoglow-vfd-fallout-inspired-display)"
     }
 
     install(ContentNegotiation) {

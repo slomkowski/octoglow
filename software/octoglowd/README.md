@@ -1,5 +1,6 @@
-# Octoglow VFD - `octoglowd` daemon
+# Octoglow VFD - **octoglowd** demon
 
-Requires JVM 11 to run. Compiles under *Maven*.
+Requires JVM 17 to run.
+Compiles under *Maven*.
 
-More details under https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display/orange-pi-zero-board/
+More details under https://slomkowski.eu/octoglow-vfd-fallout-inspired-display/

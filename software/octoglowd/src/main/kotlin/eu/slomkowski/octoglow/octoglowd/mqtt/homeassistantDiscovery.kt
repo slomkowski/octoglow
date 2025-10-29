@@ -122,7 +122,7 @@ fun createDiscoveryMessageDto(): DeviceConfig {
         ),
         origin = DeviceConfig.DeviceDetails(
             name = "Octoglow",
-            url = "https://slomkowski.eu/projects/octoglow-vfd-fallout-inspired-display"
+            url = "https://slomkowski.eu/octoglow-vfd-fallout-inspired-display"
         ),
         components = sensors.plus(
             listOf(
