@@ -2,12 +2,16 @@ package eu.slomkowski.octoglow.octoglowd.dataharvesters
 
 import eu.slomkowski.octoglow.octoglowd.readToString
 import eu.slomkowski.octoglow.octoglowd.testConfig
+import eu.slomkowski.octoglow.octoglowd.toLocalDateInCurrentTimeZone
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Month
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import kotlin.test.assertFails
+import kotlin.time.Clock.System.now
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class PoznanGarbageCollectionTimetableDataHarvesterTest {
 
     @Test
@@ -21,6 +25,10 @@ class PoznanGarbageCollectionTimetableDataHarvesterTest {
         val list = PoznanGarbageCollectionTimetableDataHarvester.extractTimetableFromHtml(resp)
         assertThat(list).isNotEmpty()
         assertThat(list.size).isGreaterThan(100)
+
+        val today = now().toLocalDateInCurrentTimeZone()
+        assertThat(list).anyMatch { it.first > today }
+        assertThat(list).anyMatch { it.first < today }
     }
 
     @Test

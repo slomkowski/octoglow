@@ -89,7 +89,7 @@ class PoznanGarbageCollectionTimetableView(
         if (redrawStatus) {
             val today = now.toLocalDateInCurrentTimeZone()
             val dayOperations = status?.dayOperations?.filter { it.date >= today }
-            val nextPickupDate = dayOperations?.minBy { it.date }?.date
+            val nextPickupDate = dayOperations?.minByOrNull { it.date }?.date
             fd.setStaticText(11, createNextTrashDayInfo(today, nextPickupDate))
 
             if (dayOperations == null) {
