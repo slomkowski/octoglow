@@ -95,6 +95,7 @@ class MqttDemon(
             mqttClient.publish(PublishRequest(availabilityTopic) {
                 payload("online")
                 desiredQoS = QoS.AT_LEAST_ONCE
+                isRetainMessage = true
             })
         }
 

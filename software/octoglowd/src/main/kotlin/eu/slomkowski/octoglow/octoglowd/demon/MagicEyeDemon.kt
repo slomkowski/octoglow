@@ -44,7 +44,8 @@ class MagicEyeDemon(
                 }
 
                 is MagicEyePublishStateCommand -> {
-                    queryEyeState()
+                    logger.info { "Publishing magic eye state on request." }
+                    snapshotBus.publish(MagicEyeStateChanged(clock.now(), eyeEnabledFlow.value))
                 }
             }
         }
