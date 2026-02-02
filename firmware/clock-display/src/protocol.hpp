@@ -18,6 +18,7 @@ namespace octoglow::vfd_clock::protocol {
         SET_BRIGHTNESS,
         GET_WEATHER_SENSOR_STATE,
         GET_LIGHT_SENSOR_VALUE,
+        GET_RELAY_STATE,
     };
 
     struct DisplayContent {

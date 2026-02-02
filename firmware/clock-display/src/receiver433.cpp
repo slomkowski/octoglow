@@ -139,6 +139,6 @@ ISR(INT0_vect) {
 // this is configured in init() in display.cpp. called every 16.384 ms
 ISR(TIMER1_OVF_vect) {
     if (timer1overflowCounter != 4 * 250) {
-        ++timer1overflowCounter;
+        timer1overflowCounter += 1;
     }
 }

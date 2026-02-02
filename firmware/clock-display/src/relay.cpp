@@ -27,3 +27,10 @@ void octoglow::vfd_clock::relay::setState(const Relay relay, const bool enabled)
         PORT(RELAY_PORT) &= ~shift;
     }
 }
+
+octoglow::vfd_clock::protocol::RelayState octoglow::vfd_clock::relay::queryRelayState() {
+    return protocol::RelayState{
+        .relay1enabled = (PIN(RELAY_PORT) & _BV(RELAY1_PIN)) != 0,
+        .relay2enabled = (PIN(RELAY_PORT) & _BV(RELAY2_PIN)) != 0,
+    };
+}

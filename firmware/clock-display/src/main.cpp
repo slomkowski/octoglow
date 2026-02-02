@@ -21,8 +21,9 @@ static auto currentCommand = Command::NONE;
 
 /**
  *
- * @param dataPayloadLength We include command byte and the following payload. Payload length can be 0, in this case only command byte is taken to the calculation.
- * @return if CRC calculated locally matches the sent one via I2C
+ * @param dataPayloadLength We include the command byte and the following payload.
+ * Payload length can be 0, in this case only the command byte is taken to the calculation.
+ * @return if CRC calculated locally matches the CRC sent via I2C
  */
 static bool checkCrc8(const uint8_t dataPayloadLength) {
     if constexpr (!VERIFY_INPUT_I2C_COMMANDS_CRC8) {
@@ -42,8 +43,7 @@ static inline void setCrcForSimpleCommand() {
     i2c_reply_done(2);
 }
 
-// __attribute__((optimize("O3"), hot))
-static inline void setCrcForComplexCommand(const uint8_t payloadLength) {
+static void setCrcForComplexCommand(const uint8_t payloadLength) {
     uint8_t crcValue = 0;
     for (uint8_t i = 1; i < payloadLength + 2; ++i) {
         crcValue = _crc8_ccitt_update(crcValue, i2c_rdbuf[i]);
@@ -52,7 +52,7 @@ static inline void setCrcForComplexCommand(const uint8_t payloadLength) {
     i2c_reply_done(payloadLength + 2);
 }
 
-static inline void processI2cReadCommands() {
+static void processI2cReadCommands() {
     if (!i2c_reply_ready()) {
         return;
     }
@@ -79,6 +79,12 @@ static inline void processI2cReadCommands() {
             setCrcForComplexCommand(2);
             break;
         }
+        case Command::GET_RELAY_STATE: {
+            const auto [relay1enabled, relay2enabled] = relay::queryRelayState();
+            i2c_rdbuf[2] = relay1enabled | (relay2enabled << 1);
+            setCrcForComplexCommand(1);
+            break;
+        }
         case Command::SET_BRIGHTNESS:
         case Command::SET_RELAY:
         case Command::SET_DISPLAY_CONTENT: {
@@ -92,7 +98,7 @@ static inline void processI2cReadCommands() {
     currentCommand = Command::NONE;
 }
 
-static inline void processI2cWriteCommands() {
+static void processI2cWriteCommands() {
     if (!i2c_message_ready()) {
         return;
     }
@@ -100,7 +106,7 @@ static inline void processI2cWriteCommands() {
     static_assert(sizeof(DisplayContent) + 2 <= sizeof(i2c_wrbuf));
     static_assert(sizeof(RelayState) + 2 <= sizeof(i2c_wrbuf));
 
-    switch (static_cast<Command>(i2c_wrbuf[1])) {
+    switch (const auto incomingCommand = static_cast<Command>(i2c_wrbuf[1])) {
         case Command::SET_DISPLAY_CONTENT: {
             if (!checkCrc8(sizeof(DisplayContent))) {
                 break;
@@ -112,12 +118,11 @@ static inline void processI2cWriteCommands() {
         }
         break;
         case Command::SET_RELAY: {
-            if (!checkCrc8(sizeof(RelayState))) {
+            if (!checkCrc8(1)) {
                 break;
             }
-            const auto *rs = reinterpret_cast<volatile RelayState *>(&i2c_wrbuf[2]);
-            relay::setState(relay::Relay::RELAY_1, rs->relay1enabled);
-            relay::setState(relay::Relay::RELAY_2, rs->relay2enabled);
+            relay::setState(relay::Relay::RELAY_1, (1 << static_cast<int>(relay::Relay::RELAY_1)) & i2c_wrbuf[2]);
+            relay::setState(relay::Relay::RELAY_2, (1 << static_cast<int>(relay::Relay::RELAY_2)) & i2c_wrbuf[2]);
             currentCommand = Command::SET_RELAY;
         }
         break;
@@ -129,16 +134,12 @@ static inline void processI2cWriteCommands() {
             currentCommand = Command::SET_BRIGHTNESS;
             break;
         case Command::GET_WEATHER_SENSOR_STATE:
-            if (!checkCrc8(0)) {
-                break;
-            }
-            currentCommand = Command::GET_WEATHER_SENSOR_STATE;
-            break;
         case Command::GET_LIGHT_SENSOR_VALUE:
+        case Command::GET_RELAY_STATE:
             if (!checkCrc8(0)) {
                 break;
             }
-            currentCommand = Command::GET_LIGHT_SENSOR_VALUE;
+            currentCommand = incomingCommand;
             break;
         default:
             currentCommand = Command::NONE;
