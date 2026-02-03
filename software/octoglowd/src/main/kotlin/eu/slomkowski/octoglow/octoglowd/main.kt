@@ -67,6 +67,7 @@ fun main() {
         brightnessDaemon,
         RadmonOrgSenderDemon(config, eventBus),
         MagicEyeDemon(hardware, eventBus, commandBus),
+        BacklightDemon(hardware, eventBus, commandBus),
         magicEyeMenu,
         mqttDemon,
 

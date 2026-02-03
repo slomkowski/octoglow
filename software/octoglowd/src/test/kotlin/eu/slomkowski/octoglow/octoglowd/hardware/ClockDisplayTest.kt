@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Assert.assertEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.*
@@ -101,13 +102,44 @@ class ClockDisplayTest {
     }
 
     @Test
+    fun testRetrieveRelayState(hardware: Hardware): Unit = runBlocking {
+        hardware.clockDisplay.apply {
+            retrieveRelaysState()
+        }
+    }
+
+    @Test
     fun testSetRelay(hardware: Hardware): Unit = runBlocking {
         hardware.clockDisplay.apply {
             repeat(3) {
-                setRelay(true)
-                delay(100)
-                setRelay(false)
-                delay(50)
+                setRelays(relay1enabled = false, relay2enabled = false)
+                delay(200)
+                val state1 = retrieveRelaysState()
+                assertThat(state1.first).isFalse()
+                assertThat(state1.second).isFalse()
+
+                setRelays(relay1enabled = true, relay2enabled = false)
+                delay(200)
+                val state2 = retrieveRelaysState()
+                assertThat(state2.first).isTrue()
+                assertThat(state2.second).isFalse()
+
+                setRelays(relay1enabled = false, relay2enabled = true)
+                delay(200)
+                val state3 = retrieveRelaysState()
+                assertThat(state3.first).isFalse()
+                assertThat(state3.second).isTrue()
+
+                setRelays(relay1enabled = true, relay2enabled = true)
+                delay(200)
+                val state4 = retrieveRelaysState()
+                assertThat(state4.first).isTrue()
+                assertThat(state4.second).isTrue()
+
+                setRelays(relay1enabled = false, relay2enabled = false)
+                val state5 = retrieveRelaysState()
+                assertThat(state5.first).isFalse()
+                assertThat(state5.second).isFalse()
             }
         }
     }
@@ -138,7 +170,7 @@ class ClockDisplayTest {
     }
 
     @Test
-//    @Disabled("persistent displaying new reports")
+    @Disabled("persistent displaying new reports")
     fun testConstantReportsReceiving(hardware: Hardware) {
         val reports = mutableListOf<RemoteSensorReport>()
         runBlocking {

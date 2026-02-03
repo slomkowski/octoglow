@@ -11,7 +11,7 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 class HardwareParameterResolver : ParameterResolver {
 
-    class HardwareResource(val hardware: Hardware) : ExtensionContext.Store.CloseableResource {
+    class HardwareResource(val hardware: Hardware) : AutoCloseable {
         override fun close() {
             hardware.close()
         }

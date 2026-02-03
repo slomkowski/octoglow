@@ -7,6 +7,10 @@ const val magicEyeIdentifier = "magic_eye"
 const val magicEyeSwitchSetTopic = "$DEVICE_ID/switch/$magicEyeIdentifier/set"
 const val magicEyeSwitchTopic = "$DEVICE_ID/switch/$magicEyeIdentifier"
 
+const val backlightIdentifier = "backlight"
+const val backlightSwitchSetTopic = "$DEVICE_ID/switch/$backlightIdentifier/set"
+const val backlightSwitchTopic = "$DEVICE_ID/switch/$backlightIdentifier"
+
 const val availabilityTopic = "$DEVICE_ID/status"
 
 const val dialIdentifier = "dial"
@@ -131,6 +135,12 @@ fun createDiscoveryMessageDto(): DeviceConfig {
                     stateTopic = magicEyeSwitchTopic,
                     commandTopic = magicEyeSwitchSetTopic,
                     uniqueId = "${DEVICE_ID}_$magicEyeIdentifier",
+                ),
+                backlightIdentifier to DeviceConfig.Component.Switch(
+                    name = "Oświetlenie tylne",
+                    stateTopic = backlightSwitchTopic,
+                    commandTopic = backlightSwitchSetTopic,
+                    uniqueId = "${DEVICE_ID}_$backlightIdentifier",
                 ),
                 "${dialIdentifier}_$dialCommandCcw" to DeviceConfig.Component.Button(
                     name = "Gałka w lewo",

@@ -5,6 +5,7 @@ package eu.slomkowski.octoglow.octoglowd
 import de.kempmobil.ktor.mqtt.MqttClient
 import de.kempmobil.ktor.mqtt.PublishRequest
 import eu.slomkowski.octoglow.octoglowd.mqtt.MqttDemon
+import eu.slomkowski.octoglow.octoglowd.mqtt.backlightSwitchSetTopic
 import eu.slomkowski.octoglow.octoglowd.mqtt.magicEyeSwitchSetTopic
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.moquette.broker.Server
@@ -81,17 +82,31 @@ class MqttDemonTest {
                 client2.publish(PublishRequest(magicEyeSwitchSetTopic) {
                     payload("ON")
                 })
+                client2.publish(PublishRequest(backlightSwitchSetTopic) {
+                    payload("ON")
+                })
                 delay(100.milliseconds)
                 commandBus.commands.take(1).collect { cmd ->
                     cmd as MagicEyeChangeStateCommand
                     assertThat(cmd.enabled).isTrue()
                 }
+                commandBus.commands.take(1).collect { cmd ->
+                    cmd as BacklightChangeStateCommand
+                    assertThat(cmd.enabled).isTrue()
+                }
                 client2.publish(PublishRequest(magicEyeSwitchSetTopic) {
+                    payload("OFF")
+                })
+                client2.publish(PublishRequest(backlightSwitchSetTopic) {
                     payload("OFF")
                 })
                 delay(100.milliseconds)
                 commandBus.commands.drop(1).take(1).collect { cmd ->
                     cmd as MagicEyeChangeStateCommand
+                    assertThat(cmd.enabled).isFalse()
+                }
+                commandBus.commands.drop(1).take(1).collect { cmd ->
+                    cmd as BacklightChangeStateCommand
                     assertThat(cmd.enabled).isFalse()
                 }
             }

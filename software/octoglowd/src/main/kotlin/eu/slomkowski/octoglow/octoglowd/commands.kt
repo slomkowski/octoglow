@@ -5,6 +5,14 @@ interface Command
 data class DialTurned(val delta: Int) : Command
 object DialPressed : Command
 
-data class MagicEyeChangeStateCommand(val enabled: Boolean) : Command
+interface PublishStateCommand : Command
 
-data object MagicEyePublishStateCommand : Command
+interface ChangeStateCommand : Command {
+    val enabled: Boolean
+}
+
+data class MagicEyeChangeStateCommand(override val enabled: Boolean) : ChangeStateCommand
+data class BacklightChangeStateCommand(override val enabled: Boolean) : ChangeStateCommand
+
+data object MagicEyePublishStateCommand : PublishStateCommand
+data object BacklightPublishStateCommand : PublishStateCommand

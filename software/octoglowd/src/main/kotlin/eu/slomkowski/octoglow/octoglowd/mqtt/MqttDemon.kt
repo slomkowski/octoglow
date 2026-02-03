@@ -84,6 +84,7 @@ class MqttDemon(
     private suspend fun actionsOnConnect() {
         mqttClient.subscribe(buildFilterList {
             add(magicEyeSwitchSetTopic)
+            add(backlightSwitchSetTopic)
             add(dialButtonTopic)
             add(homeassistantStatusTopic)
         })
@@ -100,6 +101,7 @@ class MqttDemon(
         }
 
         commandBus.publish(MagicEyePublishStateCommand)
+        commandBus.publish(BacklightPublishStateCommand)
     }
 
     private suspend fun handlePublishedPacket(publish: Publish): Unit = coroutineScope {
@@ -110,6 +112,13 @@ class MqttDemon(
                     val state = SwitchStateEnum.valueOf(payloadStr)
                     logger.info { "Magic eye set to '$state' from MQTT." }
                     commandBus.publish(MagicEyeChangeStateCommand(state.active))
+                }
+
+                backlightSwitchSetTopic -> {
+                    val payloadStr = publish.payloadAsString().uppercase().trim()
+                    val state = SwitchStateEnum.valueOf(payloadStr)
+                    logger.info { "Backlight set to '$state' from MQTT." }
+                    commandBus.publish(BacklightChangeStateCommand(state.active))
                 }
 
                 dialButtonTopic -> {
@@ -255,6 +264,14 @@ class MqttDemon(
                     logger.debug { "Publishing magic eye state $state." }
                     launch {
                         schedulePublish(magicEyeSwitchTopic, state.name)
+                    }
+                }
+
+                is BacklightStateChanged -> {
+                    val state = cmd.enabled.toSwitchStateEnum()
+                    logger.debug { "Publishing backlight state $state." }
+                    launch {
+                        schedulePublish(backlightSwitchTopic, state.name)
                     }
                 }
             }

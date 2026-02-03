@@ -121,18 +121,14 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
         sendCommand("set brightness", 3, brightness)
     }
 
-    suspend fun setRelay(enabled: Boolean) {
-        sendCommand("set relay", 2, 0, if (enabled) 1 else 0)
-    }
-
     override suspend fun initDevice() {
-        sendCommand("init", 2, 0, 0)
+        // requires no init
     }
 
     override suspend fun closeDevice() {
         setBrightness(3)
-        sendCommand("shut down relays", 2, 0, 0)
-        sendCommand("set display to --:--", 1, 45, 45, 45, 45)
+        setRelays(relay1enabled = false, relay2enabled = false)
+        sendCommand("set display to --:--", 1, 45, 45, 45, 45, UPPER_DOT or LOWER_DOT)
     }
 
     suspend fun retrieveRemoteSensorReport(): RemoteSensorReport? {
@@ -146,6 +142,22 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
         return (1023 - (readBuffer[2] + (readBuffer[3] shl 8))).also {
             check(it in 0..1023) { "Light sensor measurement $it is out of valid range 0..1023" }
         }
+    }
+
+    suspend fun setRelays(relay1enabled: Boolean, relay2enabled: Boolean) {
+        sendCommand(
+            "set relays",
+            2,
+            (if (relay1enabled) 0b01 else 0b00) or (if (relay2enabled) 0b10 else 0b00),
+        )
+    }
+
+    suspend fun retrieveRelaysState(): Pair<Boolean, Boolean> {
+        val readBuffer = sendCommandAndReadData("retrieve relays state", 3, 6)
+        return Pair(
+            (readBuffer[2] and 0b01) != 0,
+            (readBuffer[2] and 0b10) != 0,
+        )
     }
 
     private suspend fun setDisplay(

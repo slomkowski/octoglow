@@ -86,10 +86,19 @@ data object PingTimeRemoteHost : DbDataSampleType
 
 data object PingTimeGateway : DbDataSampleType
 
+interface StateChanged : Snapshot {
+    val enabled: Boolean
+}
+
 data class MagicEyeStateChanged(
     override val timestamp: Instant,
-    val enabled: Boolean
-) : Snapshot
+    override val enabled: Boolean,
+) : StateChanged
+
+data class BacklightStateChanged(
+    override val timestamp: Instant,
+    override val enabled: Boolean,
+) : StateChanged
 
 data class MqttConnectionChanged(
     override val timestamp: Instant,
