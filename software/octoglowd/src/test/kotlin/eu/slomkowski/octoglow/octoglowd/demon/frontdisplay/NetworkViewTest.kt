@@ -101,6 +101,7 @@ internal class NetworkViewTest {
             null,
             null,
             false,
+            false,
         )
 
         nv.redrawDisplay(
@@ -129,6 +130,7 @@ internal class NetworkViewTest {
             ),
             TimestampedObject(now, 123.milliseconds),
             TimestampedObject(now, 34.milliseconds),
+            true,
             true,
         )
 

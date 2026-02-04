@@ -270,7 +270,9 @@ class FrontDisplayDemon(
     }
 
     sealed class Event {
-        data object ButtonPressed : Event()
+        data object ButtonPressedLong : Event()
+
+        data object ButtonPressedShort : Event()
 
         data class Timeout(val now: Instant) : Event()
 
@@ -292,7 +294,13 @@ class FrontDisplayDemon(
     }
 
     private inline fun <reified S : State.ViewCycle> StateMachine.GraphBuilder<State, Event, SideEffect>.StateDefinitionBuilder<S>.createCommonViewCycleActions() {
-        on<Event.ButtonPressed> {
+        on<Event.ButtonPressedShort> {
+            logger.info { "Toggling backlight." }
+            commandBus.publish(BacklightToggleStateCommand)
+            dontTransition()
+        }
+
+        on<Event.ButtonPressedLong> {
             val menu = allMenus.first()
 
             logger.info { "Going to menu overview: $menu." }
@@ -385,7 +393,7 @@ class FrontDisplayDemon(
                     }
                 }
 
-                on<Event.ButtonPressed> {
+                on<Event.ButtonPressedShort> {
                     when (this.menu) {
                         exitMenu -> {
                             logger.info { "Leaving menu." }
@@ -406,7 +414,7 @@ class FrontDisplayDemon(
             state<State.Menu.SettingOption> {
                 createCommonMenuActions()
 
-                on<Event.ButtonPressed> {
+                on<Event.ButtonPressedShort> {
                     logger.info { "Setting value of $menu to $current." }
                     workerScope.launch {
                         menu.saveCurrentOption(current)
@@ -468,17 +476,58 @@ class FrontDisplayDemon(
 
     @Volatile
     private var lastDialActivity: Instant = Instant.DISTANT_PAST
+    private val longButtonPress: Duration = 450.milliseconds
+
+    sealed class DialState {
+        data object Idle : DialState()
+        data class ButtonPressed(val timestamp: Instant) : DialState()
+    }
+
+    private val dialStateMachine = StateMachine.create<DialState, ButtonState, Unit> {
+        initialState(DialState.Idle)
+
+        state<DialState.Idle> {
+            on<ButtonState> {
+                when (it) {
+                    ButtonState.JUST_PRESSED -> {
+                        transitionTo(DialState.ButtonPressed(clock.now()))
+                    }
+
+                    ButtonState.JUST_RELEASED, ButtonState.NO_CHANGE -> {
+                        dontTransition()
+                    }
+                }
+            }
+        }
+
+        state<DialState.ButtonPressed> {
+            on<ButtonState> {
+                when (it) {
+                    ButtonState.JUST_RELEASED -> {
+                        val now = clock.now()
+                        if ((now - this.timestamp) >= longButtonPress) {
+                            commandBus.publish(DialPressedLong)
+                        } else {
+                            commandBus.publish(DialPressedShort)
+                        }
+                        transitionTo(DialState.Idle)
+                    }
+
+                    ButtonState.JUST_PRESSED, ButtonState.NO_CHANGE -> {
+                        dontTransition()
+                    }
+                }
+            }
+        }
+
+    }
 
     override suspend fun poll() {
         val buttonState = hardware.frontDisplay.getButtonReport()
         val now = clock.now()
+        dialStateMachine.transition(buttonState.button) // todo dołożyć state machine dla encoder
 
         when {
-            buttonState.button == ButtonState.JUST_RELEASED -> {
-                lastDialActivity = now
-                stateExecutor.transition(Event.ButtonPressed)
-            }
-
             buttonState.encoderDelta != 0 -> {
                 lastDialActivity = now
                 stateExecutor.transition(Event.EncoderDelta(buttonState.encoderDelta))
@@ -500,10 +549,16 @@ class FrontDisplayDemon(
         }).plus(scope.launch {
             commandBus.commands.collect { command ->
                 when (command) {
-                    is DialPressed -> {
+                    is DialPressedLong -> {
                         // todo bumping clocks should be in the transitions
                         lastDialActivity = clock.now()
-                        stateExecutor.transition(Event.ButtonPressed)
+                        stateExecutor.transition(Event.ButtonPressedLong)
+                    }
+
+                    is DialPressedShort -> {
+                        // todo bumping clocks should be in the transitions
+                        lastDialActivity = clock.now()
+                        stateExecutor.transition(Event.ButtonPressedShort)
                     }
 
                     is DialTurned -> {

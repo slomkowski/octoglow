@@ -34,6 +34,7 @@ class NetworkView(
         val remotePing: TimestampedObject<Duration?>?,
         val gwPing: TimestampedObject<Duration?>?,
         val mqttConnected: Boolean,
+        val backlightEnabled: Boolean?,
     )
 
     companion object {
@@ -79,6 +80,21 @@ class NetworkView(
                     oldStatus?.remotePing,
                     oldStatus?.gwPing,
                     snapshot.connected,
+                    oldStatus?.backlightEnabled,
+                )
+            )
+        }
+
+        if (snapshot is BacklightStateChanged) {
+            return UpdateStatus.NewData(
+                CurrentReport(
+                    snapshot.timestamp,
+                    oldStatus?.cycleLength ?: 5.minutes,
+                    oldStatus?.interfaceInfo,
+                    oldStatus?.remotePing,
+                    oldStatus?.gwPing,
+                    oldStatus?.mqttConnected ?: false,
+                    snapshot.enabled,
                 )
             )
         }
@@ -109,6 +125,7 @@ class NetworkView(
                 newRemotePing ?: oldStatus?.remotePing,
                 newGwPing ?: oldStatus?.gwPing,
                 oldStatus?.mqttConnected ?: false,
+                oldStatus?.backlightEnabled,
             )
         )
     }
@@ -134,14 +151,22 @@ class NetworkView(
 
             fd.setStaticText(
                 25, when (status?.mqttConnected) {
-                    true -> "OK   "
-                    false -> "FAIL!"
-                    null -> "---  "
+                    true -> "OK "
+                    false -> "ERR"
+                    null -> "---"
                 }
             )
             fd.setScrollingText(
                 Slot.SLOT0, 31, 9,
                 formatInterfaceInfo(now, status?.interfaceInfo),
+            )
+
+            fd.setStaticText(
+                28, when (status?.backlightEnabled) {
+                    true -> "bE"
+                    false -> "bD"
+                    null -> "--"
+                }
             )
         }
 

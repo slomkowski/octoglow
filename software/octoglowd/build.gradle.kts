@@ -73,6 +73,7 @@ dependencies {
     testImplementation(libs.org.junit.jupiter.junit.jupiter.params)
     testImplementation(libs.com.thedeanda.lorem)
     testImplementation(libs.org.assertj.assertj.core)
+    testImplementation(libs.org.jetbrains.kotlinx.kotlinx.coroutines.test)
     testImplementation(libs.io.mockk.mockk.jvm)
     testImplementation(libs.de.jollyday.jollyday)
     testImplementation(libs.javax.xml.bind.jaxb.api)

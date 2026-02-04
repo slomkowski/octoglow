@@ -13,6 +13,7 @@ io-ktor = "3.3.2"
 io-mockk = "1.14.6"
 org-assertj-assertj-core = "3.27.6"
 org-jetbrains-kotlinx-kotlinx-coroutines-core = "1.10.2"
+org-jetbrains-kotlinx-kotlinx-coroutines-test = "1.10.2"
 org-jetbrains-kotlinx-kotlinx-datetime-jvm = "0.7.1"
 org-jetbrains-kotlinx-kotlinx-serialization-json-jvm = "1.9.0"
 org-junit-platform-junit-platform-launcher = "1.13.4"
@@ -40,6 +41,7 @@ org-assertj-assertj-core = { module = "org.assertj:assertj-core", version.ref = 
 org-jetbrains-kotlin-kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
 org-jetbrains-kotlin-kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 org-jetbrains-kotlinx-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "org-jetbrains-kotlinx-kotlinx-coroutines-core" }
+org-jetbrains-kotlinx-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "org-jetbrains-kotlinx-kotlinx-coroutines-test" }
 org-jetbrains-kotlinx-kotlinx-datetime-jvm = { module = "org.jetbrains.kotlinx:kotlinx-datetime-jvm", version.ref = "org-jetbrains-kotlinx-kotlinx-datetime-jvm" }
 org-jetbrains-kotlinx-kotlinx-serialization-json-jvm = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm", version.ref = "org-jetbrains-kotlinx-kotlinx-serialization-json-jvm" }
 org-junit-platform-junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "org-junit-platform-junit-platform-launcher" }
@@ -47,6 +49,7 @@ org-junit-jupiter-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", 
 org-junit-jupiter-junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "org-junit-jupiter-junit" }
 org-junit-jupiter-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "org-junit-jupiter-junit" }
 org-junit-jupiter-junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "org-junit-jupiter-junit" }
+
 app-cash-sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "app-cash-sqldelight" }
 org-glassfish-jaxb-jaxb-runtime = { module = "org.glassfish.jaxb:jaxb-runtime", version.ref = "org-glassfish-jaxb-jaxb-runtime" }
 javax-xml-bind-jaxb-api = { module = "javax.xml.bind:jaxb-api", version.ref = "javax-xml-bind-jaxb-api" }

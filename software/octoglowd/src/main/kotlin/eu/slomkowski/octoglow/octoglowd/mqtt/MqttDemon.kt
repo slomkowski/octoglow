@@ -126,7 +126,7 @@ class MqttDemon(
                     when (payloadStr) {
                         dialCommandCw -> DialTurned(1)
                         dialCommandCcw -> DialTurned(-1)
-                        dialCommandPress -> DialPressed
+                        dialCommandPress -> DialPressedLong
                         else -> null
                     }?.let { commandBus.publish(it) }
                 }

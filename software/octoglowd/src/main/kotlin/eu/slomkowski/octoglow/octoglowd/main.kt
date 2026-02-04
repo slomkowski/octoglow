@@ -51,10 +51,13 @@ fun main() {
     val brightnessDaemon = BrightnessDemon(config, database, hardware)
 
     val magicEyeMenu = MagicEyeMenu(eventBus, commandBus)
+    val backlightMenu = BacklightMenu(eventBus, commandBus)
+
 
     val menus = listOf(
         BrightnessMenu(brightnessDaemon),
         magicEyeMenu,
+        backlightMenu,
     )
 
     val realTimeClockDemon = RealTimeClockDemon(hardware)
@@ -69,6 +72,7 @@ fun main() {
         MagicEyeDemon(hardware, eventBus, commandBus),
         BacklightDemon(hardware, eventBus, commandBus),
         magicEyeMenu,
+        backlightMenu,
         mqttDemon,
 
         AirQualityDataHarvester(config, eventBus),

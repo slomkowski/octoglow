@@ -3,9 +3,11 @@ package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.*
 import eu.slomkowski.octoglow.octoglowd.demon.BrightnessDemon
 import eu.slomkowski.octoglow.octoglowd.demon.Demon
+import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 
@@ -80,29 +82,35 @@ class BrightnessMenu(private val brightnessDaemon: BrightnessDemon) : Menu("Brig
     }
 }
 
-class MagicEyeMenu(
+abstract class ExportableSwitchMenu(
+    private val logger: KLogger,
+    private val humanReadableName: String,
     private val snapshotBus: DataSnapshotBus,
     private val commandBus: CommandBus,
-) : Menu("Magic eye"), Demon {
+) : Menu(humanReadableName), Demon {
+
     companion object {
-        private val logger = KotlinLogging.logger {}
+        private val availableOptions = listOf(optOn, optOff)
     }
 
-    @Volatile
-    private var eyeEnabled: Boolean? = null
+    private val enabledStateFlow = MutableStateFlow(false)
 
-    override val options: List<MenuOption>
-        get() = listOf(optOn, optOff)
+    override val options: List<MenuOption> = availableOptions
+
+    abstract suspend fun isStateChanged(snapshot: Snapshot): Boolean
+
+    abstract fun createChangeStateCommand(enabled: Boolean): ChangeStateCommand
 
     override suspend fun loadCurrentOption(): MenuOption {
-        logger.debug { "Eye state is $eyeEnabled." }
-        return if (eyeEnabled == true) optOn else optOff
+        val enabled = enabledStateFlow.value
+        logger.debug { "$humanReadableName state is $enabled." }
+        return if (enabled) optOn else optOff
     }
 
     override suspend fun saveCurrentOption(current: MenuOption) {
-        logger.info { "Magic eye set to $current." }
+        logger.info { "$humanReadableName set to $current." }
         commandBus.publish(
-            MagicEyeChangeStateCommand(
+            createChangeStateCommand(
                 when (current) {
                     optOn -> true
                     else -> false
@@ -114,10 +122,37 @@ class MagicEyeMenu(
     override fun createJobs(scope: CoroutineScope): List<Job> {
         return listOf(scope.launch {
             snapshotBus.snapshots.collect { snapshot ->
-                if (snapshot is MagicEyeStateChanged) {
-                    eyeEnabled = snapshot.enabled
+                if (isStateChanged(snapshot)) {
+                    snapshot as StateChanged
+                    enabledStateFlow.emit(snapshot.enabled)
                 }
             }
         })
     }
+}
+
+class MagicEyeMenu(
+    snapshotBus: DataSnapshotBus,
+    commandBus: CommandBus,
+) : ExportableSwitchMenu(logger, "Magic eye", snapshotBus, commandBus) {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
+    override suspend fun isStateChanged(snapshot: Snapshot) = snapshot is MagicEyeStateChanged
+
+    override fun createChangeStateCommand(enabled: Boolean) = MagicEyeChangeStateCommand(enabled)
+}
+
+class BacklightMenu(
+    snapshotBus: DataSnapshotBus,
+    commandBus: CommandBus,
+) : ExportableSwitchMenu(logger, "Backlight", snapshotBus, commandBus) {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
+    override suspend fun isStateChanged(snapshot: Snapshot) = snapshot is BacklightStateChanged
+
+    override fun createChangeStateCommand(enabled: Boolean) = BacklightChangeStateCommand(enabled)
 }
