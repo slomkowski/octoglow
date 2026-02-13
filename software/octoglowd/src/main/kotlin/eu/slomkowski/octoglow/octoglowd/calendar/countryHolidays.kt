@@ -1,9 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.calendar
 
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.Month
-import kotlinx.datetime.plus
+import kotlinx.datetime.*
 
 /**
  * Copied from https://github.com/focus-shift/jollyday/blob/main/jollyday-core/src/main/java/de/focus_shift/jollyday/core/parser/functions/CalculateGregorianEasterSunday.java
@@ -118,9 +115,52 @@ private val holidayMap = mapOf(
 fun holidayNamesSupportCountryCode(countryCode: String): Boolean = holidayMap.containsKey(countryCode)
 
 /**
- * @return holiday name if given day is a holiday, null otherwise
+ * @return holiday name if given day is a holiday, empty set otherwise
  */
 fun determineHolidayNamesForDay(date: LocalDate, countryCode: String): Set<String> {
     val countryHolidays = requireNotNull(holidayMap[countryCode.uppercase()]) { "unsupported country: $countryCode" }
     return countryHolidays.filter { it.calculateDate(date.year) == date }.map { it.name }.toSet()
+}
+
+fun calculatePolishShoppingSundays(year: Int): List<LocalDate> {
+    require(year >= 2023) { "shopping sundays are only available since 2023" }
+
+    fun lastSundayOfMonth(month: Month): LocalDate {
+        val lastDayOfMonth = LocalDate(year, month, 1)
+            .plus(1, DateTimeUnit.MONTH)
+            .plus(-1, DateTimeUnit.DAY)
+
+        var d = lastDayOfMonth
+        while (d.dayOfWeek != DayOfWeek.SUNDAY) {
+            d = d.plus(-1, DateTimeUnit.DAY)
+        }
+        return d
+    }
+
+    fun previousSunday(before: LocalDate): LocalDate {
+        var d = before
+        while (d.dayOfWeek != DayOfWeek.SUNDAY) {
+            d = d.plus(-1, DateTimeUnit.DAY)
+        }
+        return d
+    }
+
+    val sundayBeforeChristmasEve = previousSunday(LocalDate(year, Month.DECEMBER, 24))
+
+    return (listOf(
+        lastSundayOfMonth(Month.JANUARY),
+        lastSundayOfMonth(Month.APRIL),
+        lastSundayOfMonth(Month.JUNE),
+        lastSundayOfMonth(Month.AUGUST),
+    ).filter { determineHolidayNamesForDay(it, "PL").isEmpty() })
+        .plus(
+            listOf(
+                calculateEasterDate(year).minus(1, DateTimeUnit.WEEK),
+
+                sundayBeforeChristmasEve.minus(2, DateTimeUnit.WEEK),
+                sundayBeforeChristmasEve.minus(1, DateTimeUnit.WEEK),
+                sundayBeforeChristmasEve,
+            )
+        ).distinct()
+        .sorted()
 }
