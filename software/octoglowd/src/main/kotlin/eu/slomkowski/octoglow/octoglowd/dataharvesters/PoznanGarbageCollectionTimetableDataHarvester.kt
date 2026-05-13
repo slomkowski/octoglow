@@ -29,6 +29,11 @@ class PoznanGarbageCollectionTimetableDataHarvester(
 ) : DataHarvester(logger, 33.minutes, dataSnapshotBus) {
 
     companion object {
+        private val namesMap = mapOf(
+            "metale i tworzywa sztuczne" to "Metal/Plastik",
+            "odpady zmieszane" to "Zmieszane",
+        )
+
         private val logger = KotlinLogging.logger {}
 
         private val monthYearRegex = Regex("(\\d{1,2})\\.(\\d{4})")
@@ -59,6 +64,8 @@ class PoznanGarbageCollectionTimetableDataHarvester(
             val table = doc.selectFirst("table#schedule_0") ?: error("Can't find table#schedule_0. Is the street name valid?")
             return table.select("tr").mapNotNull { tr ->
                 val garbageType = tr.selectFirst(".waste-column")?.text()?.trim() ?: return@mapNotNull null
+                val garbageTypeShortened = namesMap[garbageType.lowercase()] ?: garbageType
+
                 tr.select("[data-value]").map { td ->
                     val monthYearStr = td.attr("data-value").trim()
                     val mr = monthYearRegex.matchEntire(monthYearStr) ?: return@map null
@@ -71,7 +78,7 @@ class PoznanGarbageCollectionTimetableDataHarvester(
                         return@map null
                     }
 
-                    days.map { day -> LocalDate(year, month, day) to garbageType }
+                    days.map { day -> LocalDate(year, month, day) to garbageTypeShortened }
                 }.filterNotNull().flatten()
             }.flatten().sortedWith(compareBy({ it.first }, { it.second }))
         }

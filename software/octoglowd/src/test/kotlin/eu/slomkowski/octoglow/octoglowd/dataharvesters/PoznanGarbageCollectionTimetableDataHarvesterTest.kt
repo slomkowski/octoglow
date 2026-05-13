@@ -58,6 +58,8 @@ class PoznanGarbageCollectionTimetableDataHarvesterTest {
             assertThat(forAugust.filter { it.second == "Papier" }.map { it.first.day }).containsExactlyInAnyOrder(4, 6, 11, 13, 18, 20, 25, 27)
             assertThat(forAugust.filter { it.second == "Szkło" }.map { it.first.day }).containsExactlyInAnyOrder(5, 19)
             assertThat(forAugust.filter { it.second == "Bioodpady" }).hasSize(5)
+            assertThat(forAugust.filter { it.second == "Metal/Plastik" }).hasSize(9)
+            assertThat(forAugust.filter { it.second == "Zmieszane" }).hasSize(8)
             assertThat(forAugust).hasSize(32)
         }
     }
