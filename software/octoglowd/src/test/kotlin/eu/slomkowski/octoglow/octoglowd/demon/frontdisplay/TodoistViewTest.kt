@@ -45,9 +45,9 @@ class TodoistViewTest {
         )
 
         println(hardware.frontDisplay.renderDisplayContent())
-        assertThat(hardware.frontDisplay.line1content).isEqualTo("ping -- ms gw  -- ms")
-        assertThat(hardware.frontDisplay.line2content).isEqualTo("mqtt FAIL! #########")
-        assertThat(hardware.frontDisplay.scrollingTextContent[Slot.SLOT0]).isEqualTo("IP: ---.---.---.---")
+        assertThat(hardware.frontDisplay.line1content).isEqualTo("todo:   --  tomorrow")
+        assertThat(hardware.frontDisplay.line2content).isEqualTo("TODAY --    ########")
+        assertThat(hardware.frontDisplay.scrollingTextContent[Slot.SLOT1]).isEqualTo("--- overdue!")
     }
 
     @Test
@@ -97,8 +97,8 @@ class TodoistViewTest {
         )
 
         println(hardware.frontDisplay.renderDisplayContent())
-        assertThat(hardware.frontDisplay.line1content).isEqualTo("ping -- ms gw  -- ms")
-        assertThat(hardware.frontDisplay.line2content).isEqualTo("mqtt FAIL! #########")
-        assertThat(hardware.frontDisplay.scrollingTextContent[Slot.SLOT0]).isEqualTo("IP: ---.---.---.---")
+        assertThat(hardware.frontDisplay.line1content).isEqualTo("todo:   10  tomorrow")
+        assertThat(hardware.frontDisplay.line2content).isEqualTo("TODAY 51(25)########")
+        assertThat(hardware.frontDisplay.scrollingTextContent[Slot.SLOT1]).isEqualTo("31 overdue!")
     }
 }

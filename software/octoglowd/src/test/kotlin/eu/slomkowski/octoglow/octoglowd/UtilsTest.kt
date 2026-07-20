@@ -180,6 +180,27 @@ class UtilsTest {
     }
 
     @Test
+    fun testToSnakeCase() {
+        assertEquals("MY_FIELD", toSnakeCase("myField"))
+        assertEquals("MY_CLASS", toSnakeCase("MyClass"))
+        assertEquals("SIMPLE", toSnakeCase("simple"))
+        assertEquals("A_B_C", toSnakeCase("ABC"))
+        assertEquals("DATABASE_DEMON", toSnakeCase("DatabaseDemon"))
+        assertEquals("CPU_LOAD1M", toSnakeCase("cpuLoad1m"))
+        assertEquals("", toSnakeCase(""))
+    }
+
+    @Test
+    fun testContentToBitString() {
+        assertEquals("00000000", intArrayOf(0).contentToBitString())
+        assertEquals("11111111", intArrayOf(255).contentToBitString())
+        assertEquals("00001010 00000101", intArrayOf(10, 5).contentToBitString())
+        assertEquals("", intArrayOf().contentToBitString())
+        assertEquals("10000000 01000000", intArrayOf(128, 64).contentToBitString())
+        assertEquals("00000000 00000000 00000000", intArrayOf(0, 0, 0).contentToBitString())
+    }
+
+    @Test
     fun testCenter() {
         assertEquals("  ab  ", "ab".center(6))        // even padding
         assertEquals(" ab  ", "ab".center(5))         // odd: extra space on right
