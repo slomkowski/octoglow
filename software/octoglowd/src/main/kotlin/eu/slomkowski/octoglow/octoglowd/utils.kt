@@ -198,3 +198,5 @@ data class TimestampedObject<out T : Any?>(
     val timestamp: Instant,
     val obj: T,
 )
+
+fun String.center(desiredLength: Int): String = this.padStart(this.length + (desiredLength - this.length) / 2).padEnd(desiredLength)

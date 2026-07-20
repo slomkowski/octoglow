@@ -180,6 +180,22 @@ class UtilsTest {
     }
 
     @Test
+    fun testCenter() {
+        assertEquals("  ab  ", "ab".center(6))        // even padding
+        assertEquals(" ab  ", "ab".center(5))         // odd: extra space on right
+        assertEquals(" X ", "X".center(3))
+        assertEquals("    ", "".center(4))
+        assertEquals("hello", "hello".center(5))      // exact fit
+        assertEquals("hello", "hello".center(3))      // longer than desired — unchanged
+        assertEquals("  Shopping Sunday   ", "Shopping Sunday".center(20))
+        assertEquals("      no date       ", "no date".center(20))
+        assertEquals("   30 Aug, TODAY!   ", "30 Aug, TODAY!".center(20))
+        assertEquals("  30 Aug, tomorrow  ", "30 Aug, tomorrow".center(20))
+        assertEquals(" 30 Aug, in 6 days  ", "30 Aug, in 6 days".center(20))
+        assertEquals(" 31 Jan, in 41 days ", "31 Jan, in 41 days".center(20))
+    }
+
+    @Test
     fun testAbbreviate() {
         assertEquals("Hello", "Hello".abbreviate(5))
         assertEquals("He...", "Hello World".abbreviate(5))
