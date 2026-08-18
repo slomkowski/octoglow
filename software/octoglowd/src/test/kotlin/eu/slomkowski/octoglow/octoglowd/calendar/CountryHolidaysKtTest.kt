@@ -5,6 +5,7 @@ import de.jollyday.ManagerParameters
 import kotlinx.datetime.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class CountryHolidaysKtTest {
 
@@ -76,5 +77,49 @@ class CountryHolidaysKtTest {
             LocalDate(2027, Month.DECEMBER, 12),
             LocalDate(2027, Month.DECEMBER, 19),
         )
+    }
+
+    @Test
+    fun testHolidayNamesSupportCountryCode() {
+        assertThat(holidayNamesSupportCountryCode("PL")).isTrue()
+        assertThat(holidayNamesSupportCountryCode("pl")).isFalse()  // case-sensitive
+        assertThat(holidayNamesSupportCountryCode("DE")).isFalse()
+        assertThat(holidayNamesSupportCountryCode("")).isFalse()
+    }
+
+    @Test
+    fun testDetermineHolidayNamesForDay() {
+        assertThat(determineHolidayNamesForDay(LocalDate(2025, Month.JANUARY, 1), "PL"))
+            .containsExactly("New Year")
+        assertThat(determineHolidayNamesForDay(LocalDate(2025, Month.APRIL, 20), "PL"))
+            .containsExactly("Easter")
+        assertThat(determineHolidayNamesForDay(LocalDate(2025, Month.APRIL, 21), "PL"))
+            .containsExactly("Easter Monday")
+        assertThat(determineHolidayNamesForDay(LocalDate(2025, Month.DECEMBER, 25), "PL"))
+            .containsExactly("Christmas")
+        assertThat(determineHolidayNamesForDay(LocalDate(2025, Month.JULY, 21), "PL"))
+            .isEmpty()
+        // country code is normalised to uppercase
+        assertThat(determineHolidayNamesForDay(LocalDate(2025, Month.JANUARY, 1), "pl"))
+            .containsExactly("New Year")
+        // unsupported country throws
+        assertThrows<IllegalArgumentException> {
+            determineHolidayNamesForDay(LocalDate(2025, Month.JANUARY, 1), "XX")
+        }
+    }
+
+    @Test
+    fun testDetermineNamedaysFor() {
+        assertThat(determineNamedaysFor(LocalDate(2025, Month.MARCH, 30), "PL"))
+            .containsExactlyInAnyOrder("Anieli", "Kwiryna", "Leonarda")
+        assertThat(determineNamedaysFor(LocalDate(2025, Month.JANUARY, 1), "PL"))
+            .containsExactlyInAnyOrder("Mieszka", "Mieczysława", "Marii")
+        // country code is normalised to uppercase
+        assertThat(determineNamedaysFor(LocalDate(2025, Month.MARCH, 30), "pl"))
+            .containsExactlyInAnyOrder("Anieli", "Kwiryna", "Leonarda")
+        // unsupported country throws
+        assertThrows<IllegalArgumentException> {
+            determineNamedaysFor(LocalDate(2025, Month.MARCH, 30), "XX")
+        }
     }
 }

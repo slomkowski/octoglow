@@ -30,6 +30,7 @@ fun main() {
 
     val frontDisplayViews2 = listOf(
         CalendarView(config, hardware),
+        ShoppingSundayView(config, hardware),
 
         IndoorWeatherView(config, database, hardware),
         OutdoorWeatherView(config, database, hardware),

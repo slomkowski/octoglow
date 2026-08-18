@@ -23,7 +23,15 @@ class GeigerViewTest {
     }
 
     @Test
-    fun testCalculate() {
+    fun testCalculateCPM() {
+        assertEquals(20.0, GeigerView.calculateCPM(100, 5.minutes), 0.001)
+        assertEquals(0.0, GeigerView.calculateCPM(0, 1.minutes), 0.0)
+        assertEquals(60.0, GeigerView.calculateCPM(60, 1.minutes), 0.001)
+        assertEquals(2.0, GeigerView.calculateCPM(6, 3.minutes), 0.001)
+    }
+
+    @Test
+    fun testCalculateUSVh() {
         assertEquals(0.108, GeigerView.calculateUSVh(81, 5.minutes), 0.001)
     }
 }
