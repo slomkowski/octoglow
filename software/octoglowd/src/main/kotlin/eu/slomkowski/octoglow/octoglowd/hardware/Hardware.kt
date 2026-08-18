@@ -139,7 +139,7 @@ class HardwareReal(
                 try {
                     device.closeDevice()
                 } catch (e: Exception) {
-                    logger.error(e) { "Failed to close device $this" }
+                    logger.error(e) { "Failed to close device $device" }
                 }
             }
         }
@@ -198,8 +198,8 @@ class HardwareReal(
                                 "read buffer: ${resultArray.contentToString()}."
                     }
 
-                    if (e.message?.contains("errno 6", ignoreCase = true) == true && tryNo < numberOfTries) {
-                        logger.warn { "errno 6 happened, retrying ($tryNo/$numberOfTries)." }
+                    if (e.message?.contains("errno ${Errno.ENXIO.code}", ignoreCase = true) == true && tryNo < numberOfTries) {
+                        logger.warn { "${Errno.ENXIO} happened, retrying ($tryNo/$numberOfTries)." }
                         continue
                     } else {
                         logger.error(e) { "Error in bus transaction ($tryNo/$numberOfTries)" }

@@ -5,7 +5,9 @@ import java.net.URI
 import java.nio.file.Paths
 import kotlin.random.Random
 
-val testConfig = Config.parse(Paths.get("config.json"))
+// Parsed lazily so that a missing local config.json only fails tests that actually use it,
+// instead of failing class initialization and cascading into unrelated tests.
+val testConfig by lazy { Config.parse(Paths.get("config.json")) }
 
 val defaultTestConfig = Config(
     i2cBus = 0,

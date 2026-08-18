@@ -41,6 +41,7 @@ class GeigerDataHarvester(
 
                     logger.info {
                         String.format(
+                            java.util.Locale.ROOT,
                             "Read radioactivity: %d counts = %.2f uSv/h.",
                             cs.numOfCountsInPreviousCycle,
                             uSvh

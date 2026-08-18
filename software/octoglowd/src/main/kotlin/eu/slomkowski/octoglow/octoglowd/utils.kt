@@ -15,6 +15,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
+import java.util.Locale
 import kotlin.math.*
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
@@ -122,22 +123,22 @@ fun LocalTime.roundToNearestMinute(): LocalTime {
 
 fun formatHumidity(h: Double?): String = when (h) {
     null -> "--%"
-    else -> String.format("%2.0f%%", h)
+    else -> String.format(Locale.ROOT, "%2.0f%%", h)
 }
 
 fun formatTemperature(t: Double?): String = when (t) {
     null -> "---.-${DEGREE}C"
-    else -> String.format("%+5.1f${DEGREE}C", t)
+    else -> String.format(Locale.ROOT, "%+5.1f${DEGREE}C", t)
 }
 
 fun formatPressure(t: Double?): String = when (t) {
     null -> "---- hPa"
-    else -> String.format("%4.0f hPa", t)
+    else -> String.format(Locale.ROOT, "%4.0f hPa", t)
 }
 
 fun formatPpmConcentration(t: Double?): String = when (t) {
     null -> "---- ppm"
-    else -> String.format("%4.0f ppm", t)
+    else -> String.format(Locale.ROOT, "%4.0f ppm", t)
 }
 
 

@@ -154,7 +154,7 @@ class MqttDemon(
         val topic = sensor.topic
 
         launch {
-            logger.info { "Adding data sample ${"%.4f".format(value)} ${sensor.unitOfMeasurement.orEmpty()} to queue as $topic." }
+            logger.info { "Adding data sample ${"%.4f".format(Locale.ROOT, value)} ${sensor.unitOfMeasurement.orEmpty()} to queue as $topic." }
             schedulePublish(sensor.topic, mqttJsonSerializer.encodeToString(payloadMsg))
         }
     }

@@ -11,6 +11,7 @@ import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -40,11 +41,11 @@ class NbpView(
         fun formatZloty(amount: Double?): String {
             return when (amount) {
                 null -> "----zł"
-                in 10_000.0..100_000.0 -> String.format("%2.1fzł", amount / 1000.0).replace('.', 'k')
-                in 1000.0..10_000.0 -> String.format("%4.0fzł", amount)
-                in 100.0..1000.0 -> String.format("%3.0f zł", amount)
-                in 10.0..100.0 -> String.format("%4.1fzł", amount)
-                in 0.0..10.0 -> String.format("%3.2fzł", amount)
+                in 10_000.0..100_000.0 -> String.format(Locale.ROOT, "%2.1fzł", amount / 1000.0).replace('.', 'k')
+                in 1000.0..10_000.0 -> String.format(Locale.ROOT, "%4.0fzł", amount)
+                in 100.0..1000.0 -> String.format(Locale.ROOT, "%3.0f zł", amount)
+                in 10.0..100.0 -> String.format(Locale.ROOT, "%4.1fzł", amount)
+                in 0.0..10.0 -> String.format(Locale.ROOT, "%3.2fzł", amount)
                 else -> " MUCH "
             }
         }

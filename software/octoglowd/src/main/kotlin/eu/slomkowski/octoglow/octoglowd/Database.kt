@@ -24,7 +24,7 @@ import kotlin.time.Instant
 // "yyyy-MM-dd HH:mm:ss.SSS",
 fun Instant.fmt(): String {
     val d = this.toLocalDateTime(TimeZone.currentSystemDefault())
-    return String.format("%04d-%02d-%02d %02d:%02d:%02d.%03d", d.year, d.month.number, d.day, d.hour, d.minute, d.second, d.nanosecond / 1000000)
+    return String.format(Locale.ROOT, "%04d-%02d-%02d %02d:%02d:%02d.%03d", d.year, d.month.number, d.day, d.hour, d.minute, d.second, d.nanosecond / 1000000)
 }
 
 class DatabaseDemon(
@@ -158,7 +158,7 @@ class DatabaseDemon(
         return threadWorkerScope.launch {
             database.transaction {
                 if (database.historicalValuesQueries.selectExistingHistoricalValue(ts.fmt(), key.databaseSymbol).executeAsOneOrNull() == null) {
-                    logger.debug { "Inserting data to DB: $key = ${"%.4f".format(value)}." }
+                    logger.debug { "Inserting data to DB: $key = ${"%.4f".format(Locale.ROOT, value)}." }
                     database.historicalValuesQueries.insertHistoricalValue(ts.fmt(), key.databaseSymbol, value)
                 } else {
                     logger.debug { "Value with timestamp $ts is already in DB." }
