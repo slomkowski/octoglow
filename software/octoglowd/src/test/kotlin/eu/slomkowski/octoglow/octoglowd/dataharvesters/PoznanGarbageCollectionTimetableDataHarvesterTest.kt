@@ -1,7 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.dataharvesters
 
 import eu.slomkowski.octoglow.octoglowd.readToString
-import eu.slomkowski.octoglow.octoglowd.testConfig
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import eu.slomkowski.octoglow.octoglowd.toLocalDateInCurrentTimeZone
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Month
@@ -17,8 +17,8 @@ class PoznanGarbageCollectionTimetableDataHarvesterTest {
     @Test
     fun testDownloadTimetable(): Unit = runBlocking {
         val resp = PoznanGarbageCollectionTimetableDataHarvester.downloadTimetable(
-            testConfig.garbageCollectionTimetable.streetName,
-            testConfig.garbageCollectionTimetable.buildingNumber,
+            defaultTestConfig.garbageCollectionTimetable.streetName,
+            defaultTestConfig.garbageCollectionTimetable.buildingNumber,
             null,
         )
         assertThat(resp).isNotBlank()

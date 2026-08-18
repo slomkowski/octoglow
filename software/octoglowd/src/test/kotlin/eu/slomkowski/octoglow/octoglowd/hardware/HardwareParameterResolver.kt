@@ -1,6 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
-import eu.slomkowski.octoglow.octoglowd.testConfig
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import io.helins.linux.i2c.I2CBus
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ParameterContext
@@ -24,7 +24,7 @@ class HardwareParameterResolver : ParameterResolver {
     override fun resolveParameter(context: ParameterContext, extensionContext: ExtensionContext): Any {
         val store = extensionContext.getStore(ExtensionContext.Namespace.create(Hardware::class))
         val hardwareResource = store.getOrComputeIfAbsent("hardware") {
-            val bus = I2CBus(testConfig.i2cBus)
+            val bus = I2CBus(defaultTestConfig.i2cBus)
             val hardware = HardwareReal(bus)
             HardwareResource(hardware)
         } as HardwareResource

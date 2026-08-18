@@ -27,6 +27,6 @@ config.yml
 test-config.yml
 
 /config.json
-/test-config.json
+test-config.json
 
 data/

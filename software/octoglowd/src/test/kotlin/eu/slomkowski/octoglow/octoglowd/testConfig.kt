@@ -1,13 +1,40 @@
 package eu.slomkowski.octoglow.octoglowd
 
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.decodeFromStream
 import java.net.URI
 import java.nio.file.Paths
 import kotlin.random.Random
 
-// Parsed lazily so that a missing local config.json only fails tests that actually use it,
-// instead of failing class initialization and cascading into unrelated tests.
-val testConfig by lazy { Config.parse(Paths.get("config.json")) }
+/**
+ * Real credentials for external services (radmon.org, simplemonitor, Todoist) that must not be
+ * committed. Only tests that actually call those services read them via [testConfig]; everything
+ * else uses [defaultTestConfig]. Sections absent from the file fall back to the defaults.
+ */
+@Serializable
+private data class TestCredentials(
+    val simplemonitor: ConfSimpleMonitor? = null,
+    val radmon: ConfRadmon? = null,
+    val todoist: ConfTodoist? = null,
+)
+
+// Loaded lazily from the test classpath (src/test/resources/test-config.json) so it resolves
+// regardless of the test's working directory, and a missing file only fails the tests that use it.
+@OptIn(ExperimentalSerializationApi::class)
+val testConfig: Config by lazy {
+    val resource = "/test-config.json"
+    val stream = checkNotNull(TestCredentials::class.java.getResourceAsStream(resource)) {
+        "$resource not found on the test classpath (expected in src/test/resources)"
+    }
+    val creds = stream.use { jsonSerializer.decodeFromStream<TestCredentials>(it) }
+    defaultTestConfig.copy(
+        simplemonitor = creds.simplemonitor ?: defaultTestConfig.simplemonitor,
+        radmon = creds.radmon ?: defaultTestConfig.radmon,
+        todoist = creds.todoist ?: defaultTestConfig.todoist,
+    )
+}
 
 val defaultTestConfig = Config(
     i2cBus = 0,

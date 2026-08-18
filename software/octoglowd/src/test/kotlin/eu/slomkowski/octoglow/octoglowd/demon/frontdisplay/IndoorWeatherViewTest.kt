@@ -5,7 +5,7 @@ package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.IndoorWeatherView.Companion.formatCo2
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
-import eu.slomkowski.octoglow.octoglowd.testConfig
+import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
@@ -28,7 +28,7 @@ class IndoorWeatherViewTest {
     @Test
     fun testRedrawDisplayEmpty(): Unit = runBlocking {
         val hardware = HardwareMock()
-        val view = IndoorWeatherView(testConfig, mockk(), hardware)
+        val view = IndoorWeatherView(defaultTestConfig, mockk(), hardware)
 
         view.redrawDisplay(
             redrawStatic = true,

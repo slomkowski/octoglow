@@ -31,7 +31,7 @@ class MqttDemonTest {
         private val logger = KotlinLogging.logger { }
         private val mqttPort = Random.nextInt(32500, 33500)
 
-        val config = testConfig.copy(
+        val config = defaultTestConfig.copy(
             mqtt = ConfMqttInfo(
                 enabled = true,
                 host = "localhost",
