@@ -170,6 +170,13 @@ class UtilsTest {
         assertEquals(LocalTime(12, 35, 0), LocalTime(12, 34, 31).roundToNearestMinute())
         assertEquals(LocalTime(12, 59, 0), LocalTime(12, 59, 29).roundToNearestMinute())
         assertEquals(LocalTime(13, 0, 0), LocalTime(12, 59, 56).roundToNearestMinute())
+
+        // rounding up in the last half-minute of the day wraps to midnight instead of throwing
+        assertEquals(LocalTime(0, 0, 0), LocalTime(23, 59, 30).roundToNearestMinute())
+        assertEquals(LocalTime(0, 0, 0), LocalTime(23, 59, 59).roundToNearestMinute())
+        assertEquals(LocalTime(0, 0, 0), LocalTime(23, 59, 59, 999_000_000).roundToNearestMinute())
+        // just below the threshold still rounds down normally
+        assertEquals(LocalTime(23, 59, 0), LocalTime(23, 59, 29).roundToNearestMinute())
     }
 
     @Test

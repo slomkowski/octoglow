@@ -2,6 +2,8 @@
 
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
+import eu.slomkowski.octoglow.octoglowd.dataharvesters.TodoistDataHarvester
+import eu.slomkowski.octoglow.octoglowd.dataharvesters.TodoistDataSnapshot
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.TodoistView.Companion.createTodayTaskText
 import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
@@ -29,6 +31,46 @@ class TodoistViewTest {
         assertThat(createTodayTaskText(30, 15)).isEqualTo("30(15)")
         assertThat(createTodayTaskText(345, 15)).isEqualTo(">99(15)")
         assertThat(createTodayTaskText(345, 123)).isEqualTo(">99(99)")
+    }
+
+    @Test
+    fun testDeletedAndCheckedTasksAreNotCounted(): Unit = runBlocking {
+        val hardware = HardwareMock()
+        val view = TodoistView(hardware)
+
+        val today = LocalDate(2025, 8, 7)
+        val now = Instant.parse("2025-08-07T12:00:00.000Z")
+
+        fun item(id: String, due: LocalDate?, isDeleted: Boolean = false, isChecked: Boolean = false) =
+            TodoistDataHarvester.Item(
+                id = id,
+                description = "",
+                content = "task $id",
+                priority = 1,
+                due = due?.let { TodoistDataHarvester.Due(it.toString()) },
+                userId = "u",
+                isChecked = isChecked,
+                isDeleted = isDeleted,
+            )
+
+        val snapshot = TodoistDataSnapshot(
+            timestamp = now,
+            cycleLength = 5.minutes,
+            dataItem = Result.success(
+                listOf(
+                    item("active", today),
+                    item("deleted", today, isDeleted = true),
+                    item("checked", today, isChecked = true),
+                )
+            ),
+        )
+
+        val update = view.onNewDataSnapshot(snapshot, null)
+        assertThat(update).isInstanceOf(UpdateStatus.NewData::class.java)
+        val report = (update as UpdateStatus.NewData).newStatus as TodoistView.Report
+
+        // only the active task counts; the deleted and checked ones (despite matching today's due date) are excluded
+        assertThat(report.todayTasks.map { it.id }).containsExactly("active")
     }
 
     @Test

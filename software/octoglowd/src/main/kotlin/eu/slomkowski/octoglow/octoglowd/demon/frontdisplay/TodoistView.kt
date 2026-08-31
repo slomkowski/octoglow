@@ -89,7 +89,7 @@ class TodoistView(
         fun createGroupOfTasks(oldTasks: Set<Task>?, dateFilter: (LocalDate) -> Boolean): Set<Task> {
             val tasks = oldTasks?.toMutableSet() ?: mutableSetOf()
 
-            items.filter { it.dueDate?.let(dateFilter) ?: false && !it.isDeleted }.mapTo(tasks) { Task(it) }
+            items.filter { (it.dueDate?.let(dateFilter) ?: false) && !it.isDeleted }.mapTo(tasks) { Task(it) }
             tasks.removeAll { taskId ->
                 items.any { taskDto ->
                     taskDto.id == taskId.id && (taskDto.isDeleted || taskDto.isChecked || (taskDto.dueDate?.let { !dateFilter(it) } ?: true))

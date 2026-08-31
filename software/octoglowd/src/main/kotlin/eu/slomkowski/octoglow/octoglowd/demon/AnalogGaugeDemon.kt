@@ -120,11 +120,13 @@ class AnalogGaugeDemon(
 
     private val valueHistory = DacChannel.entries.associateWith { BufferState() }
 
-    private suspend fun setValue(channel: DacChannel, v: Double) {
+    internal suspend fun setValue(channel: DacChannel, v: Double) {
         val state = valueHistory.getValue(channel)
         val buffer = state.buffer
 
-        buffer[state.currentIndex] = v
+        // clamp to the gauge's valid fraction range so a sensor reading outside its assumed
+        // scale (e.g. Wi-Fi link quality above the assumed 70 maximum) can never overflow the DAC
+        buffer[state.currentIndex] = v.coerceIn(0.0, 1.0)
         state.currentIndex = (state.currentIndex + 1) % NUMBER_OF_SAMPLES_TO_AVERAGE
 
         var sum = 0.0

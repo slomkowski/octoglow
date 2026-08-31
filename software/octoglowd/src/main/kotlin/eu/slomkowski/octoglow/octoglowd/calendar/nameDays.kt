@@ -390,5 +390,9 @@ private val nameDays = mapOf(
 
 fun determineNamedaysFor(day: LocalDate, country: String): Set<String> {
     val countryNameDays = requireNotNull(nameDays[country.uppercase()]) { "unsupported country: $country" }
-    return countryNameDays.find { it.month == day.monthNumber && it.day == day.dayOfMonth }?.names ?: emptySet()
+
+    // name-day tables end February at the 28th; on a leap day fall back to it instead of returning nothing
+    val lookupDay = if (day.monthNumber == 2 && day.dayOfMonth == 29) 28 else day.dayOfMonth
+
+    return countryNameDays.find { it.month == day.monthNumber && it.day == lookupDay }?.names ?: emptySet()
 }

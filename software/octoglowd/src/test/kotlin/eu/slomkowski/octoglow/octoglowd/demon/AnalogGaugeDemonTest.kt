@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.demon
 
 import eu.slomkowski.octoglow.octoglowd.demon.AnalogGaugeDemon.Companion.parseProcNetWirelessFile
+import eu.slomkowski.octoglow.octoglowd.hardware.DacChannel
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.HardwareParameterResolver
 import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
@@ -56,6 +57,31 @@ class AnalogGaugeDemonTest {
                 delay(200.milliseconds)
             }
         }
+    }
+
+    @Test
+    fun testSetValueClampsToDacRange() {
+        val hardware = mockk<Hardware>()
+        val d = AnalogGaugeDemon(hardware)
+
+        val dacValues = mutableListOf<Int>()
+        coEvery { hardware.dac.setValue(any(), capture(dacValues)) } answers { }
+
+        val samplesToFillAveragingBuffer = 5
+
+        runBlocking {
+            // link quality above the assumed 70 maximum yields a fraction > 1.0; without clamping
+            // the averaged value * 255 would exceed 255 and blow the DAC's 0..255 contract
+            repeat(samplesToFillAveragingBuffer) { d.setValue(DacChannel.C1, 2.0) }
+            // a negative fraction must clamp to the low end
+            repeat(samplesToFillAveragingBuffer) { d.setValue(DacChannel.C2, -1.0) }
+        }
+
+        assertThat(dacValues).isNotEmpty
+        assertThat(dacValues).allMatch { it in 0..255 }
+        // after the averaging buffer fills, the clamped values reach the extremes exactly
+        assertThat(dacValues.take(samplesToFillAveragingBuffer).last()).isEqualTo(255)
+        assertThat(dacValues.last()).isEqualTo(0)
     }
 
     @Test

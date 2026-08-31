@@ -47,7 +47,8 @@ class ShoppingSundayView(
                 0 -> "TODAY!"
                 1 -> "tomorrow"
                 in 2..<14 -> "in $daysUntil days"
-                else -> "in ${daysUntil / 7} weeks"
+                // round to the nearest whole week instead of truncating (which understated by up to 6 days)
+                else -> "in ${(daysUntil + 3) / 7} weeks"
             }
 
         fun formatShortDate(date: LocalDate): String =

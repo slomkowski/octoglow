@@ -48,7 +48,14 @@ abstract class AbstractInstantSerializer2(private val pattern: String) : KSerial
                 hour.toInt(),
                 minute.toInt(),
                 second.toInt()
-            ).toInstant(UtcOffset(offsetHour.toInt(), offsetMinute.toInt()))
+            ).toInstant(
+                // offsetHour carries the sign ("+02" / "-05"); the minute group is always
+                // unsigned, so it must inherit the hour's sign or UtcOffset rejects mixed signs
+                run {
+                    val sign = if (offsetHour.startsWith("-")) -1 else 1
+                    UtcOffset(offsetHour.toInt(), sign * offsetMinute.toInt())
+                }
+            )
         }) { "$str does not match $pattern" }
     }
 

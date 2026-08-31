@@ -33,7 +33,14 @@ class ShoppingSundayViewTest {
         assertThat(ShoppingSundayView.formatCountdown(today, today)).isEqualTo("TODAY!")
         assertThat(ShoppingSundayView.formatCountdown(today, LocalDate(2026, Month.AUGUST, 25))).isEqualTo("tomorrow")
         assertThat(ShoppingSundayView.formatCountdown(today, LocalDate(2026, Month.AUGUST, 30))).isEqualTo("in 6 days")
-        assertThat(ShoppingSundayView.formatCountdown(today, LocalDate(2026, Month.DECEMBER, 6))).isEqualTo("in 14 weeks")
+        assertThat(ShoppingSundayView.formatCountdown(today, LocalDate(2026, Month.DECEMBER, 6))).isEqualTo("in 15 weeks")
+
+        // weeks are rounded to the nearest whole week, not truncated
+        val monday = LocalDate(2026, Month.JANUARY, 5)
+        assertThat(ShoppingSundayView.formatCountdown(monday, LocalDate(2026, Month.JANUARY, 19))).isEqualTo("in 2 weeks")  // 14 days
+        assertThat(ShoppingSundayView.formatCountdown(monday, LocalDate(2026, Month.JANUARY, 25))).isEqualTo("in 3 weeks")  // 20 days -> ~2.9
+        assertThat(ShoppingSundayView.formatCountdown(monday, LocalDate(2026, Month.JANUARY, 22))).isEqualTo("in 2 weeks")  // 17 days -> ~2.4
+        assertThat(ShoppingSundayView.formatCountdown(monday, LocalDate(2026, Month.FEBRUARY, 1))).isEqualTo("in 4 weeks")  // 27 days -> ~3.9
     }
 
     @Test
@@ -122,7 +129,7 @@ class ShoppingSundayViewTest {
         val hardware = HardwareMock()
         val view = ShoppingSundayView(defaultTestConfig, hardware)
 
-        // Dec 21 is after the last 2026 shopping sunday (Dec 20); next is Jan 31, 2027 = 41 days
+        // Dec 21 is after the last 2026 shopping sunday (Dec 20); next is Jan 31, 2027 = 41 days ~= 6 weeks
         view.redrawDisplay(
             redrawStatic = true,
             redrawStatus = true,
@@ -133,6 +140,6 @@ class ShoppingSundayViewTest {
 
         println(hardware.frontDisplay.renderDisplayContent())
         assertThat(hardware.frontDisplay.line1content).isEqualTo("  Shopping Sunday   ")
-        assertThat(hardware.frontDisplay.line2content).isEqualTo(" 31 Jan, in 5 weeks ")
+        assertThat(hardware.frontDisplay.line2content).isEqualTo(" 31 Jan, in 6 weeks ")
     }
 }

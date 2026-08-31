@@ -86,7 +86,7 @@ data class GeigerDeviceState(
                 EyeInverterState.entries[buff[5]],
                 EyeDisplayMode.entries[buff[6]],
                 EYE_ADC_SCALING_FACTOR * eyeAdcReadout.toDouble(),
-                buff[8],
+                buff[9],
             )
         }
     }
@@ -114,7 +114,7 @@ class Geiger(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x18, 5.mil
     }
 
     override suspend fun setBrightness(brightness: Int) {
-        assert(brightness in 0..MAX_BRIGHTNESS) { "brightness should be in range 0..5" }
+        require(brightness in 0..MAX_BRIGHTNESS) { "brightness should be in range 0..$MAX_BRIGHTNESS" }
         sendCommand("set brightness", 7, brightness)
     }
 
@@ -129,8 +129,8 @@ class Geiger(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x18, 5.mil
     }
 
     suspend fun setCycleLength(duration: Duration) {
-        assert(duration > Duration.ZERO) { "duration has to be non-zero" }
-        assert(duration < CYCLE_MAX_DURATION) { "duration can be max $CYCLE_MAX_DURATION" }
+        require(duration > Duration.ZERO) { "duration has to be non-zero" }
+        require(duration < CYCLE_MAX_DURATION) { "duration can be max $CYCLE_MAX_DURATION" }
         val seconds = duration.inWholeSeconds.toInt()
 
         sendCommand("set cycle length", 3, 0xff and seconds, 0xff and (seconds shr 8))

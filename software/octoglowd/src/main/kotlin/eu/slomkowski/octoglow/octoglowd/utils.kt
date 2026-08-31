@@ -110,15 +110,18 @@ fun calculateSunriseAndSunset(latitude: Double, longitude: Double, date: LocalDa
 
 fun LocalTime.roundToNearestMinute(): LocalTime {
     val div = 60_000
+    val millisInDay = 24 * 60 * 60 * 1000
     val base = (floor(this.toMillisecondOfDay().toDouble() / div) * div).roundToInt()
 
-    return LocalTime.fromMillisecondOfDay(
-        if ((this.toMillisecondOfDay() % div) < div / 2) {
-            base
-        } else {
-            base + div
-        }
-    )
+    val rounded = if ((this.toMillisecondOfDay() % div) < div / 2) {
+        base
+    } else {
+        base + div
+    }
+
+    // rounding a time in the last half-minute of the day yields 24:00 == 86_400_000 ms,
+    // which is out of LocalTime's valid range; wrap it back to midnight
+    return LocalTime.fromMillisecondOfDay(rounded % millisInDay)
 }
 
 fun formatHumidity(h: Double?): String = when (h) {

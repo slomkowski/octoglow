@@ -121,5 +121,11 @@ class CountryHolidaysKtTest {
         assertThrows<IllegalArgumentException> {
             determineNamedaysFor(LocalDate(2025, Month.MARCH, 30), "XX")
         }
+
+        // Feb 29 in a leap year has no dedicated entry and falls back to Feb 28 instead of being empty
+        val feb28 = determineNamedaysFor(LocalDate(2024, Month.FEBRUARY, 28), "PL")
+        assertThat(feb28).isNotEmpty
+        assertThat(determineNamedaysFor(LocalDate(2024, Month.FEBRUARY, 29), "PL"))
+            .isEqualTo(feb28)
     }
 }

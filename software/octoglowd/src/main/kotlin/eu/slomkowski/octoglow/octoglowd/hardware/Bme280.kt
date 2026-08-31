@@ -125,6 +125,15 @@ class Bme280(hardware: Hardware) : FactoryMadeI2cDevice(hardware, 0x76) {
             val bOlder = ba[offset + 1].apply { check(this in 0..255) { "old byte: $this" } }
             return bYounger + 256 * bOlder
         }
+
+        /**
+         * Sign-extends the [bitWidth]-bit two's-complement magnitude held in the low bits of this Int.
+         * BME280 defines dig_H4/dig_H5 as signed 12-bit and dig_H6 as a signed 8-bit value.
+         */
+        fun Int.signExtend(bitWidth: Int): Int {
+            val signBit = 1 shl (bitWidth - 1)
+            return if (this and signBit != 0) this - (1 shl bitWidth) else this
+        }
     }
 
     private var compensationData: CompensationData? = null
@@ -175,9 +184,9 @@ class Bme280(hardware: Hardware) : FactoryMadeI2cDevice(hardware, 0x76) {
             h1 = b1[24],
             h2 = toSignedShort(b2, 0),
             h3 = b2[2],
-            h4 = (b2[3] shl 4) + (b2[4] and 0x0f),
-            h5 = ((b2[4] shr 4) and 0x0f) + (b2[5] shl 4),
-            h6 = b2[7]
+            h4 = ((b2[3] shl 4) + (b2[4] and 0x0f)).signExtend(12),
+            h5 = (((b2[4] shr 4) and 0x0f) + (b2[5] shl 4)).signExtend(12),
+            h6 = b2[7].signExtend(8)
         )
 
         logger.debug { "Compensation data: $c." }

@@ -1,5 +1,6 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
+import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.math.sqrt
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -49,6 +51,36 @@ class GeigerTest {
             val invalid = intArrayOf(0, 255, 255, 255, 255, 255, 255, 255, 255)
             GeigerCounterState.parse(invalid)
         }
+    }
+
+    @Test
+    fun testGeigerDeviceStateParse() {
+        // buff layout: [_, cmd=1, adcLo, adcHi, geigerPwm, eyeState, eyeAnim, eyeAdcLo, eyeAdcHi, eyePwm]
+        val state = GeigerDeviceState.parse(intArrayOf(0, 1, 100, 1, 42, 3, 1, 50, 1, 77))
+
+        assertThat(state.geigerPwmValue).isEqualTo(42)
+        assertThat(state.eyeState).isEqualTo(EyeInverterState.RUNNING)
+        assertThat(state.eyeAnimationState).isEqualTo(EyeDisplayMode.FIXED_VALUE)
+        // eyePwmValue must come from buff[9] (77), not from buff[8] (1, the eye-ADC high byte)
+        assertThat(state.eyePwmValue).isEqualTo(77)
+    }
+
+    @Test
+    fun testSetBrightnessRejectsOutOfRange(): Unit = runBlocking {
+        val geiger = Geiger(HardwareMock())
+        assertThatThrownBy { runBlocking { geiger.setBrightness(-1) } }
+            .isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { runBlocking { geiger.setBrightness(MAX_BRIGHTNESS + 1) } }
+            .isInstanceOf(IllegalArgumentException::class.java)
+    }
+
+    @Test
+    fun testSetCycleLengthRejectsOutOfRange(): Unit = runBlocking {
+        val geiger = Geiger(HardwareMock())
+        assertThatThrownBy { runBlocking { geiger.setCycleLength(Duration.ZERO) } }
+            .isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { runBlocking { geiger.setCycleLength(0x10000.seconds) } }
+            .isInstanceOf(IllegalArgumentException::class.java)
     }
 
     @Test
