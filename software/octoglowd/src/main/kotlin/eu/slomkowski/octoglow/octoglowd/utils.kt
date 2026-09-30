@@ -17,6 +17,7 @@ import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 import kotlin.math.*
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -151,10 +152,15 @@ fun formatPpmConcentration(t: Double?): String = when (t) {
 fun getSegmentNumber(currentTime: kotlin.time.Duration, maxTime: kotlin.time.Duration): Int =
     floor(20.0 * (max(currentTime.toDouble(DurationUnit.MILLISECONDS), 0.0) / maxTime.toDouble(DurationUnit.MILLISECONDS))).roundToInt().coerceIn(0, 19)
 
+/**
+ * Retries with a pause between attempts. Keep [delayBetweenTries] short: this wraps I2C commands
+ * issued from the front display loop, so the total worst case here is visible as UI lag.
+ */
 suspend fun <T : Any> trySeveralTimes(
     numberOfTries: Int,
     logger: KLogger,
     funcDescription: String,
+    delayBetweenTries: kotlin.time.Duration = 20.milliseconds,
     func: suspend (tryNo: Int) -> T
 ): T {
     require(numberOfTries > 0)
@@ -167,7 +173,7 @@ suspend fun <T : Any> trySeveralTimes(
             if (tryNo == numberOfTries) {
                 throw Exception("number of tries $numberOfTries exhausted: ${e.message}", e)
             } else {
-                delay(70)
+                delay(delayBetweenTries)
                 logger.warn { "Operation '$funcDescription' failed with '${e.message}' (try $tryNo/$numberOfTries)." }
             }
         }

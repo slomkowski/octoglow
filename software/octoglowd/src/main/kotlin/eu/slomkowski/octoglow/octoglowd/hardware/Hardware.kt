@@ -58,6 +58,14 @@ class HardwareReal(
         ETIMEDOUT(110, "Connection timed out")
     }
 
+    /**
+     * All bus access is confined to this single thread rather than hopping onto [Dispatchers.IO] per
+     * operation. The I2C calls are blocking JNA syscalls, so they need a thread of their own anyway,
+     * and confining them means the write/wait/read sequence never gets rescheduled onto a different
+     * worker - which is what lets [waitBetweenWriteAndRead] be an ordinary sleep.
+     */
+    private val busContext = newSingleThreadContext("i2c")
+
     private val busMutex = Mutex()
     private val writeI2cBuffer = I2CBuffer(I2C_BUFFER_MAX_SIZE)
     private val readI2cBuffer = I2CBuffer(I2C_BUFFER_MAX_SIZE)
@@ -143,6 +151,7 @@ class HardwareReal(
                 }
             }
         }
+        busContext.close()
     }
 
     private fun fillWriteBuffer(writeArray: IntArray) {
@@ -151,7 +160,21 @@ class HardwareReal(
         writeArray.forEachIndexed { index, value -> writeI2cBuffer[index] = value }
     }
 
-    override suspend fun doWrite(i2cAddress: Int, writeData: IntArray) = withContext(Dispatchers.IO) {
+    /**
+     * The datasheet gap between writing a command and reading its answer. It is a few milliseconds at
+     * most and it is spent holding [busMutex], so a coroutine `delay` here would hand the thread to
+     * another task and only resume once the scheduler got round to it - on a loaded Cortex-A7 a
+     * nominal 1 ms routinely became 10 ms or more, with the whole bus locked throughout. On the
+     * confined bus thread a plain sleep is both shorter and more predictable.
+     */
+    private fun waitBetweenWriteAndRead(duration: Duration) {
+        val millis = duration.inWholeMilliseconds
+        if (millis > 0) {
+            Thread.sleep(millis)
+        }
+    }
+
+    override suspend fun doWrite(i2cAddress: Int, writeData: IntArray) = withContext(busContext) {
         try {
             busMutex.withLock {
                 fillWriteBuffer(writeData)
@@ -174,14 +197,14 @@ class HardwareReal(
 
         val resultArray = IntArray(bytesToRead)
 
-        withContext(Dispatchers.IO) {
+        withContext(busContext) {
             for (tryNo in 1..numberOfTries) {
                 try {
                     busMutex.withLock {
                         fillWriteBuffer(writeData)
                         bus.selectSlave(i2cAddress)
                         bus.write(writeI2cBuffer, writeData.size)
-                        delay(delayBetweenWriteAndRead)
+                        waitBetweenWriteAndRead(delayBetweenWriteAndRead)
                         bus.read(readI2cBuffer, bytesToRead)
 
                         for (i in 0 until bytesToRead) {

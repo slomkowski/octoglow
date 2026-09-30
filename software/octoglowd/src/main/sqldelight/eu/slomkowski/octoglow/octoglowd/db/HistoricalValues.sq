@@ -1,8 +1,14 @@
 CREATE TABLE IF NOT EXISTS historical_values (id INTEGER PRIMARY KEY, created TEXT NOT NULL, "key" TEXT NOT NULL, "value" REAL NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS historical_values_created_key ON historical_values (created, "key");
+-- The unique index above leads on `created`, so the chart queries - which always constrain one key
+-- over a time window - have to walk every key's rows in that window and filter afterwards. Leading
+-- on "key" makes each of those a tight range scan, and it stays tight as more sensors are added.
+CREATE INDEX IF NOT EXISTS historical_values_key_created ON historical_values ("key", created);
 
-selectExistingHistoricalValue:
-SELECT * FROM historical_values WHERE created = ? AND "key" = ?;
-
+-- OR IGNORE leans on historical_values_created_key rather than doing a SELECT first, halving the
+-- statements per sample stored.
 insertHistoricalValue:
-INSERT INTO historical_values (created, "key", "value") VALUES (?, ?, ?);
+INSERT OR IGNORE INTO historical_values (created, "key", "value") VALUES (?, ?, ?);
+
+deleteHistoricalValuesOlderThan:
+DELETE FROM historical_values WHERE created < ?;

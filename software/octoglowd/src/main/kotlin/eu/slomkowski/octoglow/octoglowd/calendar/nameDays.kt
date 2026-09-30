@@ -384,8 +384,21 @@ private val polishNameDays = listOf(
     Ndr(31, 12, "Sylwestra", "Melanii", "Mariusza"),
 )
 
-private val nameDays = mapOf(
-    "PL" to polishNameDays,
+/**
+ * Indexes by `month * 100 + day` so a lookup is a hash probe rather than a scan over 365 entries -
+ * this is reached from the calendar view's redraw path.
+ */
+private fun List<Ndr>.indexByMonthAndDay(): Map<Int, Set<String>> {
+    val index = HashMap<Int, Set<String>>(size)
+    for (entry in this) {
+        val previous = index.put(entry.month * 100 + entry.day, entry.names)
+        require(previous == null) { "duplicate name day entry for ${entry.day}.${entry.month}" }
+    }
+    return index
+}
+
+private val nameDays: Map<String, Map<Int, Set<String>>> = mapOf(
+    "PL" to polishNameDays.indexByMonthAndDay(),
 )
 
 fun determineNamedaysFor(day: LocalDate, country: String): Set<String> {
@@ -394,5 +407,5 @@ fun determineNamedaysFor(day: LocalDate, country: String): Set<String> {
     // name-day tables end February at the 28th; on a leap day fall back to it instead of returning nothing
     val lookupDay = if (day.monthNumber == 2 && day.dayOfMonth == 29) 28 else day.dayOfMonth
 
-    return countryNameDays.find { it.month == day.monthNumber && it.day == lookupDay }?.names ?: emptySet()
+    return countryNameDays[day.monthNumber * 100 + lookupDay] ?: emptySet()
 }

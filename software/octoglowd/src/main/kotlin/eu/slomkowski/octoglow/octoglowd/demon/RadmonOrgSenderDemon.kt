@@ -90,12 +90,14 @@ class RadmonOrgSenderDemon(
                 (packet as? DataSnapshot)?.values
                     ?.filter { it.type == RadioactivityCpm && it.value.isSuccess }
                     ?.forEach { radioactivityCpm ->
-                        submitToRadmonOrg(
-                            config.radmon.username,
-                            config.radmon.password,
-                            packet.timestamp,
-                            radioactivityCpm.value.getOrThrow(),
-                        )
+                        launch {
+                            submitToRadmonOrg(
+                                config.radmon.username,
+                                config.radmon.password,
+                                packet.timestamp,
+                                radioactivityCpm.value.getOrThrow(),
+                            )
+                        }
                     }
             }
         })

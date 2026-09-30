@@ -1,0 +1,7 @@
+-- The statements in the .sq files only ever run against a freshly created database, and the deployed
+-- one is already at user_version 1, so the index for existing installations has to come from here.
+--
+-- historical_values_created_key leads on `created`, which means every chart query - always one key
+-- over a time window - scans all keys in that window and filters afterwards. Leading on "key" turns
+-- each into a tight range scan.
+CREATE INDEX IF NOT EXISTS historical_values_key_created ON historical_values ("key", created);

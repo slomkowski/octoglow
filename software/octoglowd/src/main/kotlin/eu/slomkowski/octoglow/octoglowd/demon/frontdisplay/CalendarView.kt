@@ -93,16 +93,51 @@ class CalendarView(
         logger.info { "Initializing calendar for $countryCode." }
     }
 
+    // Both the holiday text and the sunrise/sunset times depend only on the date, but they are
+    // recomputed on every status redraw - and determineHolidayNamesForDay recalculates Easter each
+    // time. A single-entry memo is enough: the status handed to redrawDisplay is always today.
+    @Volatile
+    private var cachedDayInfo: Pair<LocalDate, String>? = null
+
+    @Volatile
+    private var cachedSunriseSunset: Pair<LocalDate, Pair<LocalTime, LocalTime>>? = null
+
     fun getInfoForDay(day: LocalDate): String {
+        cachedDayInfo?.let { (cachedDay, cachedInfo) ->
+            if (cachedDay == day) {
+                return cachedInfo
+            }
+        }
+
         val holidayNames = determineHolidayNamesForDay(day, countryCode).map { it.uppercase() }.takeIf { it.isNotEmpty() }
         val names = determineNamedaysFor(day, countryCode).takeIf { it.isNotEmpty() }
 
-        return listOfNotNull(
+        val info = listOfNotNull(
             holidayNames?.joinToString(","),
             names?.joinToString(",")
         )
             .joinToString("; ")
             .let { it.replaceFirstChar { char -> char.uppercase() } }
+
+        cachedDayInfo = day to info
+        return info
+    }
+
+    private fun sunriseAndSunsetFor(day: LocalDate): Pair<LocalTime, LocalTime> {
+        cachedSunriseSunset?.let { (cachedDay, cachedTimes) ->
+            if (cachedDay == day) {
+                return cachedTimes
+            }
+        }
+
+        val times = calculateSunriseAndSunset(
+            config.geoPosition.latitude,
+            config.geoPosition.longitude,
+            day,
+        )
+
+        cachedSunriseSunset = day to times
+        return times
     }
 
     override suspend fun onNewDataSnapshot(snapshot: Snapshot, oldStatus: LocalDate?): UpdateStatus {
@@ -130,11 +165,7 @@ class CalendarView(
 
         if (redrawStatus) {
             launch {
-                val (sunrise, sunset) = calculateSunriseAndSunset(
-                    config.geoPosition.latitude,
-                    config.geoPosition.longitude,
-                    status,
-                )
+                val (sunrise, sunset) = sunriseAndSunsetFor(status)
                 check(sunrise < LocalTime(10, 0))
 
                 fd.setStaticText(0, formatDate(status))

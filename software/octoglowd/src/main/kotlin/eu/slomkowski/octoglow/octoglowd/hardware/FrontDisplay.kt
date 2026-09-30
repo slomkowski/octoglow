@@ -7,8 +7,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
 import kotlin.math.roundToInt
 import kotlin.time.Clock
@@ -149,8 +147,7 @@ class FrontDisplayReal(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0
     }
 
     override suspend fun setUpperBar(c: Int) {
-        val bk = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(c)
-        sendCommand("set upper bar content", 7, bk[0].toInt(), bk[1].toInt(), bk[2].toInt())
+        sendCommand("set upper bar content", 7, c and 0xff, (c shr 8) and 0xff, (c shr 16) and 0xff)
     }
 
     override suspend fun clear() {

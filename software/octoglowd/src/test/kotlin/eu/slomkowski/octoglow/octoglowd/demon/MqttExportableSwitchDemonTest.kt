@@ -3,8 +3,11 @@ package eu.slomkowski.octoglow.octoglowd.demon
 import eu.slomkowski.octoglow.octoglowd.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -90,7 +93,13 @@ class MqttExportableSwitchDemonTest {
             override fun isPublishStateCommand(command: Command) = false
         }
 
-        demon.queryAndEmitState()
+        // SharedFlow.collect is declared to return Nothing, which a relaxed mock cannot stand in for
+        every { commandBus.commands } returns MutableSharedFlow()
+
+        // the state only reaches the bus through the collector started by createJobs
+        demon.createJobs(backgroundScope)
+        runCurrent()
+
         coVerify { snapshotBus.publish(any()) }
     }
 }

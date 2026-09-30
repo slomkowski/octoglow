@@ -46,7 +46,10 @@ abstract class CustomI2cDevice(
 
     companion object {
 
-        private const val NUMBER_OF_REPETITIONS = 5
+        // multiplied by the 3 ENXIO retries inside Hardware.doTransaction, so keep it small:
+        // 5 repetitions used to make a single failing display command cost ~280 ms, and a full
+        // redraw is about nine commands - enough to freeze the UI for seconds
+        private const val NUMBER_OF_REPETITIONS = 3
 
         internal fun calculateCcittCrc8(data: IntArray, range: ClosedRange<Int>): Int {
             var crcValue = 0x00

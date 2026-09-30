@@ -26,7 +26,7 @@ fun main() {
 
     val mqttDemon = MqttDemon(config, eventBus, commandBus)
     val hardware = HardwareReal(config)
-    val database = DatabaseDemon(config.databaseFile, eventBus)
+    val database = DatabaseDemon(config.databaseFile, eventBus, config.historicalValuesRetention)
 
     val frontDisplayViews2 = listOf(
         CalendarView(config, hardware),

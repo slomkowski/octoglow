@@ -12,6 +12,7 @@ import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -29,12 +30,26 @@ class FrontDisplayDemon(
     private val commandBus: CommandBus,
     private val realTimeClockDemon: RealTimeClockDemon,
     private val clock: Clock = Clock.System,
-) : PollingDemon(logger, 20.milliseconds) {
+) : PollingDemon(
+    logger,
+    // the firmware latches button edges and accumulates encoder deltas, so polling at 40 ms instead of
+    // 20 ms halves the I2C traffic without losing input; 450 ms long-press detection is unaffected
+    pollingInterval = 40.milliseconds,
+    // this demon owns the dial, so a failed button read must not take the UI down for seconds
+    initialErrorBackoff = 100.milliseconds,
+    maxErrorBackoff = 2.seconds,
+) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
 
         private val DEFAULT_INSTANT_REDRAW_INTERVAL: Duration = 10.seconds
+
+        /**
+         * How often [poll] does the work that is not dial input: view cycling timeouts and polling
+         * views for fresh instant data.
+         */
+        private val SLOW_TICK_INTERVAL: Duration = 250.milliseconds
 
         fun updateViewIndex(current: Int, delta: Int, size: Int): Int {
             require(current in 0 until size)
@@ -50,14 +65,27 @@ class FrontDisplayDemon(
             override suspend fun saveCurrentOption(current: MenuOption) = throw IllegalStateException()
         }
 
+        /**
+         * Balances how fresh a view's data is against how long it has been since it was last shown.
+         *
+         * Both terms are clamped: until a view has been displayed once, [ViewInfo.lastViewed] is
+         * [Instant.DISTANT_PAST], and the raw microsecond differences then saturate and overflow the
+         * weighted sum, which made the ranking meaningless on a freshly started daemon.
+         */
         fun getMostSuitableViewInfo(clock: Clock, views: Collection<ViewInfo>): ViewInfo {
+            val now = clock.now()
             return checkNotNull(views.maxByOrNull {
-                val v1 = (it.currentStatus.timestamp - it.lastViewed).inWholeMicroseconds
-                val v2 = (clock.now() - it.lastViewed).inWholeMicroseconds
+                val dataFreshness = (it.currentStatus.timestamp - it.lastViewed).clampedSeconds()
+                val timeSinceShown = (now - it.lastViewed).clampedSeconds()
 
-                30 * v1 + 50 * v2
+                30 * dataFreshness + 50 * timeSinceShown
             })
         }
+
+        private const val SUITABILITY_HORIZON_SECONDS = 24L * 60 * 60
+
+        private fun Duration.clampedSeconds(): Long =
+            inWholeSeconds.coerceIn(-SUITABILITY_HORIZON_SECONDS, SUITABILITY_HORIZON_SECONDS)
 
         private val NO_TIMESTAMPED_VALUE = TimestampedObject<Any?>(Instant.DISTANT_PAST, null)
     }
@@ -106,52 +134,44 @@ class FrontDisplayDemon(
             lastInstantPoll = clock.now()
         }
 
-        suspend fun redrawAll(byTimeout: Boolean) {
-            val now = clock.now()
-            lastViewed = now
+        /**
+         * The bookkeeping timestamps are updated here, synchronously, while the display writes are
+         * handed to the redraw job. Keeping the timestamps in step with the request is what stops the
+         * auto-cycle timeout from firing again before a queued redraw has run.
+         */
+        fun requestRedrawAll(byTimeout: Boolean) {
+            lastViewed = clock.now()
+            bumpLastStatusAndInstantRedraw()
             logger.debug { "Redrawing $this." }
-            coroutineScope {
+            enqueueDraw(PendingDraw.View(this, redrawStatic = true, redrawStatus = true, byTimeout = byTimeout))
+        }
+
+        fun requestRedrawStatus() {
+            lastViewed = clock.now()
+            bumpLastStatusAndInstantRedraw()
+            logger.debug { "Updating state of active $view." }
+            enqueueDraw(PendingDraw.View(this, redrawStatic = false, redrawStatus = true, byTimeout = false))
+        }
+
+        fun requestRedrawInstant() {
+            bumpLastInstantRedraw()
+            logger.debug { "Updating instant of ${this@ViewInfo}." }
+            enqueueDraw(PendingDraw.View(this, redrawStatic = false, redrawStatus = false, byTimeout = false))
+        }
+
+        suspend fun performRedraw(redrawStatic: Boolean, redrawStatus: Boolean, byTimeout: Boolean) = coroutineScope {
+            if (redrawStatic) {
                 hardware.frontDisplay.clear()
                 launch { realTimeClockDemon.setFrontDisplayViewNumber(number, byTimeout) }
-                bumpLastStatusAndInstantRedraw()
-                view.redrawDisplay(
-                    redrawStatic = true,
-                    redrawStatus = true,
-                    now = now,
-                    currentStatus.obj,
-                    currentInstant.obj,
-                )
             }
-        }
 
-        fun redrawStatus() {
-            val now = clock.now()
-            lastViewed = now
-            workerScope.launch {
-                logger.debug { "Updating state of active $view." }
-                bumpLastStatusAndInstantRedraw()
-                view.redrawDisplay(
-                    redrawStatic = false,
-                    redrawStatus = true,
-                    now = now,
-                    currentStatus.obj,
-                    currentInstant.obj,
-                )
-            }
-        }
-
-        fun redrawInstant() {
-            workerScope.launch {
-                logger.debug { "Updating instant of ${this@ViewInfo}." }
-                bumpLastInstantRedraw()
-                view.redrawDisplay(
-                    redrawStatic = false,
-                    redrawStatus = false,
-                    now = clock.now(),
-                    currentStatus.obj,
-                    currentInstant.obj,
-                )
-            }
+            view.redrawDisplay(
+                redrawStatic = redrawStatic,
+                redrawStatus = redrawStatus,
+                now = clock.now(),
+                currentStatus.obj,
+                currentInstant.obj,
+            )
         }
 
         fun createDataSnapshotCollector(
@@ -171,6 +191,77 @@ class FrontDisplayDemon(
                     currentStatus = TimestampedObject(clock.now(), newStatus.newStatus)
                     stateExecutor.transition(Event.StatusUpdate(this@ViewInfo))
                 }
+            }
+        }
+    }
+
+    private sealed class PendingDraw {
+        class View(
+            val info: ViewInfo,
+            var redrawStatic: Boolean,
+            var redrawStatus: Boolean,
+            var byTimeout: Boolean,
+        ) : PendingDraw()
+
+        class MenuOverview(val menu: Menu, val current: MenuOption) : PendingDraw()
+
+        class MenuSettingOption(val menu: Menu, val selected: MenuOption, var redrawAll: Boolean) : PendingDraw()
+
+        data object ExitMenu : PendingDraw()
+    }
+
+    // Every write to the display goes through here. A full redraw is a dozen serialised I2C commands,
+    // and it used to be awaited inside a state machine transition, which is itself awaited by poll() -
+    // so every view switch and every dial turn froze the dial for the whole repaint. Now a request
+    // only updates a single pending slot and wakes one dedicated job. Requests for the same target
+    // merge (the strongest flags win), a request for a different target supersedes the old one, and
+    // two draws can never interleave their writes on the bus.
+    private val pendingDrawLock = Any()
+
+    private var pendingDraw: PendingDraw? = null
+
+    private val drawSignal = Channel<Unit>(Channel.CONFLATED)
+
+    private fun enqueueDraw(draw: PendingDraw) {
+        synchronized(pendingDrawLock) {
+            val previous = pendingDraw
+            pendingDraw = when {
+                draw is PendingDraw.View && previous is PendingDraw.View && previous.info == draw.info ->
+                    previous.apply {
+                        redrawStatic = redrawStatic || draw.redrawStatic
+                        redrawStatus = redrawStatus || draw.redrawStatus
+                        byTimeout = draw.byTimeout
+                    }
+
+                // scrolling through options quickly only has to paint the last one, but a static
+                // repaint that has not happened yet must not be lost along the way
+                draw is PendingDraw.MenuSettingOption && previous is PendingDraw.MenuSettingOption && previous.menu == draw.menu ->
+                    draw.apply { redrawAll = redrawAll || previous.redrawAll }
+
+                else -> draw
+            }
+        }
+        drawSignal.trySend(Unit)
+    }
+
+    private fun takePendingDraw(): PendingDraw? = synchronized(pendingDrawLock) {
+        pendingDraw.also { pendingDraw = null }
+    }
+
+    internal fun createRedrawJob(scope: CoroutineScope): Job = scope.launch {
+        for (signal in drawSignal) {
+            val pending = takePendingDraw() ?: continue
+            try {
+                when (pending) {
+                    is PendingDraw.View -> pending.info.performRedraw(pending.redrawStatic, pending.redrawStatus, pending.byTimeout)
+                    is PendingDraw.MenuOverview -> drawMenuOverview(pending.menu, pending.current)
+                    is PendingDraw.MenuSettingOption -> drawMenuSettingOption(pending.menu, pending.selected, pending.redrawAll)
+                    PendingDraw.ExitMenu -> drawExitMenu()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error(e) { "Error while drawing $pending." }
             }
         }
     }
@@ -305,7 +396,7 @@ class FrontDisplayDemon(
 
             logger.info { "Going to menu overview: $menu." }
             val current = menu.loadCurrentOption()
-            drawMenuOverview(menu, current)
+            enqueueDraw(PendingDraw.MenuOverview(menu, current))
 
             transitionTo(State.Menu.Overview(menu, current, info))
         }
@@ -379,14 +470,14 @@ class FrontDisplayDemon(
                     when (val newMenu = getNeighbourMenu(this.menu, event.delta)) {
                         exitMenu -> {
                             logger.info { "Switching to exit menu." }
-                            workerScope.launch { drawExitMenu() }
+                            enqueueDraw(PendingDraw.ExitMenu)
                             transitionTo(State.Menu.Overview(exitMenu, exitMenu.options.first(), calledFrom))
                         }
 
                         else -> {
                             logger.info { "Switching to menu overview: $newMenu." }
                             val current = newMenu.loadCurrentOption()
-                            drawMenuOverview(newMenu, current)
+                            enqueueDraw(PendingDraw.MenuOverview(newMenu, current))
 
                             transitionTo(State.Menu.Overview(newMenu, current, calledFrom))
                         }
@@ -403,7 +494,7 @@ class FrontDisplayDemon(
                         else -> {
                             logger.info { "Going to value setting of ${menu}." }
                             val current = menu.loadCurrentOption()
-                            drawMenuSettingOption(menu, current, true)
+                            enqueueDraw(PendingDraw.MenuSettingOption(menu, current, redrawAll = true))
 
                             transitionTo(State.Menu.SettingOption(menu, current, calledFrom))
                         }
@@ -416,10 +507,10 @@ class FrontDisplayDemon(
 
                 on<Event.ButtonPressedShort> {
                     logger.info { "Setting value of $menu to $current." }
-                    workerScope.launch {
-                        menu.saveCurrentOption(current)
-                        drawMenuOverview(menu, current)
-                    }
+                    // saving can be slow (it reaches the database or the command bus), so it stays off
+                    // the state machine's path; only the drawing is serialised with everything else
+                    workerScope.launch { menu.saveCurrentOption(current) }
+                    enqueueDraw(PendingDraw.MenuOverview(menu, current))
                     transitionTo(State.Menu.Overview(menu, current, calledFrom))
                 }
 
@@ -427,9 +518,7 @@ class FrontDisplayDemon(
                     val newOption = getNeighbourMenuOption(menu, current, event.delta)
                     logger.debug { "Changing visible menu option $current to $newOption." }
 
-                    workerScope.launch {
-                        drawMenuSettingOption(menu, newOption, false)
-                    }
+                    enqueueDraw(PendingDraw.MenuSettingOption(menu, newOption, redrawAll = false))
 
                     transitionTo(State.Menu.SettingOption(menu, newOption, calledFrom))
                 }
@@ -438,9 +527,9 @@ class FrontDisplayDemon(
             onTransition {
                 val validTransition = it as? StateMachine.Transition.Valid ?: return@onTransition
                 when (val se = validTransition.sideEffect) {
-                    is SideEffect.ViewInfoRedrawAll -> se.info.redrawAll(se.byTimeout)
-                    is SideEffect.ViewInfoRedrawStatus -> se.info.redrawStatus()
-                    is SideEffect.ViewInfoRedrawInstant -> se.info.redrawInstant()
+                    is SideEffect.ViewInfoRedrawAll -> se.info.requestRedrawAll(se.byTimeout)
+                    is SideEffect.ViewInfoRedrawStatus -> se.info.requestRedrawStatus()
+                    is SideEffect.ViewInfoRedrawInstant -> se.info.requestRedrawInstant()
                     null -> {
                         // no side effect
                     }
@@ -522,29 +611,42 @@ class FrontDisplayDemon(
 
     }
 
+    @Volatile
+    private var lastSlowTick: Instant = Instant.DISTANT_PAST
+
     override suspend fun poll() {
         val buttonState = hardware.frontDisplay.getButtonReport()
         val now = clock.now()
-        dialStateMachine.transition(buttonState.button) // todo dołożyć state machine dla encoder
 
-        when {
-            buttonState.encoderDelta != 0 -> {
-                lastDialActivity = now
-                stateExecutor.transition(Event.EncoderDelta(buttonState.encoderDelta))
-            }
-
-            else -> {
-                // timeout
-                if ((now - lastDialActivity) > config.viewAutomaticCycleTimeout) {
-                    stateExecutor.transition(Event.Timeout(now))
-                }
-                pollStatusAndInstant(now)
-            }
+        // NO_CHANGE is the overwhelmingly common case and every state of the dial machine answers it
+        // with dontTransition(), so skipping it outright is behaviour-preserving
+        if (buttonState.button != ButtonState.NO_CHANGE) {
+            dialStateMachine.transition(buttonState.button) // todo dołożyć state machine dla encoder
         }
+
+        if (buttonState.encoderDelta != 0) {
+            lastDialActivity = now
+            stateExecutor.transition(Event.EncoderDelta(buttonState.encoderDelta))
+            return
+        }
+
+        // The dial must be read at the full polling rate, but view cycling and instant-data polling
+        // only matter at roughly second granularity. Running them on every tick cost a state machine
+        // transition plus a pass over all views every 20 ms, for nothing.
+        if ((now - lastSlowTick) < SLOW_TICK_INTERVAL) {
+            return
+        }
+        lastSlowTick = now
+
+        // timeout
+        if ((now - lastDialActivity) > config.viewAutomaticCycleTimeout) {
+            stateExecutor.transition(Event.Timeout(now))
+        }
+        pollStatusAndInstant(now)
     }
 
     override fun createJobs(scope: CoroutineScope): List<Job> {
-        return super.createJobs(scope).plus(views.map {
+        return super.createJobs(scope).plus(createRedrawJob(scope)).plus(views.map {
             it.createDataSnapshotCollector(scope, dataSnapshotBus)
         }).plus(scope.launch {
             commandBus.commands.collect { command ->

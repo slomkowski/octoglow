@@ -229,23 +229,24 @@ class MqttDemon(
             val exception = result.exceptionOrNull()
             val connAck = result.getOrNull()
 
-            if (connAck != null) { // managed to connect
-                if (connAck.isSuccess) {
-                    break
-                } else {
-                    logger.warn { "Failed to connect to $mqttServerString: $connAck, retrying in $connectRetryInterval." }
-                }
-            } else {
-                if (exception != null) {
-                    logger.warn {
-                        val rootCause = generateSequence(exception) { it.cause }.last()
-                        "Failed to connect to $mqttServerString: ${rootCause.message}, retrying in $connectRetryInterval."
-                    }
-                } else {
-                    logger.warn { "Failed to connect, but no exception, retrying in $connectRetryInterval." }
-                }
-                delay(connectRetryInterval)
+            if (connAck != null && connAck.isSuccess) {
+                break
             }
+
+            when {
+                connAck != null -> logger.warn { "Failed to connect to $mqttServerString: $connAck, retrying in $connectRetryInterval." }
+
+                exception != null -> logger.warn {
+                    val rootCause = generateSequence(exception) { it.cause }.last()
+                    "Failed to connect to $mqttServerString: ${rootCause.message}, retrying in $connectRetryInterval."
+                }
+
+                else -> logger.warn { "Failed to connect, but no exception, retrying in $connectRetryInterval." }
+            }
+
+            // every failure path waits: a broker answering with a non-success CONNACK used to be
+            // retried immediately, spinning TCP connects and log lines as fast as it could refuse them
+            delay(connectRetryInterval)
         }
         logger.warn { "Exited connection acquiring job, state $state, connected: ${state.isConnected}." }
     }

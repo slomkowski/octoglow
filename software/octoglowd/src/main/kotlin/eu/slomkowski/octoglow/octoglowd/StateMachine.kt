@@ -55,10 +55,16 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
         return Transition.Invalid(this, event)
     }
 
-    private fun STATE.getDefinition() = graph.stateDefinitions
-        .filter { it.key.matches(this) }
-        .map { it.value }
-        .firstOrNull() ?: error("Missing definition for state ${this.javaClass.simpleName}!")
+    // called up to three times per transition, and the front display polls this machine on every
+    // tick - a filter{}.map{}.firstOrNull() chain here allocated two throwaway lists each time
+    private fun STATE.getDefinition(): Graph.State<STATE, EVENT, SIDE_EFFECT> {
+        for ((matcher, definition) in graph.stateDefinitions) {
+            if (matcher.matches(this)) {
+                return definition
+            }
+        }
+        error("Missing definition for state ${this.javaClass.simpleName}!")
+    }
 
     private fun STATE.notifyOnEnter(cause: EVENT) {
         getDefinition().onEnterListeners.forEach { it(this, cause) }
@@ -119,7 +125,16 @@ class StateMachine<STATE : Any, EVENT : Any, SIDE_EFFECT : Any> private construc
             }
         }
 
-        fun matches(value: T) = predicates.all { it(value) }
+        // indexed loop rather than all {}: this sits on the front display's polling path and there is
+        // almost always exactly one predicate (the class check)
+        fun matches(value: T): Boolean {
+            for (i in predicates.indices) {
+                if (!predicates[i](value)) {
+                    return false
+                }
+            }
+            return true
+        }
 
         companion object {
             fun <T : Any, R : T> any(clazz: Class<R>): Matcher<T, R> = Matcher(clazz)

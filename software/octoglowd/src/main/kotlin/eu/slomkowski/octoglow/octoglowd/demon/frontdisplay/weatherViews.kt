@@ -124,6 +124,38 @@ class IndoorWeatherView(
         val bme280humidity: CurrentAndHistorical?,
         val scd40humidity: CurrentAndHistorical?,
     ) {
+        // a val rather than a computed get(): the report is immutable, but this rebuilt three lists
+        // and re-averaged 14 buckets on every access, and it is read once here plus twice per redraw.
+        // It has to be declared before minTimestamp, which reads it.
+        val averageHumidity: CurrentAndHistorical = run {
+            val currentAveragedValue = listOfNotNull(
+                remoteSensor?.humidity?.lastValue,
+                bme280humidity?.lastValue,
+                scd40humidity?.lastValue,
+            ).takeIf { it.isNotEmpty() }?.average()
+
+            val oldestTimestamp = listOf(
+                remoteSensor?.humidity?.timestamp ?: DISTANT_PAST,
+                bme280humidity?.timestamp ?: DISTANT_PAST,
+                scd40humidity?.timestamp ?: DISTANT_PAST,
+            ).min()
+
+            val historicalValues = listOfNotNull(
+                remoteSensor?.humidity?.historicalValues,
+                bme280humidity?.historicalValues,
+                scd40humidity?.historicalValues,
+            )
+
+            check(historicalValues.all { it.size == HISTORIC_VALUES_LENGTH })
+
+            CurrentAndHistorical(
+                oldestTimestamp,
+                currentAveragedValue,
+                (0..<HISTORIC_VALUES_LENGTH).map { index ->
+                    historicalValues.mapNotNull { it[index] }.takeIf { it.isNotEmpty() }?.average()
+                })
+        }
+
         val minTimestamp: Instant? = listOfNotNull(
             remoteSensor?.temperature,
             averageHumidity,
@@ -131,36 +163,6 @@ class IndoorWeatherView(
             bme280humidity,
             scd40humidity,
         ).minOfOrNull { it.timestamp }
-
-        val averageHumidity: CurrentAndHistorical
-            get() {
-                val currentAveragedValue = listOfNotNull(
-                    remoteSensor?.humidity?.lastValue,
-                    bme280humidity?.lastValue,
-                    scd40humidity?.lastValue,
-                ).takeIf { it.isNotEmpty() }?.average()
-
-                val minTimestamp = listOf(
-                    remoteSensor?.humidity?.timestamp ?: DISTANT_PAST,
-                    bme280humidity?.timestamp ?: DISTANT_PAST,
-                    scd40humidity?.timestamp ?: DISTANT_PAST,
-                ).min()
-
-                val historicalValues = listOfNotNull(
-                    remoteSensor?.humidity?.historicalValues,
-                    bme280humidity?.historicalValues,
-                    scd40humidity?.historicalValues,
-                )
-
-                check(historicalValues.all { it.size == HISTORIC_VALUES_LENGTH })
-
-                return CurrentAndHistorical(
-                    minTimestamp,
-                    currentAveragedValue,
-                    (0..<HISTORIC_VALUES_LENGTH).map { index ->
-                        historicalValues.mapNotNull { it[index] }.takeIf { it.isNotEmpty() }?.average()
-                    })
-            }
     }
 
     override suspend fun onNewDataSnapshot(

@@ -131,6 +131,10 @@ data class Config(
     val i2cBus: Int,
     val databaseFile: Path = Paths.get("data.db"),
 
+    // How long to keep rows in historical_values. Null keeps everything, which is the long-standing
+    // behavior; the views never look back further than about a day, so this only bounds the table.
+    val historicalValuesRetention: Duration? = null,
+
     val countryCode: String = "PL",
 
     // When the dial is used, the device goes to manual mode. After this timeout, it switches back to automatic views cycling.
@@ -162,6 +166,9 @@ data class Config(
 ) {
     init {
         require(i2cBus >= 0)
+        require(historicalValuesRetention == null || historicalValuesRetention > Duration.ZERO) {
+            "historical values retention has to be positive"
+        }
     }
 
     companion object {

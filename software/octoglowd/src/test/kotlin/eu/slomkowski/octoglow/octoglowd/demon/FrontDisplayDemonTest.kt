@@ -11,8 +11,8 @@ import eu.slomkowski.octoglow.octoglowd.hardware.ButtonState
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.*
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.seconds
@@ -52,34 +52,37 @@ class FrontDisplayDemonTest {
     //todo better view tests
 
     @Test
-    fun testStateMachineSwitchView() {
-        runBlocking {
-            coroutineScope {
-                val hardware = mockk<Hardware>()
-                val realTimeClockDemon = mockk<RealTimeClockDemon>()
+    fun testStateMachineSwitchView() = runTest {
+        val hardware = mockk<Hardware>()
+        val realTimeClockDemon = mockk<RealTimeClockDemon>()
 
-                coEvery { hardware.frontDisplay.clear() } just Runs
+        coEvery { hardware.frontDisplay.clear() } just Runs
 
-                coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
+        coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, 1)
 
-                coEvery { realTimeClockDemon.setFrontDisplayViewNumber(any(), any()) } just Runs
+        coEvery { realTimeClockDemon.setFrontDisplayViewNumber(any(), any()) } just Runs
 
-                val v1 = mockk<FrontDisplayView<Any, Any>>()
-                val v2 = mockk<FrontDisplayView<Any, Any>>()
+        val v1 = mockk<FrontDisplayView<Any, Any>>()
+        val v2 = mockk<FrontDisplayView<Any, Any>>()
 
-                coEvery { v1.redrawDisplay(true, true, any(), any(), any()) } just Runs
-                coEvery { v2.redrawDisplay(true, true, any(), any(), any()) } just Runs
+        coEvery { v1.redrawDisplay(true, true, any(), any(), any()) } just Runs
+        coEvery { v2.redrawDisplay(true, true, any(), any(), any()) } just Runs
 
-                val d = FrontDisplayDemon(defaultTestConfig, this, hardware, listOf(v1, v2), emptyList(), mockk(), mockk(), realTimeClockDemon)
+        val d = FrontDisplayDemon(defaultTestConfig, backgroundScope, hardware, listOf(v1, v2), emptyList(), mockk(), mockk(), realTimeClockDemon)
 
-                d.poll()
+        // poll() no longer draws anything itself, it only queues the request - the dedicated job has
+        // to be running, and has to drain between the two polls or the second request would simply
+        // supersede the first
+        d.createRedrawJob(backgroundScope)
 
-                d.poll()
+        d.poll()
+        runCurrent()
 
-                coVerify { v1.redrawDisplay(true, true, any(), any(), any()) }
-                coVerify { v2.redrawDisplay(true, true, any(), any(), any()) }
-            }
-        }
+        d.poll()
+        runCurrent()
+
+        coVerify { v1.redrawDisplay(true, true, any(), any(), any()) }
+        coVerify { v2.redrawDisplay(true, true, any(), any(), any()) }
     }
 
     @Test

@@ -8,8 +8,9 @@ import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 
@@ -19,11 +20,19 @@ abstract class MqttExportableSwitchDemon(
     private val commandBus: CommandBus,
 ) : Demon {
 
-    private val stateFlow = lazy {
-        MutableStateFlow(runBlocking {
-            retrieveState()
-        })
+    companion object {
+        /**
+         * How often the device is asked for its actual state, to notice changes we did not make
+         * ourselves (a board reset, for instance). Each query is an I2C transaction competing with
+         * the front display, so this only has to be fast enough for Home Assistant to look live.
+         */
+        private val statePollInterval = 5.seconds
     }
+
+    // not a lazy { runBlocking { ... } }: that was first forced from a Dispatchers.Default worker and
+    // parked it across an I2C round trip. null means "not read from the device yet", so nothing is
+    // published until createJobs' first queryAndEmitState() has answered.
+    private val stateFlow = MutableStateFlow<Boolean?>(null)
 
     abstract val humanReadableName: String
 
@@ -46,7 +55,7 @@ abstract class MqttExportableSwitchDemon(
         commandBus.commands.collect { command ->
             if (isToggleStateCommand(command)) {
                 command as ToggleStateCommand
-                setState(!stateFlow.value.value)
+                setState(stateFlow.value != true)
             } else if (isChangeStateCommand(command)) {
                 command as ChangeStateCommand
                 setState(command.enabled)
@@ -54,18 +63,18 @@ abstract class MqttExportableSwitchDemon(
             } else if (isPublishStateCommand(command)) {
                 command as PublishStateCommand
                 logger.info { "Publishing $humanReadableName state on request." }
-                snapshotBus.publish(createStateChangedEvent(stateFlow.value.value))
+                stateFlow.value?.let { snapshotBus.publish(createStateChangedEvent(it)) }
             }
         }
     }, scope.launch {
-        stateFlow.value.collect { enabled ->
+        stateFlow.filterNotNull().collect { enabled ->
             logger.info { "${humanReadableName.replaceFirstChar { it.uppercaseChar() }} enabled: $enabled, publishing its state." }
             snapshotBus.publish(createStateChangedEvent(enabled))
         }
     }, scope.launch {
         while (isActive) {
             queryAndEmitState()
-            delay(800.milliseconds)
+            delay(statePollInterval)
         }
     })
 
@@ -77,7 +86,7 @@ abstract class MqttExportableSwitchDemon(
             false
         }
 
-        stateFlow.value.emit(enabled)
+        stateFlow.emit(enabled)
     }
 }
 

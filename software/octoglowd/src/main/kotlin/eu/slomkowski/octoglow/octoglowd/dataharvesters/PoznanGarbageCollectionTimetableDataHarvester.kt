@@ -10,6 +10,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import org.jsoup.Jsoup
 import kotlin.time.Duration
@@ -87,7 +89,9 @@ class PoznanGarbageCollectionTimetableDataHarvester(
     override suspend fun pollForNewData(now: Instant) {
         val timetableResult = try {
             val html = downloadTimetable(config.garbageCollectionTimetable.streetName, config.garbageCollectionTimetable.buildingNumber, null)
-            Result.success(extractTimetableFromHtml(html))
+            // building a jsoup DOM of the whole portal page is the largest transient allocation in
+            // the daemon; keep it off the Default dispatcher, which also runs the front display loop
+            Result.success(withContext(Dispatchers.IO) { extractTimetableFromHtml(html) })
         } catch (e: Exception) {
             logger.error(e) { "Error while downloading garbage collection timetable" }
             Result.failure(e)

@@ -19,7 +19,11 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class AnalogGaugeDemon(
     private val hardware: Hardware,
-) : PollingDemon(logger, 200.milliseconds) {
+    // halved from five times a second: each tick reads two /proc files and drives the DAC, and the
+    // needle is smoothed over NUMBER_OF_SAMPLES_TO_AVERAGE samples anyway. Going slower still would
+    // make the needle visibly sluggish, since this interval times that sample count is its time
+    // constant.
+) : PollingDemon(logger, 500.milliseconds) {
 
     data class WifiSignalInfo(
         val ifName: String,
@@ -116,6 +120,10 @@ class AnalogGaugeDemon(
 
         @Volatile
         var currentIndex: Int = 0
+
+        /** Last value actually written to the DAC, so an unchanged needle costs no I2C traffic. */
+        @Volatile
+        var lastWrittenDacValue: Int = -1
     }
 
     private val valueHistory = DacChannel.entries.associateWith { BufferState() }
@@ -135,6 +143,10 @@ class AnalogGaugeDemon(
         }
         val averagedValue = sum / NUMBER_OF_SAMPLES_TO_AVERAGE
 
-        hardware.dac.setValue(channel, (averagedValue * 255.0).roundToInt())
+        val dacValue = (averagedValue * 255.0).roundToInt()
+        if (dacValue != state.lastWrittenDacValue) {
+            hardware.dac.setValue(channel, dacValue)
+            state.lastWrittenDacValue = dacValue
+        }
     }
 }

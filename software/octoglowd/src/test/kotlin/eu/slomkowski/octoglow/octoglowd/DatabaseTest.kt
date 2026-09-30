@@ -13,8 +13,10 @@ import kotlinx.datetime.toInstant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
+import java.sql.DriverManager
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -82,6 +84,66 @@ class DatabaseTest {
                 assertNull(db.getChangeableSettingAsync(key).await())
             }
         }
+    }
+
+    @Test
+    fun testWriteAheadLoggingIsEnabled() {
+        val dbFile = Files.createTempFile("unit-test-", ".db")
+
+        val db = DatabaseDemon(dbFile, mockk())
+        try {
+            runBlocking { db.setChangeableSettingAsync(ChangeableSetting.BRIGHTNESS, "5").join() }
+        } finally {
+            runBlocking { db.close(this) }
+        }
+
+        // journal_mode is persisted in the database header, so a fresh connection reports what the
+        // demon configured. The SQLite default is a rollback journal with synchronous=FULL, which
+        // costs a journal file plus two fsyncs per write - painful on the device's SD card.
+        DriverManager.getConnection("jdbc:sqlite:$dbFile").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeQuery("PRAGMA journal_mode").use { resultSet ->
+                    assertTrue(resultSet.next())
+                    assertEquals("wal", resultSet.getString(1).lowercase())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun testKeyLeadingIndexIsAddedToAnAlreadyDeployedDatabase() {
+        val dbFile = Files.createTempFile("unit-test-", ".db")
+
+        // the schema as it exists on the device: user_version 1, so SqlDelight will migrate rather
+        // than run the CREATE statements from the .sq files
+        DriverManager.getConnection("jdbc:sqlite:$dbFile").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.execute("""CREATE TABLE historical_values (id INTEGER PRIMARY KEY, created NUMERIC NOT NULL, "key" VARCHAR(50) NOT NULL, "value" DOUBLE PRECISION NOT NULL)""")
+                statement.execute("""CREATE UNIQUE INDEX historical_values_created_key ON historical_values (created, "key")""")
+                statement.execute("""CREATE TABLE changeable_settings (id INTEGER PRIMARY KEY, created NUMERIC NOT NULL, "key" VARCHAR(50) NOT NULL, "value" VARCHAR(500) NULL)""")
+                statement.execute("""CREATE UNIQUE INDEX changeable_settings_key ON changeable_settings ("key")""")
+                statement.execute("PRAGMA user_version = 1")
+            }
+        }
+
+        val db = DatabaseDemon(dbFile, mockk())
+        try {
+            runBlocking { db.insertHistoricalValueAsync(Clock.System.now(), OutdoorTemperature, 1.0).join() }
+        } finally {
+            runBlocking { db.close(this) }
+        }
+
+        val indexes = mutableListOf<String>()
+        DriverManager.getConnection("jdbc:sqlite:$dbFile").use { connection ->
+            connection.createStatement().use { statement ->
+                val resultSet = statement.executeQuery("SELECT name FROM sqlite_master WHERE type = 'index'")
+                while (resultSet.next()) {
+                    indexes.add(resultSet.getString(1))
+                }
+            }
+        }
+
+        assertTrue(indexes.contains("historical_values_key_created"), "indexes present: $indexes")
     }
 
     @Test
