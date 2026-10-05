@@ -7,12 +7,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.data.Percentage
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertFails
 import kotlin.time.ExperimentalTime
 
 @ExperimentalTime
+@Tag("hardware")
 @ExtendWith(HardwareParameterResolver::class)
 class Bme280Test {
     private val logger = KotlinLogging.logger {}

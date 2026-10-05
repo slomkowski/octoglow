@@ -5,12 +5,14 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 
+@Tag("hardware")
 @ExtendWith(HardwareParameterResolver::class)
 @OptIn(ExperimentalTime::class)
 class HardwareTest {

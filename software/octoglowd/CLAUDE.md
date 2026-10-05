@@ -12,7 +12,8 @@ Note: the README says "Compiles under Maven" — that is stale. The build is **G
 
 ```bash
 ./gradlew build                        # compile + test
-./gradlew test                         # run tests (the "hardware" JUnit tag is excluded by default)
+./gradlew test                         # run tests ("hardware" and "external" JUnit tags are excluded by default)
+./gradlew test -PincludeTags=hardware,external   # also run device / third-party-service tests
 ./gradlew test --tests '*NetworkDataHarvesterTest'   # single test class
 ./gradlew test --tests '*NetworkDataHarvesterTest.methodName'  # single test method
 ./gradlew shadowJar                    # fat jar -> build/libs/octoglowd-all.jar
@@ -20,7 +21,7 @@ Note: the README says "Compiles under Maven" — that is stale. The build is **G
 ./deploy.sh                            # proguard + scp jar to `octoglow` host + supervisorctl restart
 ```
 
-Tests tagged `hardware` require a real device and are skipped in the normal `test` task (see `tasks.test` in `build.gradle.kts`). SQLDelight generates DB code from `src/main/sqldelight/**/*.sq` into package `eu.slomkowski.octoglow.octoglowd.db` at build time.
+Tests tagged `hardware` require the real device on the I²C bus; tests tagged `external` call third-party services using credentials from the gitignored `src/test/resources/test-config.json`. Both are skipped in the normal `test` task unless named in `-PincludeTags` (see `tasks.test` in `build.gradle.kts`). SQLDelight generates DB code from `src/main/sqldelight/**/*.sq` into package `eu.slomkowski.octoglow.octoglowd.db` at build time.
 
 Runtime config is read from `config.json` in the working directory (`Config.parse`, `config.kt`) — a Kotlin-serialization-decoded JSON, not YAML (`test-config.yml` is unrelated test fixture data).
 
@@ -56,7 +57,7 @@ Everything is wired together manually in `main.kt`. The core is an event-driven 
 
 ### Hardware (`hardware/`)
 
-`Hardware` is an interface; `HardwareReal` wraps a Linux `I2CBus` behind a single `Mutex` (all bus access is serialized) with retry-on-`errno 6` logic. Individual I²C devices (`FrontDisplay`, `ClockDisplay`, `Geiger`, `Dac`, `Scd40`, `Bme280`) implement device-specific protocols; those with `HasBrightness` participate in global brightness. Tests use mock hardware under `test/.../hardware/mock`. Hardware-dependent tests carry the JUnit `hardware` tag.
+`Hardware` is an interface; `HardwareReal` wraps a Linux `I2CBus` behind a single `Mutex` (all bus access is serialized) with retry-on-`errno 6` logic. Individual I²C devices (`FrontDisplay`, `ClockDisplay`, `Geiger`, `Dac`, `Scd40`, `Bme280`) implement device-specific protocols; those with `HasBrightness` participate in global brightness. Tests use mock hardware under `test/.../hardware/mock`. Tests that take a real `Hardware` parameter (via `HardwareParameterResolver`) must carry the JUnit `hardware` tag.
 
 ### MQTT / Home Assistant (`mqtt/`)
 

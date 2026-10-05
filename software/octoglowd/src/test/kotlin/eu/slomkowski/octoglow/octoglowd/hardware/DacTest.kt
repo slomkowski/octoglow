@@ -1,10 +1,12 @@
 package eu.slomkowski.octoglow.octoglowd.hardware
 
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 
+@Tag("hardware")
 @ExtendWith(HardwareParameterResolver::class)
 class DacTest {
 

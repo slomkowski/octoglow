@@ -89,20 +89,32 @@ class BrightnessDemonTest {
 
     @Test
     fun testCalculateFromData() {
-        fun cr(sleepTime: LocalTime, sleepDurationHours: Int, time: LocalTime) = BrightnessDemon.calculateFromData(
+        fun cr(
+            sleepTime: LocalTime,
+            sleepDurationHours: Int,
+            time: LocalTime,
+            light: BrightnessDemon.LightSensor = BrightnessDemon.LightSensor.INTERMEDIATE,
+        ) = BrightnessDemon.calculateFromData(
             LocalTime(7, 32), LocalTime(17, 23),
-            sleepTime, sleepDurationHours.hours, time, BrightnessDemon.LightSensor.INTERMEDIATE,
+            sleepTime, sleepDurationHours.hours, time, light,
         )
 
         (LocalTime(23, 31) to 8).let { (st, d) ->
             assertEquals(5, cr(st, d, LocalTime(12, 34)))
-            assertEquals(1, cr(st, d, LocalTime(0, 0)))
-            assertEquals(1, cr(st, d, LocalTime(0, 1)))
-            assertEquals(1, cr(st, d, LocalTime(0, 2)))
-            assertEquals(1, cr(st, d, LocalTime(3, 34)))
-            assertEquals(1, cr(st, d, LocalTime(5, 34)))
-            assertEquals(1, cr(st, d, LocalTime(5, 36)))
-            assertEquals(1, cr(st, d, LocalTime(6, 12)))
+            // at night with the room not fully dark the sleep time no longer dims below the awake level
+            assertEquals(3, cr(st, d, LocalTime(0, 0)))
+            assertEquals(3, cr(st, d, LocalTime(3, 34)))
+            assertEquals(3, cr(st, d, LocalTime(6, 12)))
+            // only a fully dark room goes down to the minimum while sleeping
+            assertEquals(1, cr(st, d, LocalTime(0, 0), BrightnessDemon.LightSensor.FULLY_DARK))
+            assertEquals(1, cr(st, d, LocalTime(0, 1), BrightnessDemon.LightSensor.FULLY_DARK))
+            assertEquals(1, cr(st, d, LocalTime(0, 2), BrightnessDemon.LightSensor.FULLY_DARK))
+            assertEquals(1, cr(st, d, LocalTime(3, 34), BrightnessDemon.LightSensor.FULLY_DARK))
+            assertEquals(1, cr(st, d, LocalTime(5, 34), BrightnessDemon.LightSensor.FULLY_DARK))
+            assertEquals(1, cr(st, d, LocalTime(5, 36), BrightnessDemon.LightSensor.FULLY_DARK))
+            assertEquals(1, cr(st, d, LocalTime(6, 12), BrightnessDemon.LightSensor.FULLY_DARK))
+            assertEquals(2, cr(st, d, LocalTime(23, 30), BrightnessDemon.LightSensor.FULLY_DARK))
+            assertEquals(3, cr(st, d, LocalTime(12, 34), BrightnessDemon.LightSensor.FULLY_DARK))
 
             assertEquals(5, cr(st, d, LocalTime(9, 0)))
             assertEquals(3, cr(st, d, LocalTime(19, 3)))
@@ -114,7 +126,8 @@ class BrightnessDemonTest {
         (LocalTime(0, 35) to 2).let { (st, d) ->
             assertEquals(5, cr(st, d, LocalTime(12, 34)))
             assertEquals(3, cr(st, d, LocalTime(0, 0)))
-            assertEquals(1, cr(st, d, LocalTime(1, 34)))
+            assertEquals(3, cr(st, d, LocalTime(1, 34)))
+            assertEquals(1, cr(st, d, LocalTime(1, 34), BrightnessDemon.LightSensor.FULLY_DARK))
             assertEquals(3, cr(st, d, LocalTime(5, 34)))
 
             assertEquals(5, cr(st, d, LocalTime(9, 0)))
@@ -128,7 +141,8 @@ class BrightnessDemonTest {
             assertEquals(5, cr(st, d, LocalTime(12, 34)))
             assertEquals(3, cr(st, d, LocalTime(0, 0)))
             assertEquals(3, cr(st, d, LocalTime(1, 34)))
-            assertEquals(1, cr(st, d, LocalTime(5, 34)))
+            assertEquals(3, cr(st, d, LocalTime(5, 34)))
+            assertEquals(1, cr(st, d, LocalTime(5, 34), BrightnessDemon.LightSensor.FULLY_DARK))
 
             assertEquals(4, cr(st, d, LocalTime(9, 0)))
             assertEquals(3, cr(st, d, LocalTime(19, 3)))

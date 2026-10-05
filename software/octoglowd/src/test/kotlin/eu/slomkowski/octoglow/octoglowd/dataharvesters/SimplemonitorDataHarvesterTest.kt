@@ -8,6 +8,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
 class SimplemonitorDataHarvesterTest {
@@ -28,6 +29,7 @@ class SimplemonitorDataHarvesterTest {
     }
 
     @Test
+    @Tag("external")
     fun testGetLatestSimpleMonitorJson() {
         val url = testConfig.simplemonitor.url
         val user = testConfig.simplemonitor.user

@@ -16,6 +16,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 
+@Tag("hardware")
 @ExtendWith(HardwareParameterResolver::class)
 class GeigerTest {
 

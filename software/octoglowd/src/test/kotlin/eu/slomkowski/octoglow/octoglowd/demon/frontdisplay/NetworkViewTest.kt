@@ -113,7 +113,7 @@ internal class NetworkViewTest {
         )
         println(hardware.frontDisplay.renderDisplayContent())
         assertThat(hardware.frontDisplay.line1content).isEqualTo("ping -- ms gw  -- ms")
-        assertThat(hardware.frontDisplay.line2content).isEqualTo("mqtt FAIL! #########")
+        assertThat(hardware.frontDisplay.line2content).isEqualTo("mqtt ERRbD #########")
         assertThat(hardware.frontDisplay.scrollingTextContent[Slot.SLOT0]).isEqualTo("IP: ---.---.---.---")
 
         val now = Clock.System.now()
@@ -143,7 +143,7 @@ internal class NetworkViewTest {
         )
         println(hardware.frontDisplay.renderDisplayContent())
         assertThat(hardware.frontDisplay.line1content).isEqualTo("ping 123ms gw  34 ms")
-        assertThat(hardware.frontDisplay.line2content).isEqualTo("mqtt OK    #########")
+        assertThat(hardware.frontDisplay.line2content).isEqualTo("mqtt OK bE #########")
         assertThat(hardware.frontDisplay.scrollingTextContent[Slot.SLOT0]).isEqualTo("eth IP: 192.168.1.2")
     }
 }

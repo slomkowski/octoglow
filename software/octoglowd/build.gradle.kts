@@ -92,10 +92,16 @@ sqldelight {
 }
 
 
-// todo call tests
+// "hardware" tests need the real device on the I2C bus, "external" ones call third-party services with
+// the credentials from src/test/resources/test-config.json. Both are skipped unless asked for, e.g.
+// ./gradlew test -PincludeTags=hardware,external
+val optInTestTags = setOf("hardware", "external")
+
 tasks.test {
+    val includedTags = providers.gradleProperty("includeTags").orNull
+        ?.split(',')?.map { it.trim() }?.toSet().orEmpty()
     useJUnitPlatform {
-        excludeTags("hardware")
+        excludeTags(*(optInTestTags - includedTags).toTypedArray())
     }
 }
 

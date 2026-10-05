@@ -8,6 +8,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -17,6 +18,7 @@ class TodoistDataHarvesterTest {
     private val logger = KotlinLogging.logger {}
 
     @Test
+    @Tag("external")
     fun testListening() = runBlocking {
         val dataSnapshotBus = mockk<DataSnapshotBus>(relaxed = true)
         val harvester = TodoistDataHarvester(testConfig, dataSnapshotBus)

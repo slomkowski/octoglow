@@ -13,6 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.within
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.io.BufferedReader
@@ -48,6 +49,7 @@ class AnalogGaugeDemonTest {
     }
 
     @Test
+    @Tag("hardware")
     fun testBasicRealHardware(hardware: Hardware) {
         val d = AnalogGaugeDemon(hardware)
 

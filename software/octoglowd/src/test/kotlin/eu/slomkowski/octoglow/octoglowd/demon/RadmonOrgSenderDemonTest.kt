@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.format
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.data.Percentage
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import kotlin.random.Random
@@ -27,6 +28,7 @@ class RadmonOrgSenderDemonTest {
     }
 
     @Test
+    @Tag("external")
     fun testSubmitToRadmonOrg(): Unit = runBlocking {
         val sentValue = 40.0 + Random.nextDouble(-10.0, 10.0)
 

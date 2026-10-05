@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -18,6 +19,7 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 
+@Tag("hardware")
 @ExtendWith(HardwareParameterResolver::class)
 class FrontDisplayTest {
 

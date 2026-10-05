@@ -3,7 +3,6 @@
 package eu.slomkowski.octoglow.octoglowd.demon.frontdisplay
 
 import eu.slomkowski.octoglow.octoglowd.demon.frontdisplay.IndoorWeatherView.Companion.formatCo2
-import eu.slomkowski.octoglow.octoglowd.hardware.Slot
 import eu.slomkowski.octoglow.octoglowd.hardware.mock.HardwareMock
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import io.mockk.mockk
@@ -39,8 +38,7 @@ class IndoorWeatherViewTest {
         )
 
         println(hardware.frontDisplay.renderDisplayContent())
-        assertThat(hardware.frontDisplay.line1content).isEqualTo("ping -- ms gw  -- ms")
-        assertThat(hardware.frontDisplay.line2content).isEqualTo("mqtt FAIL! #########")
-        assertThat(hardware.frontDisplay.scrollingTextContent[Slot.SLOT0]).isEqualTo("IP: ---.---.---.---")
+        assertThat(hardware.frontDisplay.line1content).isEqualTo("Indoor   ---.-°C    ")
+        assertThat(hardware.frontDisplay.line2content).isEqualTo("--%     ---- ppm    ")
     }
 }

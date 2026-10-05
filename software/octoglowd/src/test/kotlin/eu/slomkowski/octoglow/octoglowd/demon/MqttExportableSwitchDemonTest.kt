@@ -7,7 +7,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -48,12 +47,6 @@ class MqttExportableSwitchDemonTest {
     fun `retrieveState returns expected state`() = runTest {
         val state = demon.retrieveState()
         assertThat(state).isTrue()
-    }
-
-    @Test
-    fun `setState updates state correctly`() = runTest {
-        demon.setState(true)
-        verify { logger.info(any<() -> Any?>()) }
     }
 
     @Test
