@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package eu.slomkowski.octoglow.octoglowd.demon
 
 import eu.slomkowski.octoglow.octoglowd.*
@@ -51,7 +53,7 @@ class MqttExportableSwitchDemonTest {
     @Test
     fun `setState updates state correctly`() = runTest {
         demon.setState(true)
-        verify { logger.info(any<String>()) }
+        verify { logger.info(any<() -> Any?>()) }
     }
 
     @Test

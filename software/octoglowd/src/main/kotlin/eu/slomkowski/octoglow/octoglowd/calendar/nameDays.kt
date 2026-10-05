@@ -1,6 +1,8 @@
 package eu.slomkowski.octoglow.octoglowd.calendar
 
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Month
+import kotlinx.datetime.number
 
 data class Ndr(
     val day: Int,
@@ -405,7 +407,7 @@ fun determineNamedaysFor(day: LocalDate, country: String): Set<String> {
     val countryNameDays = requireNotNull(nameDays[country.uppercase()]) { "unsupported country: $country" }
 
     // name-day tables end February at the 28th; on a leap day fall back to it instead of returning nothing
-    val lookupDay = if (day.monthNumber == 2 && day.dayOfMonth == 29) 28 else day.dayOfMonth
+    val lookupDay = if (day.month == Month.FEBRUARY && day.day == 29) 28 else day.day
 
-    return countryNameDays[day.monthNumber * 100 + lookupDay] ?: emptySet()
+    return countryNameDays[day.month.number * 100 + lookupDay] ?: emptySet()
 }

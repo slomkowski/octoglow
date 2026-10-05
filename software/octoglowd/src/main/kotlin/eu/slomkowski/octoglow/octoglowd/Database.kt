@@ -20,6 +20,7 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
 import java.util.*
+import java.util.concurrent.Executors
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -170,7 +171,7 @@ class DatabaseDemon(
         }
     }
 
-    private val threadContext = newSingleThreadContext("Database")
+    private val threadContext = Executors.newSingleThreadExecutor { Thread(it, "Database") }.asCoroutineDispatcher()
     private val threadWorkerScope = CoroutineScope(SupervisorJob() + threadContext)
 
     private val driver: SqlDriver

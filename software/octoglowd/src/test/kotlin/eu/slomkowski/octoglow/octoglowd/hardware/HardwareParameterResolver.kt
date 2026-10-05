@@ -23,11 +23,11 @@ class HardwareParameterResolver : ParameterResolver {
 
     override fun resolveParameter(context: ParameterContext, extensionContext: ExtensionContext): Any {
         val store = extensionContext.getStore(ExtensionContext.Namespace.create(Hardware::class))
-        val hardwareResource = store.getOrComputeIfAbsent("hardware") {
+        val hardwareResource = store.computeIfAbsent("hardware", {
             val bus = I2CBus(defaultTestConfig.i2cBus)
             val hardware = HardwareReal(bus)
             HardwareResource(hardware)
-        } as HardwareResource
+        }, HardwareResource::class.java)
 
         return hardwareResource.hardware
     }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
+import java.util.concurrent.Executors
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
@@ -64,7 +65,7 @@ class HardwareReal(
      * and confining them means the write/wait/read sequence never gets rescheduled onto a different
      * worker - which is what lets [waitBetweenWriteAndRead] be an ordinary sleep.
      */
-    private val busContext = newSingleThreadContext("i2c")
+    private val busContext = Executors.newSingleThreadExecutor { Thread(it, "i2c") }.asCoroutineDispatcher()
 
     private val busMutex = Mutex()
     private val writeI2cBuffer = I2CBuffer(I2C_BUFFER_MAX_SIZE)

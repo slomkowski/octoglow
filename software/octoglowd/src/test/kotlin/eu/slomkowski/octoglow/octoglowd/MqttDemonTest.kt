@@ -47,6 +47,7 @@ class MqttDemonTest {
             setProperty("port", mqttPort.toString())
             setProperty("host", "localhost")
             setProperty("allow_anonymous", "true")
+            setProperty("persistence_enabled", "false")
         })
 
         mqttServer = Server()

@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.io.bytestring.decodeToString
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import java.nio.charset.StandardCharsets
@@ -29,6 +30,7 @@ class MqttDemon(
 
         private val messagePublicationTimeout = 15.seconds
 
+        @OptIn(ExperimentalSerializationApi::class)
         private val mqttJsonSerializer = kotlinx.serialization.json.Json {
             prettyPrint = true
             encodeDefaults = false
