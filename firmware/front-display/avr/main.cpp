@@ -61,7 +61,12 @@ static inline void showDemoOnDisplay() {
     while (true) {
         display::pool();
 
-        if (WATCHDOG_ENABLE) {
+        if (i2c::bootloaderRequested) {
+            // stop feeding the watchdog; enable it if WATCHDOG_ENABLE = false
+            if (!(WDTCSR & _BV(WDE))) {
+                wdt_enable(WDTO_250MS);
+            }
+        } else if (WATCHDOG_ENABLE) {
             wdt_reset();
         }
     }

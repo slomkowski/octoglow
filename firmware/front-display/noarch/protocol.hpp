@@ -17,7 +17,12 @@ namespace octoglow::front_display::protocol {
         SET_UPPER_BAR,
         READ_END_YEAR_OF_CONSTRUCTION,
         WRITE_END_YEAR_OF_CONSTRUCTION,
+        ENTER_BOOTLOADER, // payload: BOOTLOADER_MAGIC, the device resets into the bootloader after the reply is read
     };
+
+    constexpr uint8_t BOOTLOADER_MAGIC[] = {'B', 'O', 'O', 'T'};
+
+    static_assert(static_cast<uint8_t>(Command::ENTER_BOOTLOADER) == 10, "hardcoded in flash-over-i2c.sh");
 
     struct EncoderState {
         int8_t encoderValue;

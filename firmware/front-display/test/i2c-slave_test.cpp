@@ -687,3 +687,59 @@ TEST_F(I2CCommand, ReadingPastTheBufferReturnsZeros) {
         ASSERT_EQ(0, response[i]) << "byte " << i;
     }
 }
+
+class I2CEnterBootloader : public I2CCommand {
+protected:
+    void SetUp() override {
+        I2CCommand::SetUp();
+        i2c::bootloaderRequested = false;
+    }
+
+    static std::vector<uint8_t> enterBootloaderCommand(const char *magic = "BOOT") {
+        return {cmd(Command::ENTER_BOOTLOADER),
+                static_cast<uint8_t>(magic[0]), static_cast<uint8_t>(magic[1]),
+                static_cast<uint8_t>(magic[2]), static_cast<uint8_t>(magic[3])};
+    }
+};
+
+TEST_F(I2CEnterBootloader, MatchesFlashOverI2cScript) {
+    // the same bytes as in flash-over-i2c.sh
+    const auto payload = enterBootloaderCommand();
+    ASSERT_EQ(0x98, crc8(payload));
+    ASSERT_EQ((std::vector<uint8_t>{0x0a, 0x42, 0x4f, 0x4f, 0x54}), payload);
+}
+
+TEST_F(I2CEnterBootloader, RequestsBootloader) {
+    sendCommand(enterBootloaderCommand());
+
+    ASSERT_TRUE(i2c::bootloaderRequested);
+    assertResponseIs({cmd(Command::ENTER_BOOTLOADER)});
+
+    // 'E' is shown on the display
+    ASSERT_EQ(0x7f, display::_frameBuffer[0]);
+    ASSERT_EQ(0x49, display::_frameBuffer[1]);
+}
+
+TEST_F(I2CEnterBootloader, InvalidMagic) {
+    sendCommand(enterBootloaderCommand("BOOX"));
+    ASSERT_FALSE(i2c::bootloaderRequested);
+
+    sendCommand(enterBootloaderCommand("boot"));
+    ASSERT_FALSE(i2c::bootloaderRequested);
+
+    assertFramebufferIsEmpty();
+}
+
+TEST_F(I2CEnterBootloader, InvalidCrc) {
+    sendCommandWithInvalidCrc(enterBootloaderCommand());
+
+    ASSERT_FALSE(i2c::bootloaderRequested);
+    assertCrcErrorResponse();
+}
+
+TEST_F(I2CEnterBootloader, IncompleteMagic) {
+    const auto payload = enterBootloaderCommand();
+    sendRaw({crc8(payload), payload[0], payload[1], payload[2], payload[3]});
+
+    ASSERT_FALSE(i2c::bootloaderRequested);
+}

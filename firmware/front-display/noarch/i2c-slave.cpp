@@ -12,9 +12,14 @@ constexpr uint8_t BUFFER_SIZE = 200;
 static uint8_t buffer[BUFFER_SIZE];
 static uint8_t bytesProcessed;
 
+volatile bool i2c::bootloaderRequested = false;
+
+static const char bootloaderText[] PROGMEM = "Entering bootloader";
+
 static_assert(sizeof(buffer) >= 5, "buffer has to have at least 5 bytes");
 static_assert(sizeof(buffer) >= sizeof(encoder::ButtonState) + 2, "buffer has to contain whole ButtonState structure");
 static_assert(sizeof(buffer) >= sizeof(EncoderState) + 2, "buffer has to contain whole EncoderState structure");
+static_assert(sizeof(buffer) >= sizeof(BOOTLOADER_MAGIC) + 2, "buffer has to contain the bootloader magic");
 
 void i2c::onTransmit(uint8_t volatile *value) {
     if (bytesProcessed == sizeof(buffer)) {
@@ -123,6 +128,19 @@ void i2c::onReceive(const uint8_t value) {
             return;
         }
         display::drawGraphics(buffer[2], buffer[3], buffer[4], &buffer[5]);
+        setCrcForSimpleCommand();
+    } else if (cmd == Command::ENTER_BOOTLOADER && bytesProcessed == sizeof(BOOTLOADER_MAGIC) + 2) {
+        if (checkCrc8fails()) {
+            return;
+        }
+        for (uint8_t i = 0; i != sizeof(BOOTLOADER_MAGIC); ++i) {
+            if (buffer[2 + i] != BOOTLOADER_MAGIC[i]) {
+                return;
+            }
+        }
+        display::clear();
+        display::writeStaticText_P(0, sizeof(bootloaderText) - 1, bootloaderText);
+        i2c::bootloaderRequested = true;
         setCrcForSimpleCommand();
     } else if (cmd == Command::SET_UPPER_BAR && bytesProcessed == 5) {
         if (checkCrc8fails()) {

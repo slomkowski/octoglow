@@ -1,15 +1,23 @@
 #include "stubs.hpp"
 
 #include "display.hpp"
+#include "flash.hpp"
 #include "eeprom.hpp"
 #include "encoder.hpp"
 #include "i2c-slave.hpp"
+#include "main.hpp"
+
+#include <cstring>
 
 using namespace octoglow::front_display;
 
 int test::displayPoolCalls = 0;
 
 uint8_t test::endYearOfConstruction = 77;
+
+uint8_t test::flash[FLASH_SIZE];
+
+int test::flashPageWrites = 0;
 
 void display::hd::displayPool() {
     ++test::displayPoolCalls;
@@ -47,4 +55,13 @@ uint8_t i2c::crc8ccittUpdate(const uint8_t inCrc, const uint8_t inData) {
         }
     }
     return data;
+}
+
+void bootloader::flash::writePage(const uint16_t address, const uint8_t *const data) {
+    ++test::flashPageWrites;
+    memcpy(test::flash + address, data, SPM_PAGESIZE);
+}
+
+uint8_t bootloader::flash::readByte(const uint16_t address) {
+    return test::flash[address];
 }
