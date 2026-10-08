@@ -16,4 +16,9 @@ namespace octoglow::vfd_clock::bootloader::usislave {
     void poll();
 
     void disable();
+
+    /**
+     * @return true if the bootloader was addressed since the last call
+     */
+    bool takeActivityFlag();
 }

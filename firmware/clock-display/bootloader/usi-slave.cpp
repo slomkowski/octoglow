@@ -36,6 +36,7 @@ constexpr uint8_t NAK = 0x80;
 
 static uint8_t usiState;
 static uint8_t byteCounter;
+static bool addressed;
 
 static void processEvent(uint8_t usisr) {
     const uint8_t data = USIDR;
@@ -63,9 +64,11 @@ static void processEvent(uint8_t usisr) {
         case State::SLA:
             byteCounter = 0;
             if (data == ((I2C_ADDRESS << 1) | 0x00)) {
+                addressed = true;
                 usiState = State::SLAW_ACK | WAIT_FOR_ACK | ENABLE_SDA_OUTPUT | ENABLE_SCL_HOLD;
                 USIDR = ACK;
             } else if (data == ((I2C_ADDRESS << 1) | 0x01)) {
+                addressed = true;
                 usiState = State::SLAR_ACK | WAIT_FOR_ACK | ENABLE_SDA_OUTPUT | ENABLE_SCL_HOLD;
                 USIDR = ACK;
             } else {
@@ -147,4 +150,10 @@ void usislave::poll() {
 
 void usislave::disable() {
     USICR = 0;
+}
+
+bool usislave::takeActivityFlag() {
+    const bool result = addressed;
+    addressed = false;
+    return result;
 }

@@ -6,9 +6,11 @@
  * there is no vector table, the application's one is used. No interrupts are used.
  *
  * After reset, the bootloader waits TWIBOOT_TIMEOUT_MS for the host, then starts the application.
- * Any valid command from the host stops the countdown.
+ * Any valid command from the host stops the countdown. The display shows BOOT meanwhile,
+ * it's left as is for the application, which reinitializes it.
  */
 
+#include "display.hpp"
 #include "protocol.hpp"
 #include "usi-slave.hpp"
 
@@ -41,6 +43,7 @@ int main() __attribute__((OS_main, section(".init9")));
 
 int main() {
     protocol::init();
+    display::init();
 
     TCCR0B = _BV(CS02) | _BV(CS00); // prescaler 1024
 
@@ -53,6 +56,7 @@ int main() {
             TCNT0L = 0xff - TIMER0_TICKS_PER_PERIOD;
             TIFR = _BV(TOV0);
             protocol::onTimerTick();
+            display::onTimerTick(usislave::takeActivityFlag());
         }
     }
 

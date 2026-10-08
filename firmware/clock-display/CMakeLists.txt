@@ -18,22 +18,23 @@ SET(SOURCES src/main.cpp src/global.hpp src/protocol.hpp
         src/receiver433.cpp src/receiver433.hpp
         src/i2c-slave.hpp src/i2c-slave.cpp
         src/light-sensor.cpp src/light-sensor.hpp
-        common/usi.hpp)
+        common/usi.hpp common/vfd.hpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE common)
 
 # I2C bootloader (port of twiboot) at the end of flash, see bootloader/
 # changing BOOTLOADER_START requires reflashing the bootloader with ISP
-SET(BOOTLOADER_START "0x0C80")
+SET(BOOTLOADER_START "0x0C40")
 SET(BOOTLOADER_TIMEOUT_MS "1000")
 SET(BOOTLOADER_APP_VECTOR_NUM "9") # EE_RDY_vect_num, overwritten by the bootloader, must not be used by the app
 SET(BOOTLOADER_NAME octoglow-clock-display-bootloader)
 SET(BOOTLOADER_SOURCES
         ${CMAKE_SOURCE_DIR}/bootloader/main.cpp
+        ${CMAKE_SOURCE_DIR}/bootloader/display.cpp ${CMAKE_SOURCE_DIR}/bootloader/display.hpp
         ${CMAKE_SOURCE_DIR}/bootloader/protocol.cpp ${CMAKE_SOURCE_DIR}/bootloader/protocol.hpp
         ${CMAKE_SOURCE_DIR}/bootloader/usi-slave.cpp ${CMAKE_SOURCE_DIR}/bootloader/usi-slave.hpp
-        ${CMAKE_SOURCE_DIR}/common/usi.hpp)
+        ${CMAKE_SOURCE_DIR}/common/usi.hpp ${CMAKE_SOURCE_DIR}/common/vfd.hpp)
 
 # the linker fails if the application would overlap the bootloader
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--defsym=__TEXT_REGION_LENGTH__=${BOOTLOADER_START})
@@ -48,7 +49,8 @@ ADD_CUSTOM_COMMAND(
         -nostartfiles -Wl,--relax,--gc-sections,--section-start=.text=${BOOTLOADER_START}
         -Wl,--defsym=__TEXT_REGION_LENGTH__=0x1000
         -o ${CMAKE_BINARY_DIR}/${BOOTLOADER_NAME}.elf
-        ${CMAKE_SOURCE_DIR}/bootloader/main.cpp ${CMAKE_SOURCE_DIR}/bootloader/protocol.cpp ${CMAKE_SOURCE_DIR}/bootloader/usi-slave.cpp
+        ${CMAKE_SOURCE_DIR}/bootloader/main.cpp ${CMAKE_SOURCE_DIR}/bootloader/display.cpp
+        ${CMAKE_SOURCE_DIR}/bootloader/protocol.cpp ${CMAKE_SOURCE_DIR}/bootloader/usi-slave.cpp
         COMMAND avr-objcopy -j .text -j .data -O ihex ${CMAKE_BINARY_DIR}/${BOOTLOADER_NAME}.elf ${CMAKE_BINARY_DIR}/${BOOTLOADER_NAME}.hex
         COMMAND avr-size ${CMAKE_BINARY_DIR}/${BOOTLOADER_NAME}.elf --mcu=${DEVICE} --format=avr
         DEPENDS ${BOOTLOADER_SOURCES}
