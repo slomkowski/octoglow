@@ -103,4 +103,47 @@ class FirmwareBurnerTest {
 
         assertThat(e.message).contains("bootloader didn't respond")
     }
+
+    @Test
+    fun `burns the front display without patching the vector table`() = runTest {
+        val device = TwibootDeviceEmulator(FirmwareTarget.FRONT_DISPLAY)
+        val data = createImage(4836)
+        val progress = mutableListOf<Pair<Int, Int>>()
+
+        FirmwareBurner(device, FirmwareTarget.FRONT_DISPLAY, onProgress = { w, t -> progress += w to t }).burn(FirmwareImage(data))
+
+        assertThat(device.mode).isEqualTo(TwibootDeviceEmulator.Mode.APPLICATION)
+
+        data.forEach { (address, value) ->
+            assertThat(device.flash[address]).describedAs("byte at 0x%x", address).isEqualTo(value)
+        }
+        assertThat(device.flash.sliceArray(4836 until 4864).all { it == 0xff }).isTrue()
+
+        assertThat(progress.last()).isEqualTo(76 to 76)
+        assertThat(device.pageWrites).isEqualTo(76)
+
+        // TWI acknowledges the byte which completes a page or starts the application
+        assertThat(device.naks).isZero()
+    }
+
+    @Test
+    fun `burns the front display application of maximum size`() = runTest {
+        val device = TwibootDeviceEmulator(FirmwareTarget.FRONT_DISPLAY)
+
+        FirmwareBurner(device, FirmwareTarget.FRONT_DISPLAY).burn(FirmwareImage(createImage(0x1800)))
+
+        assertThat(device.pageWrites).isEqualTo(96)
+    }
+
+    @Test
+    fun `refuses an image overlapping the front display bootloader`() = runTest {
+        val device = TwibootDeviceEmulator(FirmwareTarget.FRONT_DISPLAY)
+
+        val e = assertThrows<FirmwareBurnException> {
+            FirmwareBurner(device, FirmwareTarget.FRONT_DISPLAY).burn(FirmwareImage(createImage(0x1801)))
+        }
+
+        assertThat(e.message).contains("application flash is only 6144 bytes")
+        assertThat(device.pageWrites).isZero()
+    }
 }

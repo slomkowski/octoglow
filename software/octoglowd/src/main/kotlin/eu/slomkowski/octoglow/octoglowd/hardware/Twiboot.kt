@@ -13,7 +13,7 @@ data class TwibootChipInfo(
 
 /**
  * Host side of the twiboot I2C bootloader protocol (https://github.com/orempel/twiboot),
- * the device side is in firmware/clock-display/bootloader/protocol.hpp.
+ * the device side is in firmware/clock-display/bootloader/protocol.hpp and firmware/front-display/bootloader/twiboot.hpp.
  *
  * The bootloader keeps the current command across the stop condition, so each command is
  * a separate write, optionally followed by a separate read, like the twiboot tool does.
@@ -79,9 +79,9 @@ class Twiboot(
     }
 
     /**
-     * The USI variant of twiboot sends NAK for the last byte of the page, after the page is written
+     * The USI variant of twiboot (clock display) sends NAK for the last byte of the page, after the page is written
      * (the clock is stretched meanwhile). Most Linux I2C drivers report it as an I/O error, so the error
-     * is ignored here: the page has to be verified with [readFlash].
+     * is ignored here: the page has to be verified with [readFlash]. The TWI variant (front display) ACKs it.
      */
     suspend fun writeFlashPage(address: Int, data: IntArray) {
         try {

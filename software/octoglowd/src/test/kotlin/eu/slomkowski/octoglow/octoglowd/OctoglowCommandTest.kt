@@ -23,7 +23,7 @@ class OctoglowCommandTest {
         val e = assertThrows<BadParameterValue> {
             OctoglowCommand().parse(listOf("--burn-firmware", "toaster", hexFile.toString()))
         }
-        assertThat(e.message).contains("unknown device 'toaster'").contains("supported: clock-display")
+        assertThat(e.message).contains("unknown device 'toaster'").contains("supported: clock-display, front-display")
     }
 
     @Test
@@ -60,6 +60,6 @@ class OctoglowCommandTest {
     @Test
     fun `help describes firmware burning`() {
         val help = OctoglowCommand().getFormattedHelp()
-        assertThat(help).contains("--burn-firmware=<device hex_file>").contains("Supported devices: clock-display.")
+        assertThat(help).contains("--burn-firmware=<device hex_file>").contains("Supported devices: clock-display, front-display.")
     }
 }

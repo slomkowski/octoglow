@@ -83,12 +83,19 @@ private fun burnFirmware(target: FirmwareTarget, hexFile: Path): Int {
     // not closed: closing the devices would replace the result on the displays, the process exits anyway
     val hardware = HardwareReal(config)
 
+    // the front display can't show the progress of its own update, only the result
+    val showProgress = target != FirmwareTarget.FRONT_DISPLAY
+
     return try {
         runBlocking {
-            hardware.frontDisplay.showFirmwareProgress(target, "connecting")
+            if (showProgress) {
+                hardware.frontDisplay.showFirmwareProgress(target, "connecting")
+            }
 
             FirmwareBurner(hardware, target, onProgress = { written, total ->
-                hardware.frontDisplay.showFirmwareProgress(target, "${100 * written / total}%")
+                if (showProgress) {
+                    hardware.frontDisplay.showFirmwareProgress(target, "${100 * written / total}%")
+                }
             }).burn(image)
 
             hardware.frontDisplay.showFirmwareProgress(target, "done")

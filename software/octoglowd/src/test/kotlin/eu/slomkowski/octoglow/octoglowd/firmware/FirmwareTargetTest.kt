@@ -26,6 +26,7 @@ class FirmwareTargetTest {
     @Test
     fun `finds target by command line name`() {
         assertThat(FirmwareTarget.fromCommandLineName("clock-display")).isEqualTo(FirmwareTarget.CLOCK_DISPLAY)
+        assertThat(FirmwareTarget.fromCommandLineName("front-display")).isEqualTo(FirmwareTarget.FRONT_DISPLAY)
         assertThat(FirmwareTarget.fromCommandLineName("clock")).isNull()
     }
 }

@@ -26,6 +26,7 @@ The jar has a command line (Clikt, `OctoglowCommand` in `main.kt`):
 ```bash
 java -jar octoglowd.jar                                      # run the daemon
 java -jar octoglowd.jar --burn-firmware clock-display x.hex  # upload firmware over I2C instead, then exit
+java -jar octoglowd.jar --burn-firmware front-display x.hex
 java -jar octoglowd.jar --help
 ```
 
@@ -73,11 +74,15 @@ Everything is wired together manually in `main.kt` (`runDaemon()`). The core is 
 
 ### Firmware upload (`firmware/`, `hardware/Twiboot.kt`)
 
-Boards with the twiboot I²C bootloader can be updated by `--burn-firmware`; currently only the clock display (ATtiny461A, bootloader in `firmware/clock-display/bootloader/`, application at 0x10, bootloader at 0x11).
+Boards with the twiboot I²C bootloader can be updated by `--burn-firmware`:
 
-- **`FirmwareTarget`** — one entry per board: command line name, bootloader address, AVR signature, how to enter the bootloader (`ClockDisplay.enterBootloader()`) and how to check the application afterwards. The command line name is the board's firmware directory name in the repository (`firmware/clock-display`), enforced by `FirmwareTargetTest`.
+- clock display: ATtiny461A, USI, bootloader in `firmware/clock-display/bootloader/`, application at 0x10, bootloader at 0x11;
+- front display: ATmega88P, TWI, bootloader in `firmware/front-display/bootloader/`, application at 0x14, bootloader at 0x15. It can't show the progress of its own update, only the result.
+
+- **`FirmwareTarget`** — one entry per board: command line name, bootloader address, AVR signature, how to enter the bootloader (`ClockDisplay.enterBootloader()`, `FrontDisplay.enterBootloader()`) and how to check the application afterwards. The command line name is the board's firmware directory name in the repository (`firmware/clock-display`), enforced by `FirmwareTargetTest`.
 - **`FirmwareBurner`** — sends the enter bootloader command to the application (failure is only a warning: the board may already be in the bootloader), polls the bootloader until it answers (10 s, enough to power-cycle a board with broken firmware), checks signature and size, writes and verifies page by page with retries, starts the application and checks it responds.
-- **`Twiboot`** — the protocol on top of `Hardware.doWrite`/`doTransaction`. The USI variant of the bootloader NAKs the last byte of a page write and of the start application command, which Linux reports as an I/O error; these errors are ignored on purpose and every page is verified by reading it back. Reading flash returns the original vector table, although the bootloader patches it on the chip.
+- **`Twiboot`** — the protocol on top of `Hardware.doWrite`/`doTransaction`. The USI variant of the bootloader (clock display) NAKs the last byte of a page write and of the start application command, which Linux reports as an I/O error; these errors are ignored on purpose and every page is verified by reading it back. Reading flash returns the original vector table, although the bootloader patches it on the chip. The TWI variant (front display) uses the boot section, so nothing is patched, and it ACKs these bytes.
+- **`TwibootDeviceEmulator`** (tests) emulates both boards on the bus level.
 - **`IntelHex`** — parser for the `.hex` files from the firmware builds.
 - Tests run against `TwibootDeviceEmulator` (test sources), a `Hardware` that emulates the application and the bootloader on the bus level, following `firmware/clock-display/bootloader/protocol.cpp`. Keep it in sync when the bootloader protocol changes.
 

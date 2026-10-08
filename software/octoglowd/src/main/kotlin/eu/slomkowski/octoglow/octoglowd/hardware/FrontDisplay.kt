@@ -64,6 +64,11 @@ interface FrontDisplay {
     suspend fun setText(textBytes: ByteArray, header: IntArray)
 
     /**
+     * Resets the device into the I2C bootloader, see [FrontDisplayReal.enterBootloader].
+     */
+    suspend fun enterBootloader()
+
+    /**
      * Sets the upper bar content - all 20 positions are needed.
      */
     suspend fun setUpperBar(content: BooleanArray) {
@@ -126,6 +131,11 @@ class FrontDisplayReal(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0
         private const val MAX_VALUES_IN_CHART = 5 * 20
 
         private val getButtonReportCmd = intArrayOf(1)
+
+        // must match firmware/front-display/noarch/protocol.hpp and noarch/i2c-slave.hpp
+        internal const val ENTER_BOOTLOADER_COMMAND = 10
+        internal val BOOTLOADER_MAGIC = "BOOT".map { it.code }.toIntArray()
+        const val BOOTLOADER_I2C_ADDRESS = 0x15
     }
 
     override suspend fun initDevice() {
@@ -160,6 +170,15 @@ class FrontDisplayReal(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0
         textBytes.forEachIndexed { idx, b -> writeBuffer[idx + header.size] = b.toInt() }
         writeBuffer[header.size + textBytes.size] = 0
         sendCommand("set text", *writeBuffer)
+    }
+
+    /**
+     * The device replies, shows "Entering bootloader", then resets via watchdog within 250 ms.
+     * The bootloader listens on [BOOTLOADER_I2C_ADDRESS] for 1 s, then starts the application again.
+     * Until then the device doesn't respond on its own address and the display shows BOOTLOADER.
+     */
+    override suspend fun enterBootloader() {
+        sendCommand("enter bootloader", ENTER_BOOTLOADER_COMMAND, *BOOTLOADER_MAGIC)
     }
 
     override suspend fun getEndOfConstructionYearInternal(): Byte {

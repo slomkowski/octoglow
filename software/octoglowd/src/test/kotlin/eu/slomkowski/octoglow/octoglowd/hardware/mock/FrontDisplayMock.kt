@@ -122,6 +122,10 @@ class FrontDisplayMock : FrontDisplay {
         fail("Graphical functions are not implemented for mock front display")
     }
 
+    override suspend fun enterBootloader() {
+        fail("Bootloader is not implemented for mock front display")
+    }
+
     override suspend fun setUpperBar(c: Int) {
         (0..19).forEach { idx ->
             upperBar[idx] = (1 shl idx) and c > 0

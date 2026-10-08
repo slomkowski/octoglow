@@ -161,7 +161,7 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
      * Resets the device into the I2C bootloader. The device replies, then resets via watchdog within 250 ms.
      * The bootloader listens on [BOOTLOADER_I2C_ADDRESS] for 1 s, then starts the application again.
      * Until then the device doesn't respond on its own address and the relays are off.
-     * The firmware upload itself is done by firmware/clock-display/flash-over-i2c.sh.
+     * The firmware upload itself is done by [eu.slomkowski.octoglow.octoglowd.firmware.FirmwareBurner].
      */
     suspend fun enterBootloader() {
         sendCommand("enter bootloader", ENTER_BOOTLOADER_COMMAND, *BOOTLOADER_MAGIC)

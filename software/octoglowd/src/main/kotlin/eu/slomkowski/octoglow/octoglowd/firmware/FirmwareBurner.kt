@@ -1,6 +1,7 @@
 package eu.slomkowski.octoglow.octoglowd.firmware
 
 import eu.slomkowski.octoglow.octoglowd.hardware.ClockDisplay
+import eu.slomkowski.octoglow.octoglowd.hardware.FrontDisplayReal
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Twiboot
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -23,10 +24,12 @@ enum class FirmwareTarget(
     val signature: Int,
 ) {
     CLOCK_DISPLAY("clock-display", ClockDisplay.BOOTLOADER_I2C_ADDRESS, 0x1e9208), // ATtiny461A
+    FRONT_DISPLAY("front-display", FrontDisplayReal.BOOTLOADER_I2C_ADDRESS, 0x1e930f), // ATmega88P
     ;
 
     suspend fun enterBootloader(hardware: Hardware) = when (this) {
         CLOCK_DISPLAY -> hardware.clockDisplay.enterBootloader()
+        FRONT_DISPLAY -> hardware.frontDisplay.enterBootloader()
     }
 
     /**
@@ -35,6 +38,7 @@ enum class FirmwareTarget(
     suspend fun checkApplication(hardware: Hardware) {
         when (this) {
             CLOCK_DISPLAY -> hardware.clockDisplay.retrieveRelaysState()
+            FRONT_DISPLAY -> hardware.frontDisplay.getEndOfConstructionYearInternal()
         }
     }
 

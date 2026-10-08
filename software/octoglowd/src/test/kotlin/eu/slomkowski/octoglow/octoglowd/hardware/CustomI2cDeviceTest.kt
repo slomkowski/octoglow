@@ -54,8 +54,14 @@ class CustomI2cDeviceTest {
     }
 
     @Test
-    fun `enter bootloader command matches flash-over-i2c script`() {
+    fun `enter bootloader command of the clock display matches flash-over-i2c script`() {
         val result = createCommandWithCrc(ClockDisplay.ENTER_BOOTLOADER_COMMAND, *ClockDisplay.BOOTLOADER_MAGIC)
         assertThat(result).isEqualTo(intArrayOf(0x6c, 0x07, 0x42, 0x4f, 0x4f, 0x54))
+    }
+
+    @Test
+    fun `enter bootloader command of the front display matches flash-over-i2c script`() {
+        val result = createCommandWithCrc(FrontDisplayReal.ENTER_BOOTLOADER_COMMAND, *FrontDisplayReal.BOOTLOADER_MAGIC)
+        assertThat(result).isEqualTo(intArrayOf(0x98, 0x0a, 0x42, 0x4f, 0x4f, 0x54))
     }
 }
