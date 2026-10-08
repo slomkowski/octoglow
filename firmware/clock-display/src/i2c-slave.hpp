@@ -36,8 +36,6 @@
 
 #include "global.hpp"
 
-constexpr uint8_t I2C_ADDRESS = 0x10;
-
 constexpr uint8_t I2C_RDSIZE = 9;    // slave => master buffer size
 constexpr uint8_t I2C_WRSIZE = 8;    // master => slave buffer size
 

@@ -8,9 +8,12 @@
  ****************************************************************************/
 
 #include "i2c-slave.hpp"
+#include "usi.hpp"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+
+using namespace octoglow::vfd_clock;
 
 #define DEBUG 0
 
@@ -51,55 +54,17 @@ static volatile uint8_t usi_state;
 #define USI_MasterWrite  (USI_RequestData | USI_SendAck)
 
 /****************************************************************************
- * Hardware dependencies.
+ * Hardware dependencies, see common/usi.hpp.
  ****************************************************************************/
 
-#if defined(__AVR_ATtiny2313__)
-#define USI_DDR             DDRB
-#define USI_PORT            PORTB
-#define USI_PIN             PINB
-#define USI_SDA        	PB5
-#define USI_SCL        	PB7
-#elif defined(__AVR_ATtiny25__) | defined(__AVR_ATtiny45__) | defined(__AVR_ATtiny85__)
-#define USI_DDR             DDRB
-#define USI_PORT            PORTB
-#define USI_PIN             PINB
-#define USI_SDA        	PB0
-#define USI_SCL        	PB2
-#elif defined(__AVR_ATtiny26__) | defined(__AVR_ATtiny461A__)
-#define USI_DDR             DDRB
-#define USI_PORT            PORTB
-#define USI_PIN             PINB
-#define USI_SDA            PB0
-#define USI_SCL            PB2
-#elif defined(__AVR_ATmega165__) | \
-    defined(__AVR_ATmega325__) | defined(__AVR_ATmega3250__) | \
-    defined(__AVR_ATmega645__) | defined(__AVR_ATmega6450__) | \
-    defined(__AVR_ATmega329__) | defined(__AVR_ATmega3290__) | \
-    defined(__AVR_ATmega649__) | defined(__AVR_ATmega6490__)
-#define USI_DDR             DDRE
-#define USI_PORT            PORTE
-#define USI_PIN             PINE
-#define USI_SDA        	PE5
-#define USI_SCL        	PE4
-#elif defined(__AVR_ATmega169__)
-#define USI_DDR             DDRE
-#define USI_PORT            PORTE
-#define USI_PIN             PINE
-#define USI_SDA        	PE5
-#define USI_SCL        	PE4
-#else
-#error Unknown AVR type
-#endif
-
-#define setInput()            USI_DDR &= ~(1<<USI_SDA)
-#define setOutput()            USI_DDR |= (1<<USI_SDA)
+#define setInput()            usi::setSdaInput()
+#define setOutput()            usi::setSdaOutput()
 
 // set USI control register, TWI mode, auto-extend mode for SCL when overflow interupt enabled
-#define setUSICR(start, ovf)        USICR = (start)<<USISIE | (ovf)<<USIOIE | 1<<USIWM1|(ovf)<<USIWM0 | 1<<USICS1|0<<USICS0|0<<USICLK | 0<<USITC
+#define setUSICR(start, ovf)        USICR = usi::controlRegister(ovf, start, ovf)
 
 // set USI status register, clear overflow flag, optionally clear other flags, set counter
-#define setUSISR(start, stop, bits)    USISR = (start)<<USISIF | 1<<USIOIF | (stop)<<USIPF | 0<<USIDC | (16-2*(bits))<<USICNT0
+#define setUSISR(start, stop, bits)    USISR = (start)<<USISIF | 1<<USIOIF | (stop)<<USIPF | 0<<USIDC | usi::counterForBits(bits)
 
 #define enableStart_disableOverflow()    setUSICR(1,0)
 #define enableStart_enableOverflow()    setUSICR(1,1)
@@ -124,9 +89,7 @@ usi_reset() {
  ****************************************************************************/
 void
 i2c_initialize() {
-    USI_PORT |= _BV(USI_SCL);                // SCL inactive
-    USI_PORT |= _BV(USI_SDA);                // SDA inactive
-    USI_DDR |= _BV(USI_SCL);                // SCL output
+    usi::initPins();
 
     i2c_rdlen = 0;
     i2c_wrlen = 0;
@@ -202,7 +165,7 @@ ISR(USI_START_vect) {
 
     setInput();
 
-    while (bit_is_set(USI_PIN, USI_SCL)) {
+    while (usi::isSclHigh()) {
         //
         // Wait while SCL is high and test for a stop condition.  Do
         // not use the hardware stop condition detector, as it could
@@ -211,7 +174,7 @@ ISR(USI_START_vect) {
         // condition and we could be caught here waiting for the next
         // transmission.
         //
-        if (bit_is_set(USI_PIN, USI_SDA)) {
+        if (usi::isSdaHigh()) {
             usi_reset();
             return;
         }
@@ -243,7 +206,7 @@ ISR(USI_OVF_vect) {
         // Slave address received.
         //
         uint8_t addr = USIDR;
-        if (addr == 0 || (addr & ~1) == (I2C_ADDRESS << 1)) {    // global address or ours?
+        if (addr == 0 || (addr & ~1) == (usi::APP_I2C_ADDRESS << 1)) {    // global address or ours?
             if (addr & 1) {                // master read mode?
                 if (i2c_rdlen == 0)            // abort if buffer empty
                     goto abort;

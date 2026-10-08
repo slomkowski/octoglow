@@ -20,6 +20,13 @@ using namespace octoglow::vfd_clock::protocol;
 static auto currentCommand = Command::NONE;
 
 /**
+ * Set by ENTER_BOOTLOADER. The main loop stops feeding the watchdog, so the MCU resets
+ * within WDTO_250MS. The I2C reply is still served in the meantime. The reset vector
+ * is patched by the bootloader, so every reset starts the bootloader, which waits ~1 s for the host.
+ */
+static bool bootloaderRequested = false;
+
+/**
  *
  * @param dataPayloadLength We include the command byte and the following payload.
  * Payload length can be 0, in this case only the command byte is taken to the calculation.
@@ -87,7 +94,8 @@ static void processI2cReadCommands() {
         }
         case Command::SET_BRIGHTNESS:
         case Command::SET_RELAY:
-        case Command::SET_DISPLAY_CONTENT: {
+        case Command::SET_DISPLAY_CONTENT:
+        case Command::ENTER_BOOTLOADER: {
             setCrcForSimpleCommand();
             break;
         }
@@ -105,6 +113,7 @@ static void processI2cWriteCommands() {
 
     static_assert(sizeof(DisplayContent) + 2 <= sizeof(i2c_wrbuf));
     static_assert(sizeof(RelayState) + 2 <= sizeof(i2c_wrbuf));
+    static_assert(sizeof(BOOTLOADER_MAGIC) + 2 <= sizeof(i2c_wrbuf));
 
     switch (const auto incomingCommand = static_cast<Command>(i2c_wrbuf[1])) {
         case Command::SET_DISPLAY_CONTENT: {
@@ -133,6 +142,22 @@ static void processI2cWriteCommands() {
             display::setBrightness(i2c_wrbuf[2]);
             currentCommand = Command::SET_BRIGHTNESS;
             break;
+        case Command::ENTER_BOOTLOADER: {
+            if (!checkCrc8(sizeof(BOOTLOADER_MAGIC))) {
+                break;
+            }
+            bool magicMatches = true;
+            for (uint8_t i = 0; i != sizeof(BOOTLOADER_MAGIC); ++i) {
+                magicMatches &= i2c_wrbuf[2 + i] == BOOTLOADER_MAGIC[i];
+            }
+            if (!magicMatches) {
+                break;
+            }
+            display::setAllCharacters("____");
+            bootloaderRequested = true;
+            currentCommand = Command::ENTER_BOOTLOADER;
+        }
+        break;
         case Command::GET_WEATHER_SENSOR_STATE:
         case Command::GET_LIGHT_SENSOR_VALUE:
         case Command::GET_RELAY_STATE:
@@ -172,7 +197,12 @@ static void processI2cWriteCommands() {
         processI2cReadCommands();
         processI2cWriteCommands();
 
-        if (WATCHDOG_ENABLE) {
+        if (bootloaderRequested) {
+            // stop feeding the watchdog; enable it if WATCHDOG_ENABLE = false
+            if (!(WDTCR & _BV(WDE))) {
+                wdt_enable(WDTO_250MS);
+            }
+        } else if (WATCHDOG_ENABLE) {
             wdt_reset();
         }
     }
