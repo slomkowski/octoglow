@@ -21,6 +21,7 @@ enum class ValueUpdateState : uint8_t {
 };
 
 static volatile uint16_t timer1overflowCounter = 0;
+static volatile uint8_t blinkOverflowsLeft = 0;
 static volatile auto updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
 static volatile uint8_t mainMeasurementBuffer[NUM_OF_BITS_IN_PACKET / 8 + 1];
 static uint8_t comparingMeasurementBuffer[NUM_OF_BITS_IN_PACKET / 8 + 1];
@@ -32,7 +33,7 @@ constexpr uint8_t msToTimer0pulses(const double milliseconds) {
 }
 
 constexpr uint8_t msToTimer1overflows(const double milliseconds) {
-    // we assume prescaler is set to 512
+    // we assume prescaler is set to 128
     return static_cast<uint8_t>(milliseconds / 1000.0 * static_cast<double>(F_CPU) / 128.0 / 255.0);
 }
 
@@ -58,7 +59,15 @@ void octoglow::vfd_clock::receiver433::init() {
 }
 
 void octoglow::vfd_clock::receiver433::pool() {
-    if (timer1overflowCounter > msToTimer1overflows(700)) {
+    // the blink is timed independently of the measurement timeout, so the flag is always cleared
+    if (updateState == ValueUpdateState::MEASUREMENT_ACCEPTED_BLINK_ENABLED and blinkOverflowsLeft == 0) {
+        display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::DISABLED);
+        updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
+    }
+
+    if (updateState == ValueUpdateState::MEASUREMENT_ACCEPTED_BLINK_ENABLED) {
+        // wait for the blink to end
+    } else if (timer1overflowCounter > msToTimer1overflows(700)) {
         timer1overflowCounter = 0;
         updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
     } else if (updateState == ValueUpdateState::FIRST_MEASUREMENT_PROVIDED) {
@@ -81,15 +90,12 @@ void octoglow::vfd_clock::receiver433::pool() {
             }
             currentWeatherSensorState.flags = protocol::VALID_MEASUREMENT_FLAG;
 
+            blinkOverflowsLeft = msToTimer1overflows(500);
             display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::VALID);
             updateState = ValueUpdateState::MEASUREMENT_ACCEPTED_BLINK_ENABLED;
         } else {
             updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
         }
-    } else if (updateState == ValueUpdateState::MEASUREMENT_ACCEPTED_BLINK_ENABLED
-               and timer1overflowCounter > msToTimer1overflows(500)) {
-        display::setReceiverUpdateFlag(display::ReceiverUpdateFlag::DISABLED);
-        updateState = ValueUpdateState::WAITING_FOR_FIRST_MEASUREMENT;
     }
 }
 
@@ -136,8 +142,12 @@ ISR(INT0_vect) {
     timerRestart();
 }
 
-// this is configured in init() in display.cpp. called every 16.384 ms
+// this is configured in init() in display.cpp. called every 4.096 ms
 ISR(TIMER1_OVF_vect) {
+    if (blinkOverflowsLeft != 0) {
+        blinkOverflowsLeft -= 1;
+    }
+
     if (timer1overflowCounter != 4 * 250) {
         timer1overflowCounter += 1;
     }
