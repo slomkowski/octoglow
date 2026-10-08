@@ -115,6 +115,11 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
 
         private const val UPPER_DOT: Int = 1 shl (14 % 8)
         private const val LOWER_DOT: Int = 1 shl (13 % 8)
+
+        // must match firmware/clock-display/src/protocol.hpp and common/usi.hpp
+        internal const val ENTER_BOOTLOADER_COMMAND = 7
+        internal val BOOTLOADER_MAGIC = "BOOT".map { it.code }.toIntArray()
+        const val BOOTLOADER_I2C_ADDRESS = 0x11
     }
 
     override suspend fun setBrightness(brightness: Int) {
@@ -150,6 +155,16 @@ class ClockDisplay(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x10)
             2,
             (if (relay1enabled) 0b01 else 0b00) or (if (relay2enabled) 0b10 else 0b00),
         )
+    }
+
+    /**
+     * Resets the device into the I2C bootloader. The device replies, then resets via watchdog within 250 ms.
+     * The bootloader listens on [BOOTLOADER_I2C_ADDRESS] for 1 s, then starts the application again.
+     * Until then the device doesn't respond on its own address and the relays are off.
+     * The firmware upload itself is done by firmware/clock-display/flash-over-i2c.sh.
+     */
+    suspend fun enterBootloader() {
+        sendCommand("enter bootloader", ENTER_BOOTLOADER_COMMAND, *BOOTLOADER_MAGIC)
     }
 
     suspend fun retrieveRelaysState(): Pair<Boolean, Boolean> {
