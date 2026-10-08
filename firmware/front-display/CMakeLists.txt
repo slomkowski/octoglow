@@ -17,4 +17,10 @@ SET(LIBRARY_SOURCES ../noarch/protocol.hpp ../noarch/eeprom.hpp
         ../noarch/i2c-slave.cpp ../noarch/i2c-slave.hpp)
 
 add_subdirectory(avr)
-add_subdirectory(test)
+
+# the host tests can't be built when the whole project is configured with avr-g++ (e.g. a CLion AVR profile)
+if (CMAKE_CXX_COMPILER MATCHES "avr-g\\+\\+$")
+    message(STATUS "Host tests skipped, the compiler is ${CMAKE_CXX_COMPILER}")
+else ()
+    add_subdirectory(test)
+endif ()

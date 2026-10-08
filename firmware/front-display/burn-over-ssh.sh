@@ -16,7 +16,7 @@ DEVICE=$(basename "$SCRIPT_DIR")
 BUILD_DIR="$SCRIPT_DIR/cmake-build-avr"
 
 if [[ $# -eq 0 ]]; then
-    cmake --build "$BUILD_DIR"
+    cmake --build "$BUILD_DIR" --target "octoglow-$DEVICE-avr"
     HEX_FILE="$BUILD_DIR/avr/octoglow-$DEVICE-avr.hex"
 else
     HEX_FILE=$1
