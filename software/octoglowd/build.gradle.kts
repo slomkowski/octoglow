@@ -51,6 +51,8 @@ dependencies {
 
     implementation(libs.io.helins.linux.i2c)
 
+    implementation(libs.com.github.ajalt.clikt.core.jvm)
+
     implementation(libs.io.github.oshai.kotlin.logging.jvm)
 
     implementation(libs.org.tinylog.tinylog.api.kotlin)

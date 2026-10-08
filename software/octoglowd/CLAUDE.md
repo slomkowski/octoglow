@@ -21,13 +21,23 @@ Note: the README says "Compiles under Maven" — that is stale. The build is **G
 ./deploy.sh                            # proguard + scp jar to `octoglow` host + supervisorctl restart
 ```
 
+The jar has a command line (Clikt, `OctoglowCommand` in `main.kt`):
+
+```bash
+java -jar octoglowd.jar                                      # run the daemon
+java -jar octoglowd.jar --burn-firmware clock-display x.hex  # upload firmware over I2C instead, then exit
+java -jar octoglowd.jar --help
+```
+
+`firmware/<device>/burn-over-ssh.sh` (in the repository root, not here) builds the firmware, copies the hex to the `octoglow` host, stops octoglowd via supervisorctl, runs `--burn-firmware` and starts the daemon again. It refuses to run if the deployed jar doesn't support `--burn-firmware` yet, so run `./deploy.sh` first after changing this code.
+
 Tests tagged `hardware` require the real device on the I²C bus; tests tagged `external` call third-party services using credentials from the gitignored `src/test/resources/test-config.json`. Both are skipped in the normal `test` task unless named in `-PincludeTags` (see `tasks.test` in `build.gradle.kts`). SQLDelight generates DB code from `src/main/sqldelight/**/*.sq` into package `eu.slomkowski.octoglow.octoglowd.db` at build time.
 
 Runtime config is read from `config.json` in the working directory (`Config.parse`, `config.kt`) — a Kotlin-serialization-decoded JSON, not YAML (`test-config.yml` is unrelated test fixture data).
 
 ## Architecture
 
-Everything is wired together manually in `main.kt`. The core is an event-driven set of coroutine "demons" communicating over two shared-flow buses; there is no DI framework.
+Everything is wired together manually in `main.kt` (`runDaemon()`). The core is an event-driven set of coroutine "demons" communicating over two shared-flow buses; there is no DI framework.
 
 ### Demons and buses
 
@@ -59,6 +69,20 @@ Everything is wired together manually in `main.kt`. The core is an event-driven 
 
 `Hardware` is an interface; `HardwareReal` wraps a Linux `I2CBus` behind a single `Mutex` (all bus access is serialized) with retry-on-`errno 6` logic. Individual I²C devices (`FrontDisplay`, `ClockDisplay`, `Geiger`, `Dac`, `Scd40`, `Bme280`) implement device-specific protocols; those with `HasBrightness` participate in global brightness. Tests use mock hardware under `test/.../hardware/mock`. Tests that take a real `Hardware` parameter (via `HardwareParameterResolver`) must carry the JUnit `hardware` tag.
 
+`CustomI2cDevice` (the Octoglow boards: front display, clock display, Geiger) frames every command as `[CRC8, command, payload...]` and expects `[CRC8, command, ...]` back. Command numbers and payloads must match `firmware/<device>/.../protocol.hpp` in the repository root.
+
+### Firmware upload (`firmware/`, `hardware/Twiboot.kt`)
+
+Boards with the twiboot I²C bootloader can be updated by `--burn-firmware`; currently only the clock display (ATtiny461A, bootloader in `firmware/clock-display/bootloader/`, application at 0x10, bootloader at 0x11).
+
+- **`FirmwareTarget`** — one entry per board: command line name, bootloader address, AVR signature, how to enter the bootloader (`ClockDisplay.enterBootloader()`) and how to check the application afterwards. The command line name is the board's firmware directory name in the repository (`firmware/clock-display`), enforced by `FirmwareTargetTest`.
+- **`FirmwareBurner`** — sends the enter bootloader command to the application (failure is only a warning: the board may already be in the bootloader), polls the bootloader until it answers (10 s, enough to power-cycle a board with broken firmware), checks signature and size, writes and verifies page by page with retries, starts the application and checks it responds.
+- **`Twiboot`** — the protocol on top of `Hardware.doWrite`/`doTransaction`. The USI variant of the bootloader NAKs the last byte of a page write and of the start application command, which Linux reports as an I/O error; these errors are ignored on purpose and every page is verified by reading it back. Reading flash returns the original vector table, although the bootloader patches it on the chip.
+- **`IntelHex`** — parser for the `.hex` files from the firmware builds.
+- Tests run against `TwibootDeviceEmulator` (test sources), a `Hardware` that emulates the application and the bootloader on the bus level, following `firmware/clock-display/bootloader/protocol.cpp`. Keep it in sync when the bootloader protocol changes.
+
+In burn mode `HardwareReal` is not closed (closing the devices would overwrite the result shown on the front display) and the process ends via `ProgramResult`. `clikt-core` (used instead of full `clikt` to avoid Mordant) doesn't exit the process by default, so `OctoglowCommand` sets `exitProcess` in its context: without it, error exit codes would be 0 and the non-daemon I²C bus thread would keep the JVM running after burning.
+
 ### MQTT / Home Assistant (`mqtt/`)
 
 `MqttDemon` bridges the `CommandBus`/`DataSnapshotBus` to an MQTT broker and publishes Home Assistant discovery messages (`homeassistantDiscovery.kt`). Enabled via `ConfMqttInfo` in config.
@@ -69,3 +93,4 @@ Everything is wired together manually in `main.kt`. The core is an event-driven 
 - Logging via `io.github.oshai.kotlinlogging` (`KotlinLogging.logger {}`), backend is tinylog (`src/main/resources/tinylog.properties`).
 - Some comments and TODOs are in Polish; the domain (garbage timetable, name days, NBP forex, holidays) is Poland-specific.
 - Prefer injecting `Clock` (defaults to `Clock.System`) and `Hardware`/`Config` into demons and views to keep them testable, as existing code does.
+- Check changes that may affect the deployed artifact with `./gradlew proguard` and `java -jar build/libs/octoglowd-min.jar --help`: the device runs the ProGuard-minified jar, not the test classpath.

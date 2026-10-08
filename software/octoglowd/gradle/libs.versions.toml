@@ -8,6 +8,7 @@ org-jsoup = "1.23.2"
 com-thedeanda-lorem = "2.2"
 de-jollyday-jollyday = "0.5.10"
 io-helins-linux-i2c = "1.0.2"
+com-github-ajalt-clikt = "5.1.0"
 io-github-oshai-kotlin-logging = "8.0.4"
 io-ktor = "3.6.0"
 io-mockk = "1.14.11"
@@ -32,6 +33,7 @@ de-fraunhofer-iosb-io-moquette-broker = { module = "de.fraunhofer.iosb.io.moquet
 com-thedeanda-lorem = { module = "com.thedeanda:lorem", version.ref = "com-thedeanda-lorem" }
 de-jollyday-jollyday = { module = "de.jollyday:jollyday", version.ref = "de-jollyday-jollyday" }
 io-helins-linux-i2c = { module = "io.helins:linux-i2c", version.ref = "io-helins-linux-i2c" }
+com-github-ajalt-clikt-core-jvm = { module = "com.github.ajalt.clikt:clikt-core-jvm", version.ref = "com-github-ajalt-clikt" }
 io-github-oshai-kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "io-github-oshai-kotlin-logging" }
 io-ktor-ktor-client-cio-jvm = { module = "io.ktor:ktor-client-cio-jvm", version.ref = "io-ktor" }
 io-ktor-ktor-client-content-negotiation-jvm = { module = "io.ktor:ktor-client-content-negotiation-jvm", version.ref = "io-ktor" }
