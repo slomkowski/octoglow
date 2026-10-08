@@ -4,9 +4,12 @@ project(octoglow-front-display-test)
 set(CMAKE_CXX_STANDARD 17)
 
 SET(CMAKE_CXX_FLAGS "-g -O0 -std=c++17 -DF_CPU=${FREQ}UL -Wall -Wextra -pedantic")
+
+# any memory error or undefined behavior aborts the tests
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
 include_directories(../noarch ../test)
 
-SET(SOURCES main.hpp display_test.cpp i2c-slave_test.cpp)
+SET(SOURCES main.hpp stubs.hpp stubs.cpp display_test.cpp i2c-slave_test.cpp)
 
 enable_testing()
 

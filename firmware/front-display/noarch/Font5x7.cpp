@@ -118,3 +118,6 @@ const uint8_t octoglow::front_display::display::Font5x7[] PROGMEM = {
         0xff, 0xff, 0xff, 0xff, 0xff,
         0xff, 0x41, 0x41, 0x41, 0xff
 };
+
+static_assert(sizeof(octoglow::front_display::display::Font5x7) / 5 + ' ' > octoglow::front_display::display::INVALID_CHARACTER_CODE,
+              "font has to contain the glyph for invalid character");

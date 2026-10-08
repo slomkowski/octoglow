@@ -17,6 +17,11 @@ static_assert(sizeof(buffer) >= sizeof(encoder::ButtonState) + 2, "buffer has to
 static_assert(sizeof(buffer) >= sizeof(EncoderState) + 2, "buffer has to contain whole EncoderState structure");
 
 void i2c::onTransmit(uint8_t volatile *value) {
+    if (bytesProcessed == sizeof(buffer)) {
+        *value = 0;
+        return;
+    }
+
     *value = buffer[bytesProcessed];
     ++bytesProcessed;
 }
@@ -123,7 +128,10 @@ void i2c::onReceive(const uint8_t value) {
         if (checkCrc8fails()) {
             return;
         }
-        display::setUpperBarContent(*reinterpret_cast<uint32_t *>(buffer + 2));
+        // 20 bits are sent as 3 bytes, little endian
+        display::setUpperBarContent(buffer[2]
+                                    | static_cast<uint32_t>(buffer[3]) << 8
+                                    | static_cast<uint32_t>(buffer[4]) << 16);
         setCrcForSimpleCommand();
     }
 }

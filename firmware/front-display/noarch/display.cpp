@@ -69,7 +69,10 @@ void _ScrollingSlot::scrollAndLoadIntoFramebuffer() {
         ++columnOffset;
 
         if (columnOffset == COLUMNS_IN_CHARACTER) {
-            _frameBuffer[frameBufferColumn + charactersSkpLines + 1] = 0;
+            // the empty column between characters, unless the glyph ends exactly at the end of the window
+            if (p + charactersSkpLines + 1 < this->length * COLUMNS_IN_CHARACTER) {
+                _frameBuffer[frameBufferColumn + charactersSkpLines + 1] = 0;
+            }
             columnOffset = 0;
             ++characterOffset;
             ++charactersSkpLines;
@@ -96,6 +99,24 @@ static const uint16_t utfMappings[] PROGMEM = {
         0xb0 // degree sign
 };
 
+static inline uint8_t readByte(const char *const str, const uint8_t idx, const bool stringInProgramSpace) {
+    return stringInProgramSpace
+           ? pgm_read_byte(str + idx)
+           : reinterpret_cast<const uint8_t &>(str[idx]);
+}
+
+static uint8_t utf8SequenceLength(const uint8_t firstByte) {
+    if ((firstByte & 0xe0) == 0xc0) {
+        return 2;
+    } else if ((firstByte & 0xf0) == 0xe0) {
+        return 3;
+    } else if ((firstByte & 0xf8) == 0xf0) {
+        return 4;
+    }
+    // stray continuation byte or invalid value
+    return 1;
+}
+
 void octoglow::front_display::display::_forEachUtf8character(const char *str,
                                  const bool stringInProgramSpace,
                                  const uint8_t maxLength,
@@ -105,9 +126,7 @@ void octoglow::front_display::display::_forEachUtf8character(const char *str,
     uint8_t currPos = 0;
 
     while (currPos < maxLength) {
-        const uint8_t singleAsciiValue = stringInProgramSpace
-                                         ? pgm_read_byte(str + strIdx)
-                                         : reinterpret_cast<const uint8_t & >(str[strIdx]);
+        const uint8_t singleAsciiValue = readByte(str, strIdx, stringInProgramSpace);
 
         if (singleAsciiValue == 0) {
             break;
@@ -115,27 +134,39 @@ void octoglow::front_display::display::_forEachUtf8character(const char *str,
 
         if (singleAsciiValue < 0x80) {
             strIdx++;
-            callback(userData, currPos, singleAsciiValue);
+            // control characters have no glyphs
+            callback(userData, currPos, singleAsciiValue < ' ' ? INVALID_CHARACTER_CODE : singleAsciiValue);
         } else {
-            const uint8_t secondByteValue = stringInProgramSpace
-                                            ? pgm_read_byte(str + strIdx + 1)
-                                            : reinterpret_cast<const uint8_t & >(str[strIdx + 1]);
-            const uint16_t twoByteUnicodeValue = (secondByteValue & 0x3f) + ((singleAsciiValue & 0x1f) << 6);
-            strIdx += 2;
+            const uint8_t sequenceLength = utf8SequenceLength(singleAsciiValue);
 
-            constexpr uint8_t NUMBER_OF_NATIONAL_CHARACTERS = sizeof(utfMappings) / sizeof(utfMappings[0]);
-            uint8_t offset;
-            for (offset = 0; offset < NUMBER_OF_NATIONAL_CHARACTERS; ++offset) {
-                if (pgm_read_word(&utfMappings[offset]) == twoByteUnicodeValue) {
-                    break;
+            // the sequence can be truncated by the end of the string
+            uint8_t bytesRead = 1;
+            while (bytesRead < sequenceLength && readByte(str, strIdx + bytesRead, stringInProgramSpace) != 0) {
+                ++bytesRead;
+            }
+
+            uint8_t code = INVALID_CHARACTER_CODE;
+
+            if (sequenceLength == 2 && bytesRead == 2) {
+                const uint8_t secondByteValue = readByte(str, strIdx + 1, stringInProgramSpace);
+                const uint16_t twoByteUnicodeValue = (secondByteValue & 0x3f) + ((singleAsciiValue & 0x1f) << 6);
+
+                constexpr uint8_t NUMBER_OF_NATIONAL_CHARACTERS = sizeof(utfMappings) / sizeof(utfMappings[0]);
+                for (uint8_t offset = 0; offset < NUMBER_OF_NATIONAL_CHARACTERS; ++offset) {
+                    if (pgm_read_word(&utfMappings[offset]) == twoByteUnicodeValue) {
+                        code = UNICODE_START_CODE + offset;
+                        break;
+                    }
                 }
             }
 
-            if (offset == NUMBER_OF_NATIONAL_CHARACTERS) {
-                offset = INVALID_CHARACTER_CODE - UNICODE_START_CODE;
-            }
+            strIdx += bytesRead;
 
-            callback(userData, currPos, UNICODE_START_CODE + offset);
+            callback(userData, currPos, code);
+
+            if (bytesRead != sequenceLength) {
+                break;
+            }
         }
 
         ++currPos;
@@ -144,12 +175,20 @@ void octoglow::front_display::display::_forEachUtf8character(const char *str,
 
 
 void octoglow::front_display::display::writeStaticText(const uint8_t position,
-                                                       const uint8_t maxLength,
+                                                       uint8_t maxLength,
                                                        const char *const text,
                                                        const bool textInProgramSpace) {
+    if (position >= NUM_OF_CHARACTERS) {
+        return;
+    }
+
+    if (maxLength > NUM_OF_CHARACTERS - position) {
+        maxLength = NUM_OF_CHARACTERS - position;
+    }
+
     struct LocalData {
         uint8_t startPosition;
-        uint8_t lastPos;
+        uint8_t textLength;
     } local{position, 0};
 
     _forEachUtf8character(text, textInProgramSpace, maxLength, &local,
@@ -161,13 +200,13 @@ void octoglow::front_display::display::writeStaticText(const uint8_t position,
                                       Font5x7 + COLUMNS_IN_CHARACTER * (code - ' '),
                                       COLUMNS_IN_CHARACTER);
 
-                             ld->lastPos = curPos;
+                             ld->textLength = curPos + 1;
                          });
 
-    if(maxLength > local.lastPos + 1) {
-        memset(_frameBuffer + COLUMNS_IN_CHARACTER * (position + local.lastPos + 1),
+    if (maxLength > local.textLength) {
+        memset(_frameBuffer + COLUMNS_IN_CHARACTER * (position + local.textLength),
                0,
-               COLUMNS_IN_CHARACTER * (maxLength - local.lastPos));
+               COLUMNS_IN_CHARACTER * (maxLength - local.textLength));
     }
 }
 
@@ -179,7 +218,10 @@ void octoglow::front_display::display::writeScrollingText(const uint8_t slotNumb
 
     _ScrollingSlot &slot = _scrollingSlots[slotNumber % scroll::NUMBER_OF_SLOTS];
     slot.startPosition = position;
-    slot.length = windowLength;
+    // the window is clipped to the display, the window outside of the display has zero length
+    slot.length = position >= NUM_OF_CHARACTERS
+                  ? 0
+                  : (windowLength > NUM_OF_CHARACTERS - position ? NUM_OF_CHARACTERS - position : windowLength);
     slot.currentShift = 0;
 
     _forEachUtf8character(text, textInProgramSpace, slot.maxTextLength, &slot,
@@ -232,10 +274,20 @@ void octoglow::front_display::display::setBrightness(const uint8_t brightness) {
 }
 
 void octoglow::front_display::display::drawGraphics(const uint8_t columnPosition,
-                                                    const uint8_t columnLength,
+                                                    uint8_t columnLength,
                                                     const bool sumWithText,
                                                     const uint8_t *const columnBuffer,
                                                     const bool bufferInProgramSpace) {
+    constexpr uint8_t NUM_OF_COLUMNS = NUM_OF_CHARACTERS * COLUMNS_IN_CHARACTER;
+
+    if (columnPosition >= NUM_OF_COLUMNS) {
+        return;
+    }
+
+    if (columnLength > NUM_OF_COLUMNS - columnPosition) {
+        columnLength = NUM_OF_COLUMNS - columnPosition;
+    }
+
     for (uint8_t p = 0; p < columnLength; ++p) {
         const uint8_t columnContent = bufferInProgramSpace
                                       ? pgm_read_byte(columnBuffer + p)
