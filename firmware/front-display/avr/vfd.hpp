@@ -84,14 +84,18 @@ namespace octoglow::front_display::vfd {
      * Must be called for every position in turn, the display is multiplexed.
      * The optimization is decided by the caller, the function is always inlined.
      *
+     * The brightness is the moment CL is cleared, so it depends on the generated code. brightness and upperBar
+     * are references: after inlining, the globals are read where they were before this function was extracted.
+     * Passed by value, the compiler moved the loads and levels 1 and 2 became almost dark.
+     *
      * @param frameBuffer COLUMNS_IN_CHARACTER bytes per character, bit 0 is the top row
      * @param brightness 0 to MAX_BRIGHTNESS, the time the grid is active
      * @param upperBar bits 0-19 are the segments of the bar above the upper line
      */
     inline __attribute__((always_inline)) void showCharacter(uint8_t position,
                                                              const uint8_t *const frameBuffer,
-                                                             const uint8_t brightness,
-                                                             const uint32_t upperBar) {
+                                                             const uint8_t &brightness,
+                                                             const uint32_t &upperBar) {
         PORT(STB_PORT) &= ~_BV(STB_PIN);
 
         if (brightness == 0) {

@@ -28,6 +28,11 @@ SET(SOURCES
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
 
+# brightness depends on the moment the CL pin is cleared in vfd::showCharacter(), i.e. on the generated code;
+# always -O3, which gives the same duty cycles as the Release builds before the bootloader (-O3 everywhere):
+# 0%, 22%, 37%, 54%, 73%, 100%; -O2 gives 0%, 12%, 22%, 53%, 83%, 100%
+set_source_files_properties(display_hd.cpp PROPERTIES COMPILE_OPTIONS "-O3")
+
 SET(BOOTLOADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bootloader)
 SET(BOOTLOADER_NAME octoglow-front-display-bootloader)
 SET(BOOTLOADER_SOURCES
