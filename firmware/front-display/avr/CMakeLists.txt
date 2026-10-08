@@ -13,8 +13,7 @@ SET(CMAKE_CXX_COMPILER avr-g++)
 SET(CMAKE_C_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c11 -Wl,--gc-sections -Wall -Wextra -pedantic")
 SET(CMAKE_CXX_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c++17 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
 
-# -O3 of the Release build type would override -O2 above, the application wouldn't fit below the bootloader;
-# the hot display code is optimized with O3 by its attribute anyway
+# -O3 of the Release build type would override -O2 above, the application wouldn't fit below the bootloader
 SET(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
 
 include_directories(../noarch ../avr)
@@ -27,11 +26,6 @@ SET(SOURCES
         eeprom_hd.cpp)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCES} ${LIBRARY_SOURCES})
-
-# brightness depends on the moment the CL pin is cleared in vfd::showCharacter(), i.e. on the generated code;
-# always -O3, which gives the same duty cycles as the Release builds before the bootloader (-O3 everywhere):
-# 0%, 22%, 37%, 54%, 73%, 100%; -O2 gives 0%, 12%, 22%, 53%, 83%, 100%
-set_source_files_properties(display_hd.cpp PROPERTIES COMPILE_OPTIONS "-O3")
 
 SET(BOOTLOADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bootloader)
 SET(BOOTLOADER_NAME octoglow-front-display-bootloader)

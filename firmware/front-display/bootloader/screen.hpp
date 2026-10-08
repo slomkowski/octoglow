@@ -11,6 +11,7 @@ namespace octoglow::front_display::bootloader::screen {
 
     /**
      * Shows the next character, the display is multiplexed, so it has to be called continuously.
+     * Waits for the end of the current slot of the display, up to vfd::SLOT_US.
      */
     void poll();
 

@@ -47,10 +47,12 @@ static uint8_t activityTicksLeft;
 
 void screen::init() {
     vfd::initPins();
+    vfd::initSlotTimer();
 }
 
 void screen::poll() {
-    vfd::showCharacter(currentPosition, frameBuffer.columns, BRIGHTNESS, upperBar);
+    vfd::startSlot(vfd::BRIGHTNESS_ON_TICKS[BRIGHTNESS]);
+    vfd::shiftCharacter(currentPosition, frameBuffer.columns, upperBar);
 
     if (currentPosition == NUM_OF_CHARACTERS - 1) {
         currentPosition = 0;

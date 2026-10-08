@@ -4,6 +4,13 @@ More details under https://slomkowski.eu/octoglow-vfd-fallout-inspired-display/
 
 Compiled under *avr-gcc*, *CMake* required. Tests (`test/`) run on the host with GoogleTest, ASan and UBSan.
 
+## Display timing
+
+The display is multiplexed: each of the 40 characters gets a 130 µs slot timed by Timer1 (192 Hz for the whole
+display). The brightness is the on-time of CL (PB2, OC1B), cleared by Timer1 in hardware, so neither the brightness
+nor the refresh rate depends on the generated code. The scrolling text moves by one column every 39 ms, counted
+by the 1 ms tick of Timer0. The values reproduce the firmware which timed both by the code (the -O2 build).
+
 ## Bootloader
 
 The firmware can be updated over I2C. The bootloader in `bootloader/` is a C++ port of

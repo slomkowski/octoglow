@@ -2,6 +2,7 @@
 #include "Font5x7.hpp"
 #include "display.hpp"
 #include "main.hpp"
+#include "clock.hpp"
 
 #include <string.h>
 
@@ -10,7 +11,13 @@ using namespace octoglow::front_display::protocol;
 
 constexpr uint8_t LOOP_NUMBER_OF_SPACES = 2;
 
-static uint16_t scrollingWaitCounter = 0;
+/**
+ * The scrolling text moves by one column every SCROLL_INTERVAL_MS. It used to move every 300 calls of pool(),
+ * which was 39 ms at the refresh rate of the -O2 build and depended on the generated code.
+ */
+constexpr uint8_t SCROLL_INTERVAL_MS = 39;
+
+static uint8_t lastScrollTime = 0;
 
 constexpr uint8_t SCROL_TEXT_BUFFER_TRAILING_OVERHEAD = 4;
 static uint8_t scrolTextBuffer0[scroll::SLOT0_MAX_LENGTH + SCROL_TEXT_BUFFER_TRAILING_OVERHEAD];
@@ -245,7 +252,7 @@ void octoglow::front_display::display::clear() {
         scrollingSlot.clear();
     }
 
-    scrollingWaitCounter = 0;
+    lastScrollTime = octoglow::front_display::clock::milliseconds();
 
     _upperBarBuffer = 0;
 
@@ -254,17 +261,15 @@ void octoglow::front_display::display::clear() {
 }
 
 void octoglow::front_display::display::pool() {
+    using octoglow::front_display::clock::milliseconds;
 
-    if (scrollingWaitCounter == 300) {
+    if (const uint8_t now = milliseconds(); static_cast<uint8_t>(now - lastScrollTime) >= SCROLL_INTERVAL_MS) {
+        lastScrollTime = now;
 
         for (auto &scrollingSlot : _scrollingSlots) {
             scrollingSlot.scrollAndLoadIntoFramebuffer();
         }
-
-        scrollingWaitCounter = 0;
     }
-
-    ++scrollingWaitCounter;
 
     hd::displayPool();
 }

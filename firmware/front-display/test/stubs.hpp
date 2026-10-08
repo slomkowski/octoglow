@@ -7,6 +7,11 @@
 namespace octoglow::front_display::test {
     extern int displayPoolCalls;
 
+    /**
+     * Returned by clock::milliseconds().
+     */
+    extern uint8_t milliseconds;
+
     extern uint8_t endYearOfConstruction;
 
     constexpr uint16_t FLASH_SIZE = 8192;

@@ -52,6 +52,7 @@ static std::vector<std::reference_wrapper<_ScrollingSlot>> slots() {
 class DisplayTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        test::milliseconds = 0;
         clear();
         setBrightness(MAX_BRIGHTNESS);
         for (_ScrollingSlot &slot: slots()) {
@@ -455,15 +456,18 @@ TEST_F(DisplayTest, PoolCallsHardwareEveryTime) {
     }
 }
 
-TEST_F(DisplayTest, PoolScrollsEvery300Calls) {
+TEST_F(DisplayTest, PoolScrollsEvery39Milliseconds) {
     writeScrollingText(0, 0, 2, "abcdef");
     writeScrollingText(2, 10, 3, "ghijklmn");
 
-    for (int i = 0; i < 300; ++i) {
-        pool();
+    // the number of calls doesn't matter, only the time
+    for (int ms = 0; ms < 39; ++ms) {
+        for (int i = 0; i < 100; ++i) {
+            pool();
+        }
+        ASSERT_EQ(0, _scrollingSlots[0].currentShift) << ms << " ms";
+        ++test::milliseconds;
     }
-    ASSERT_EQ(0, _scrollingSlots[0].currentShift);
-    ASSERT_EQ(0, _scrollingSlots[2].currentShift);
 
     pool();
     ASSERT_EQ(1, _scrollingSlots[0].currentShift);
@@ -472,14 +476,54 @@ TEST_F(DisplayTest, PoolScrollsEvery300Calls) {
     assertGlyphAt(0, 'a');
     assertGlyphAt(10, 'g');
 
-    for (int i = 0; i < 299; ++i) {
-        pool();
-    }
+    pool();
     ASSERT_EQ(1, _scrollingSlots[0].currentShift);
 
+    test::milliseconds += 38;
+    pool();
+    ASSERT_EQ(1, _scrollingSlots[0].currentShift);
+
+    ++test::milliseconds;
     pool();
     ASSERT_EQ(2, _scrollingSlots[0].currentShift);
     ASSERT_EQ(2, _scrollingSlots[2].currentShift);
+}
+
+TEST_F(DisplayTest, PoolScrollsAcrossMillisecondsWrapAround) {
+    test::milliseconds = 250;
+    clear();
+    writeScrollingText(0, 0, 2, "abcdef");
+
+    test::milliseconds = static_cast<uint8_t>(250 + 38);
+    pool();
+    ASSERT_EQ(0, _scrollingSlots[0].currentShift);
+
+    ++test::milliseconds;
+    pool();
+    ASSERT_EQ(1, _scrollingSlots[0].currentShift);
+}
+
+TEST_F(DisplayTest, PoolScrollsOnceAfterLongPause) {
+    writeScrollingText(0, 0, 2, "abcdef");
+
+    test::milliseconds += 200;
+    pool();
+    pool();
+    pool();
+
+    ASSERT_EQ(1, _scrollingSlots[0].currentShift);
+}
+
+TEST_F(DisplayTest, ClearRestartsScrollInterval) {
+    writeScrollingText(0, 0, 2, "abcdef");
+    test::milliseconds += 30;
+
+    clear();
+    writeScrollingText(0, 0, 2, "abcdef");
+    test::milliseconds += 30;
+    pool();
+
+    ASSERT_EQ(0, _scrollingSlots[0].currentShift);
 }
 
 /*

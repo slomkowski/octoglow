@@ -10,7 +10,7 @@ SET(FREQ "16000000")
 SET(BOOTLOADER_START "0x1800")
 SET(BOOTLOADER_TIMEOUT_MS "1000")
 
-SET(LIBRARY_SOURCES ../noarch/protocol.hpp ../noarch/eeprom.hpp
+SET(LIBRARY_SOURCES ../noarch/protocol.hpp ../noarch/eeprom.hpp ../noarch/clock.hpp
         ../noarch/display.cpp ../noarch/display.hpp
         ../noarch/Font5x7.hpp
         ../noarch/encoder.cpp ../noarch/encoder.hpp

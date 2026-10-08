@@ -1,5 +1,6 @@
 #include "stubs.hpp"
 
+#include "clock.hpp"
 #include "display.hpp"
 #include "flash.hpp"
 #include "eeprom.hpp"
@@ -13,11 +14,17 @@ using namespace octoglow::front_display;
 
 int test::displayPoolCalls = 0;
 
+uint8_t test::milliseconds = 0;
+
 uint8_t test::endYearOfConstruction = 77;
 
 uint8_t test::flash[FLASH_SIZE];
 
 int test::flashPageWrites = 0;
+
+uint8_t clock::milliseconds() {
+    return test::milliseconds;
+}
 
 void display::hd::displayPool() {
     ++test::displayPoolCalls;

@@ -1,4 +1,5 @@
 #include "encoder.hpp"
+#include "clock.hpp"
 
 #include "main.hpp"
 
@@ -98,8 +99,16 @@ ISR(PCINT2_vect) {
 static volatile bool prevButtonState = false;
 static volatile uint8_t currentDebounceIterations = 0;
 
+static volatile uint8_t milliseconds = 0;
+
+uint8_t octoglow::front_display::clock::milliseconds() {
+    return ::milliseconds;
+}
+
 // triggered every 1 ms
 ISR(TIMER0_COMPA_vect) {
+    ++milliseconds;
+
     if (!(PIN(ENC_PORT) & _BV(ENC_BTN_PIN)) and !prevButtonState) {
         ++currentDebounceIterations;
 

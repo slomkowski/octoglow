@@ -10,14 +10,12 @@ static uint8_t currentPosition = 0;
 
 void octoglow::front_display::display::init() {
     vfd::initPins();
-}
-
-static inline void __attribute__((optimize("O3"), hot, always_inline)) holdCharacterOnDisplayInputs(const uint8_t position) {
-    vfd::showCharacter(position, _frameBuffer, _brightness, _upperBarBuffer);
+    vfd::initSlotTimer();
 }
 
 void hd::displayPool() {
-    holdCharacterOnDisplayInputs(currentPosition);
+    vfd::startSlot(vfd::BRIGHTNESS_ON_TICKS[_brightness]);
+    vfd::shiftCharacter(currentPosition, _frameBuffer, _upperBarBuffer);
 
     if (currentPosition == NUM_OF_CHARACTERS - 1) {
         currentPosition = 0;
