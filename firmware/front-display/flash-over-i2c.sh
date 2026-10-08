@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-HEX_FILE=${1:-cmake-build-debug/avr/octoglow-front-display-avr.hex}
+HEX_FILE=${1:-cmake-build-avr/avr/octoglow-front-display-avr.hex}
 I2C_BUS=${2:-1}
 
 APP_ADDRESS=0x14 # i2c::SLAVE_ADDRESS in noarch/i2c-slave.hpp

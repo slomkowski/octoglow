@@ -4,7 +4,7 @@
 # The device name is the name of this directory, as octoglowd --burn-firmware expects.
 #
 # usage: burn-over-ssh.sh [app.hex]
-#   without an argument, the project is built first and cmake-build-debug/avr/octoglow-<device>-avr.hex is used
+#   without an argument, the project is built first and cmake-build-avr/avr/octoglow-<device>-avr.hex is used
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ OCTOGLOWD_DIR='/home/octoglow/octoglowd'
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 DEVICE=$(basename "$SCRIPT_DIR")
-BUILD_DIR="$SCRIPT_DIR/cmake-build-debug"
+BUILD_DIR="$SCRIPT_DIR/cmake-build-avr"
 
 if [[ $# -eq 0 ]]; then
     cmake --build "$BUILD_DIR"

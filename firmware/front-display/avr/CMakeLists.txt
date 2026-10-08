@@ -13,6 +13,10 @@ SET(CMAKE_CXX_COMPILER avr-g++)
 SET(CMAKE_C_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c11 -Wl,--gc-sections -Wall -Wextra -pedantic")
 SET(CMAKE_CXX_FLAGS "-O2 -mmcu=${DEVICE} -DF_CPU=${FREQ}UL -std=c++17 -Wl,--gc-sections -Wall -Wextra -pedantic -fno-exceptions -fno-rtti")
 
+# -O3 of the Release build type would override -O2 above, the application wouldn't fit below the bootloader;
+# the hot display code is optimized with O3 by its attribute anyway
+SET(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
+
 include_directories(../noarch ../avr)
 
 SET(SOURCES
