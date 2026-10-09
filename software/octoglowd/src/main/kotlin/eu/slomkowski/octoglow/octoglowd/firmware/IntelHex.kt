@@ -19,6 +19,18 @@ class FirmwareImage(private val data: Map<Int, Int>) {
     operator fun get(address: Int): Int = data[address] ?: 0xff
 
     fun slice(address: Int, length: Int) = IntArray(length) { get(address + it) }
+
+    /**
+     * The image with the addresses relative to [start], e.g. the start of the flash of MSP430.
+     */
+    fun relativeTo(start: Int): FirmwareImage {
+        if (start == 0) {
+            return this
+        }
+        val firstAddress = data.keys.min()
+        require(firstAddress >= start) { "image starts at 0x${firstAddress.toString(16)}, below the flash start 0x${start.toString(16)}" }
+        return FirmwareImage(data.mapKeys { it.key - start })
+    }
 }
 
 object IntelHex {

@@ -146,4 +146,64 @@ class FirmwareBurnerTest {
         assertThat(e.message).contains("application flash is only 6144 bytes")
         assertThat(device.pageWrites).isZero()
     }
+
+    /**
+     * MSP430 image as in the hex file: code from the start of the flash, the vector table just below the bootloader.
+     */
+    private fun createGeigerImage(codeSize: Int): Map<Int, Int> {
+        val random = Random(codeSize)
+        val data = (0xc000 until 0xc000 + codeSize).associateWith { random.nextInt(256) }.toMutableMap()
+        for (address in 0xfbe0 until 0xfc00 step 2) {
+            data[address] = 0x0c
+            data[address + 1] = 0xc0
+        }
+        return data
+    }
+
+    @Test
+    fun `burns the geiger with the addresses relative to the flash start`() = runTest {
+        val device = TwibootDeviceEmulator(FirmwareTarget.GEIGER)
+        val data = createGeigerImage(9632)
+        val progress = mutableListOf<Pair<Int, Int>>()
+
+        FirmwareBurner(device, FirmwareTarget.GEIGER, onProgress = { w, t -> progress += w to t }).burn(FirmwareImage(data))
+
+        assertThat(device.mode).isEqualTo(TwibootDeviceEmulator.Mode.APPLICATION)
+
+        data.forEach { (address, value) ->
+            assertThat(device.flash[address - 0xc000]).describedAs("byte at 0x%x", address).isEqualTo(value)
+        }
+        assertThat(device.flash.sliceArray(9632 until 0x3be0).all { it == 0xff }).isTrue()
+
+        // the vector table is at the end, so the whole application flash is written
+        assertThat(progress.last()).isEqualTo(240 to 240)
+        assertThat(device.pageWrites).isEqualTo(240)
+        assertThat(device.naks).isZero()
+    }
+
+    @Test
+    fun `refuses a geiger image below the flash`() = runTest {
+        val device = TwibootDeviceEmulator(FirmwareTarget.GEIGER)
+        val data = createGeigerImage(100) + (0xbfff to 0)
+
+        val e = assertThrows<FirmwareBurnException> {
+            FirmwareBurner(device, FirmwareTarget.GEIGER).burn(FirmwareImage(data))
+        }
+
+        assertThat(e.message).contains("below the flash start 0xc000")
+        assertThat(device.mode).isEqualTo(TwibootDeviceEmulator.Mode.APPLICATION)
+    }
+
+    @Test
+    fun `refuses a geiger image overlapping the bootloader`() = runTest {
+        val device = TwibootDeviceEmulator(FirmwareTarget.GEIGER)
+        val data = createGeigerImage(100) + (0xfc00 to 0)
+
+        val e = assertThrows<FirmwareBurnException> {
+            FirmwareBurner(device, FirmwareTarget.GEIGER).burn(FirmwareImage(data))
+        }
+
+        assertThat(e.message).contains("application flash is only 15360 bytes")
+        assertThat(device.pageWrites).isZero()
+    }
 }

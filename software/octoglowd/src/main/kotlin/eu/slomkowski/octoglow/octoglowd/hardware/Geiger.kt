@@ -103,6 +103,10 @@ class Geiger(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x18, 5.mil
         private val logger = KotlinLogging.logger {}
 
         private val CYCLE_MAX_DURATION: Duration = 0xffff.seconds
+
+        internal const val ENTER_BOOTLOADER_COMMAND = 8
+        internal val BOOTLOADER_MAGIC = "BOOT".map { it.code }.toIntArray()
+        const val BOOTLOADER_I2C_ADDRESS = 0x19
     }
 
     override suspend fun initDevice() {
@@ -149,6 +153,15 @@ class Geiger(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x18, 5.mil
                 else -> 0
             }, mode.ordinal
         )
+    }
+
+    /**
+     * Resets the device into the I2C bootloader (firmware/geiger/bootloader), 100 ms after the reply.
+     * The bootloader listens on [BOOTLOADER_I2C_ADDRESS] for 1 s, then starts the application again.
+     * Until then the device doesn't respond on its own address, the inverters are off.
+     */
+    suspend fun enterBootloader() {
+        sendCommand("enter bootloader", ENTER_BOOTLOADER_COMMAND, *BOOTLOADER_MAGIC)
     }
 
     suspend fun setEyeValue(value: Int) {

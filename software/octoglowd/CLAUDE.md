@@ -27,6 +27,7 @@ The jar has a command line (Clikt, `OctoglowCommand` in `main.kt`):
 java -jar octoglowd.jar                                      # run the daemon
 java -jar octoglowd.jar --burn-firmware clock-display x.hex  # upload firmware over I2C instead, then exit
 java -jar octoglowd.jar --burn-firmware front-display x.hex
+java -jar octoglowd.jar --burn-firmware geiger x.hex         # MSP430: absolute addresses, 0xc000 is subtracted
 java -jar octoglowd.jar --help
 ```
 

@@ -77,7 +77,7 @@ private fun burnFirmware(target: FirmwareTarget, hexFile: Path): Int {
         return 1
     }
 
-    logger.info { "Burning $hexFile (${image.endAddress} bytes) to $target..." }
+    logger.info { "Burning $hexFile (${image.endAddress - target.flashStart} bytes) to $target..." }
 
     val config = Config.parse(Paths.get("config.json"))
     // not closed: closing the devices would replace the result on the displays, the process exits anyway

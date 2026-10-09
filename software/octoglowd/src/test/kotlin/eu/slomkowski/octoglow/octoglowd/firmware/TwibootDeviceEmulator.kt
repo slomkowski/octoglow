@@ -14,6 +14,8 @@ import kotlin.time.Duration
  *   is patched and the last byte of a page is NAKed.
  * - [FirmwareTarget.FRONT_DISPLAY]: firmware/front-display/bootloader/twiboot.cpp, TWI: boot section,
  *   no patching, the byte which ends the command is ACKed, only the following bytes are NAKed.
+ * - [FirmwareTarget.GEIGER]: firmware/geiger/bootloader/twiboot.cpp, USCI: no patching (the vector table
+ *   of the application is below the bootloader), all bytes are ACKed, the addresses are relative to the flash start.
  */
 class TwibootDeviceEmulator(
     private val target: FirmwareTarget = FirmwareTarget.CLOCK_DISPLAY,
@@ -24,11 +26,16 @@ class TwibootDeviceEmulator(
         val appAddress: Int,
         val bootloaderStart: Int,
         val flashSize: Int,
-        val usi: Boolean,
+        val slave: Slave,
         val enterBootloaderCommand: Int,
         val checkCommand: Int,
         val checkReply: IntArray,
     )
+
+    /**
+     * I2C peripheral of the bootloader, it determines which bytes are NAKed.
+     */
+    enum class Slave { USI, TWI, USCI }
 
     companion object {
         const val APP_VECTOR_NUM = 9
@@ -43,9 +50,11 @@ class TwibootDeviceEmulator(
 
         private val boards = mapOf(
             // GET_RELAY_STATE
-            FirmwareTarget.CLOCK_DISPLAY to Board(0x10, 0x0c40, 4096, usi = true, 7, 6, intArrayOf(0, 6, 0)),
+            FirmwareTarget.CLOCK_DISPLAY to Board(0x10, 0x0c40, 4096, Slave.USI, 7, 6, intArrayOf(0, 6, 0)),
             // READ_END_YEAR_OF_CONSTRUCTION
-            FirmwareTarget.FRONT_DISPLAY to Board(0x14, 0x1800, 8192, usi = false, 10, 8, intArrayOf(0, 8, 26)),
+            FirmwareTarget.FRONT_DISPLAY to Board(0x14, 0x1800, 8192, Slave.TWI, 10, 8, intArrayOf(0, 8, 26)),
+            // GET_DEVICE_STATE
+            FirmwareTarget.GEIGER to Board(0x18, 0x3c00, 0x4000, Slave.USCI, 8, 1, intArrayOf(0, 1, 100, 1, 42, 3, 1, 50, 1, 77)),
         )
 
         fun rjmp(fromWord: Int, toWord: Int) = 0xc000 or ((toWord - fromWord - 1) and 0x0fff)
@@ -88,7 +97,10 @@ class TwibootDeviceEmulator(
         FirmwareTarget.FRONT_DISPLAY -> FrontDisplayReal(this)
         else -> mockk<FrontDisplay>(relaxed = true)
     }
-    override val geiger = mockk<Geiger>(relaxed = true)
+    override val geiger: Geiger = when (target) {
+        FirmwareTarget.GEIGER -> Geiger(this)
+        else -> mockk<Geiger>(relaxed = true)
+    }
     override val dac = mockk<Dac>(relaxed = true)
     override val scd40 = mockk<Scd40>(relaxed = true)
     override val bme280 = mockk<Bme280>(relaxed = true)
@@ -150,8 +162,13 @@ class TwibootDeviceEmulator(
         data.forEachIndexed { byteNumber, byte ->
             val ack = onDataWrite(byteNumber, byte)
             if (!ack) {
-                // USI NAKs this byte, TWI only the following ones; Linux reports NAK as an error
-                if (board.usi || byteNumber != data.lastIndex) {
+                // USI NAKs this byte, TWI only the following ones, USCI none; Linux reports NAK as an error
+                val naked = when (board.slave) {
+                    Slave.USI -> true
+                    Slave.TWI -> byteNumber != data.lastIndex
+                    Slave.USCI -> false
+                }
+                if (naked) {
                     naks++
                     nak()
                 }
@@ -220,7 +237,7 @@ class TwibootDeviceEmulator(
     private fun writeFlashPage() {
         val pageStart = address
 
-        if (board.usi && pageStart == 0) {
+        if (board.slave == Slave.USI && pageStart == 0) {
             savedResetVector = pageBuffer[0] or (pageBuffer[1] shl 8)
             savedAppVector = pageBuffer[APP_VECTOR_NUM * 2] or (pageBuffer[APP_VECTOR_NUM * 2 + 1] shl 8)
 
@@ -232,8 +249,8 @@ class TwibootDeviceEmulator(
             pageBuffer[APP_VECTOR_NUM * 2 + 1] = appVector shr 8
         }
 
-        // the TWI bootloader also ignores unaligned pages
-        if (pageStart >= board.bootloaderStart || (!board.usi && pageStart % PAGE_SIZE != 0)) {
+        // the TWI and USCI bootloaders also ignore unaligned pages
+        if (pageStart >= board.bootloaderStart || (board.slave != Slave.USI && pageStart % PAGE_SIZE != 0)) {
             return
         }
 
@@ -256,7 +273,7 @@ class TwibootDeviceEmulator(
 
         CMD_ACCESS_FLASH -> {
             val data = when {
-                !board.usi -> flash[address]
+                board.slave != Slave.USI -> flash[address]
                 address == 0 -> savedResetVector and 0xff
                 address == 1 -> savedResetVector shr 8
                 address == APP_VECTOR_NUM * 2 -> savedAppVector and 0xff

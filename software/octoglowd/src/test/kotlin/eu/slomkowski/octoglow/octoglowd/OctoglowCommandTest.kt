@@ -60,6 +60,6 @@ class OctoglowCommandTest {
     @Test
     fun `help describes firmware burning`() {
         val help = OctoglowCommand().getFormattedHelp()
-        assertThat(help).contains("--burn-firmware=<device hex_file>").contains("Supported devices: clock-display, front-display.")
+        assertThat(help).contains("--burn-firmware=<device hex_file>").contains("Supported devices: clock-display, front-display, geiger.")
     }
 }

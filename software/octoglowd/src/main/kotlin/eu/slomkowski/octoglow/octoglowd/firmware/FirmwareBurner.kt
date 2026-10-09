@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.firmware
 
 import eu.slomkowski.octoglow.octoglowd.hardware.ClockDisplay
 import eu.slomkowski.octoglow.octoglowd.hardware.FrontDisplayReal
+import eu.slomkowski.octoglow.octoglowd.hardware.Geiger
 import eu.slomkowski.octoglow.octoglowd.hardware.Hardware
 import eu.slomkowski.octoglow.octoglowd.hardware.Twiboot
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -22,14 +23,29 @@ enum class FirmwareTarget(
     val commandLineName: String,
     val bootloaderI2cAddress: Int,
     val signature: Int,
+    /**
+     * Address of the hex file which corresponds to the address 0 of the bootloader's protocol.
+     */
+    val flashStart: Int = 0,
+    /**
+     * Erase + write of one page, the bootloader may also stretch the clock.
+     */
+    val pageWriteTime: Duration = 10.milliseconds,
 ) {
     CLOCK_DISPLAY("clock-display", ClockDisplay.BOOTLOADER_I2C_ADDRESS, 0x1e9208), // ATtiny461A
     FRONT_DISPLAY("front-display", FrontDisplayReal.BOOTLOADER_I2C_ADDRESS, 0x1e930f), // ATmega88P
+
+    /**
+     * MSP430G2553, its device ID instead of the signature. The page is written after STOP and the first page
+     * of a 512-byte segment erases it, see firmware/geiger/bootloader/twiboot.hpp.
+     */
+    GEIGER("geiger", Geiger.BOOTLOADER_I2C_ADDRESS, 0x002553, flashStart = 0xc000, pageWriteTime = 30.milliseconds),
     ;
 
     suspend fun enterBootloader(hardware: Hardware) = when (this) {
         CLOCK_DISPLAY -> hardware.clockDisplay.enterBootloader()
         FRONT_DISPLAY -> hardware.frontDisplay.enterBootloader()
+        GEIGER -> hardware.geiger.enterBootloader()
     }
 
     /**
@@ -39,6 +55,7 @@ enum class FirmwareTarget(
         when (this) {
             CLOCK_DISPLAY -> hardware.clockDisplay.retrieveRelaysState()
             FRONT_DISPLAY -> hardware.frontDisplay.getEndOfConstructionYearInternal()
+            GEIGER -> hardware.geiger.getDeviceState()
         }
     }
 
@@ -63,14 +80,22 @@ class FirmwareBurner(
         private val logger = KotlinLogging.logger {}
 
         private val pollInterval = 20.milliseconds
-        private val pageWriteTime = 10.milliseconds // erase + write of one page, the bootloader also stretches the clock
         private val applicationStartTime = 300.milliseconds
         private const val PAGE_WRITE_ATTEMPTS = 3
     }
 
     private val twiboot = Twiboot(hardware, target.bootloaderI2cAddress)
 
-    suspend fun burn(image: FirmwareImage) {
+    /**
+     * @param hexImage as read from the hex file, [FirmwareTarget.flashStart] is subtracted from its addresses
+     */
+    suspend fun burn(hexImage: FirmwareImage) {
+        val image = try {
+            hexImage.relativeTo(target.flashStart)
+        } catch (e: IllegalArgumentException) {
+            throw FirmwareBurnException(e.message ?: "invalid image", e)
+        }
+
         enterBootloader()
 
         val version = twiboot.readVersion()
@@ -143,7 +168,7 @@ class FirmwareBurner(
 
         repeat(PAGE_WRITE_ATTEMPTS) { attempt ->
             twiboot.writeFlashPage(address, data)
-            delay(pageWriteTime)
+            delay(target.pageWriteTime)
 
             try {
                 val readBack = twiboot.readFlash(address, data.size)
