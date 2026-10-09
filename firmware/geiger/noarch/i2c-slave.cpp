@@ -13,9 +13,12 @@ static volatile uint8_t bytesProcessed = 0;
 static volatile uint8_t numberOfBytesToTransmit = 0;
 static volatile bool bufferLoadedWithData = false;
 
+volatile bool i2c::bootloaderRequested = false;
+
 static_assert(sizeof(buffer) >= 4, "buffer has to have at least 4 bytes");
 static_assert(sizeof(buffer) >= sizeof(GeigerState) + 2, "buffer has to contain whole GeigerState structure");
 static_assert(sizeof(buffer) >= sizeof(DeviceState) + 2, "buffer has to contain whole DeviceState structure");
+static_assert(sizeof(buffer) >= sizeof(BOOTLOADER_MAGIC) + 2, "buffer has to contain the bootloader magic");
 
 void i2c::onTransmit(uint8_t volatile *value) {
     *value = buffer[bytesProcessed];
@@ -156,6 +159,22 @@ void i2c::processDataIfAvailable() {
             }
             magiceye::configure(*reinterpret_cast<volatile EyeConfiguration *>(buffer + 2));
             setCrcForSimpleCommand();
+        }
+    } else if (bytesProcessed == sizeof(BOOTLOADER_MAGIC) + 2) {
+        if (cmd == Command::ENTER_BOOTLOADER) {
+            if (checkCrc8fails()) {
+                return;
+            }
+            bool magicMatches = true;
+            for (uint8_t i = 0; i != sizeof(BOOTLOADER_MAGIC); ++i) {
+                if (buffer[2 + i] != BOOTLOADER_MAGIC[i]) {
+                    magicMatches = false;
+                }
+            }
+            if (magicMatches) {
+                i2c::bootloaderRequested = true;
+                setCrcForSimpleCommand();
+            }
         }
     }
 

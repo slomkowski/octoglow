@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 using namespace octoglow::geiger;
@@ -32,6 +33,11 @@ volatile protocol::DeviceState &hd::getDeviceState() {
     deviceState.eyePwmValue = 7;
 
     return deviceState;
+}
+
+void geiger_counter::hd::resetDischargeToDefault() {
+    geiger_counter::hd::dischargeState = geiger_counter::DischargeState::WAITING_FOR_RISING_VOLTAGE;
+    geiger_counter::hd::noCyclesSinceLastDischargeStateChange = 0;
 }
 
 static void assertReadIs(const uint8_t expected) {
@@ -245,4 +251,54 @@ TEST(I2C, WriteCommands) {
     onReceive(6);
     onStop();
     processDataIfAvailable();
+}
+
+static uint8_t crc8ccitt(const vector<uint8_t> &bytes) {
+    uint8_t crc = 0;
+    for (const auto b: bytes) {
+        crc ^= b;
+        for (int i = 0; i < 8; ++i) {
+            crc = (crc & 0x80) ? (crc << 1) ^ 0x07 : crc << 1;
+        }
+    }
+    return crc;
+}
+
+static void sendCommand(const vector<uint8_t> &commandAndPayload) {
+    onStart();
+    onReceive(crc8ccitt(commandAndPayload));
+    for (const auto b: commandAndPayload) {
+        onReceive(b);
+    }
+    onStop();
+    processDataIfAvailable();
+}
+
+TEST(I2C, EnterBootloader) {
+    bootloaderRequested = false;
+
+    // wrong magic is ignored
+    sendCommand({static_cast<uint8_t>(protocol::Command::ENTER_BOOTLOADER), 'B', 'O', 'O', 'X'});
+    ASSERT_FALSE(bootloaderRequested);
+
+    // wrong CRC is ignored
+    onStart();
+    onReceive(0x55);
+    for (const uint8_t b: vector<uint8_t>{static_cast<uint8_t>(protocol::Command::ENTER_BOOTLOADER), 'B', 'O', 'O', 'T'}) {
+        onReceive(b);
+    }
+    onStop();
+    processDataIfAvailable();
+    ASSERT_FALSE(bootloaderRequested);
+
+    sendCommand({static_cast<uint8_t>(protocol::Command::ENTER_BOOTLOADER), 'B', 'O', 'O', 'T'});
+    ASSERT_TRUE(bootloaderRequested);
+
+    // the same reply as flash-over-i2c.sh expects
+    ASSERT_EQ(0x5c, crc8ccitt({8, 'B', 'O', 'O', 'T'}));
+    onStart();
+    assertReadIs(crc8ccitt({8}));
+    assertReadIs(8);
+
+    bootloaderRequested = false;
 }

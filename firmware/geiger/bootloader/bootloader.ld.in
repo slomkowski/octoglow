@@ -1,0 +1,53 @@
+/*
+ * Linker script of the bootloader, configured by CMake. The bootloader occupies the flash from
+ * @BOOTLOADER_START@ to the end, including the vector table. 0xffde (the signature of the ROM BSL) stays erased.
+ */
+
+OUTPUT_ARCH(msp430)
+ENTRY(_start)
+
+MEMORY {
+  RAM     : ORIGIN = 0x0200, LENGTH = 0x0200
+  ROM     : ORIGIN = @BOOTLOADER_START@, LENGTH = 0xffde - @BOOTLOADER_START@
+  VECTORS : ORIGIN = 0xffe0, LENGTH = 0x0020
+}
+
+SECTIONS
+{
+  .text :
+  {
+    KEEP (*(.text.start))
+    *(.text .text.*)
+    . = ALIGN(2);
+    *(.rodata .rodata.* .const .const:*)
+    . = ALIGN(2);
+  } > ROM
+
+  .vectors :
+  {
+    KEEP (*(.vectors))
+  } > VECTORS
+
+  .data :
+  {
+    *(.data .data.* .sdata .sdata.*)
+  } > RAM AT> ROM
+
+  .bss (NOLOAD) :
+  {
+    . = ALIGN(2);
+    PROVIDE (__bssstart = .);
+    *(.bss .bss.* .sbss .sbss.* COMMON)
+    . = ALIGN(2);
+    PROVIDE (__bssend = .);
+  } > RAM
+
+  __stack = ORIGIN (RAM) + LENGTH (RAM);
+
+  /DISCARD/ : { *(.note.GNU-stack) *(.init_array* .fini_array* .ctors* .dtors*) }
+}
+
+ASSERT (SIZEOF (.data) == 0, "the bootloader can't have initialized data, it doesn't copy it")
+ASSERT (SIZEOF (.vectors) == 0x20, "incomplete vector table")
+
+INCLUDE msp430g2553_symbols.ld

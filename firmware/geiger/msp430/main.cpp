@@ -14,6 +14,21 @@ namespace octoglow::geiger {
     volatile bool timerTicked = false;
 }
 
+/**
+ * Time for the host to read the reply to ENTER_BOOTLOADER, in ticks.
+ */
+constexpr uint8_t BOOTLOADER_ENTRY_DELAY_TICKS = TICK_TIMER_FREQ / 10;
+
+/**
+ * Writing WDTCTL without the password resets the MCU immediately, the bootloader starts.
+ */
+[[noreturn]] static void resetIntoBootloader() {
+    inverter::setPwmOutputsToSafeState();
+    WDTCTL = 0;
+    while (true) {
+    }
+}
+
 static inline void configureClockSystem() {
     BCSCTL3 = LFXT1S_3 | XCAP_0;
 
@@ -62,6 +77,8 @@ __interrupt_vec(TRAPINT_VECTOR) [[noreturn]] void trapHandler() {
     __enable_interrupt();
     __nop();
 
+    uint8_t bootloaderEntryTicks = 0;
+
     while (true) {
         if (timerTicked) {
             P1OUT |= BIT0; // pin no 2
@@ -73,6 +90,10 @@ __interrupt_vec(TRAPINT_VECTOR) [[noreturn]] void trapHandler() {
             inverter::tick();
             magiceye::tick();
             geiger_counter::tick();
+
+            if (i2c::bootloaderRequested and ++bootloaderEntryTicks == BOOTLOADER_ENTRY_DELAY_TICKS) {
+                resetIntoBootloader();
+            }
 
             P1OUT &= ~BIT0;
         }

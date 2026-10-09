@@ -26,7 +26,12 @@ namespace octoglow::geiger::protocol {
         SET_EYE_CONFIGURATION,
         SET_EYE_DISPLAY_VALUE,
         SET_BRIGHTNESS,
+        ENTER_BOOTLOADER, // payload: BOOTLOADER_MAGIC, the device resets into the bootloader after the reply is read
     };
+
+    constexpr uint8_t BOOTLOADER_MAGIC[] = {'B', 'O', 'O', 'T'};
+
+    static_assert(static_cast<uint8_t>(Command::ENTER_BOOTLOADER) == 8, "hardcoded in flash-over-i2c.sh");
 
     struct DeviceState {
         uint16_t geigerVoltage;
