@@ -20,6 +20,16 @@ static uint8_t nextByteNumber() {
     return result;
 }
 
+/**
+ * Own address received, a new transmission begins.
+ */
+static void handleStartIfPending() {
+    if (UCB0STAT & UCSTTIFG) {
+        UCB0STAT &= ~UCSTTIFG;
+        byteCounter = 0;
+    }
+}
+
 void usci_slave::init() {
     byteCounter = 0;
 
@@ -36,12 +46,13 @@ void usci_slave::init() {
  * the next transmission may already have started and delivered its first byte. The last byte of the previous
  * transmission is always processed before, the loop polls much faster than one byte on the bus, except
  * when the flash is written, which happens only after STOP.
+ *
+ * UCB0TXIFG of a master read is set together with UCSTTIFG, possibly after START was checked at the beginning
+ * of this call, so START is checked again before TXBUF is written. Otherwise the first byte would be the one
+ * numbered by the counter of the previous (write) transmission, seen as an extra byte at the beginning.
  */
 void usci_slave::poll() {
-    if (UCB0STAT & UCSTTIFG) {
-        UCB0STAT &= ~UCSTTIFG;
-        byteCounter = 0;
-    }
+    handleStartIfPending();
 
     if (IFG2 & UCB0RXIFG) {
         const uint8_t data = UCB0RXBUF;
@@ -54,6 +65,7 @@ void usci_slave::poll() {
     }
 
     if (IFG2 & UCB0TXIFG) {
+        handleStartIfPending();
         UCB0TXBUF = twiboot::onDataRead(nextByteNumber());
     }
 }
