@@ -13,6 +13,11 @@ static volatile uint8_t bytesProcessed = 0;
 static volatile uint8_t numberOfBytesToTransmit = 0;
 static volatile bool bufferLoadedWithData = false;
 
+/**
+ * Only a master write carries a command; STOP after a master read must not process the reply as a command.
+ */
+static volatile bool bytesReceived = false;
+
 volatile bool i2c::bootloaderRequested = false;
 
 static_assert(sizeof(buffer) >= 4, "buffer has to have at least 4 bytes");
@@ -21,6 +26,11 @@ static_assert(sizeof(buffer) >= sizeof(DeviceState) + 2, "buffer has to contain 
 static_assert(sizeof(buffer) >= sizeof(BOOTLOADER_MAGIC) + 2, "buffer has to contain the bootloader magic");
 
 void i2c::onTransmit(uint8_t volatile *value) {
+    if (bytesProcessed >= sizeof(buffer)) {
+        *value = 0;
+        return;
+    }
+
     *value = buffer[bytesProcessed];
     ++bytesProcessed;
     --numberOfBytesToTransmit;
@@ -32,6 +42,7 @@ void i2c::onTransmit(uint8_t volatile *value) {
 
 void i2c::onStart() {
     bytesProcessed = 0;
+    bytesReceived = false;
 }
 
 __attribute__((optimize("O3"), hot))
@@ -63,6 +74,14 @@ static inline bool checkCrc8fails() {
     return false;
 }
 
+/**
+ * The same reply as for the wrong CRC: the command NONE doesn't match the request, so the host sees it as failed.
+ */
+static inline void rejectCommand() {
+    buffer[0] = 0;
+    buffer[1] = static_cast<uint8_t>(Command::NONE);
+}
+
 __attribute__((optimize("O3"), hot))
 static inline void setCrcForSimpleCommand() {
     numberOfBytesToTransmit = 2;
@@ -92,10 +111,13 @@ void i2c::onReceive(const uint8_t value) {
 
     buffer[bytesProcessed] = value;
     ++bytesProcessed;
+    bytesReceived = true;
 }
 
 void i2c::onStop() {
-    bufferLoadedWithData = true;
+    if (bytesReceived) {
+        bufferLoadedWithData = true;
+    }
 }
 
 void i2c::processDataIfAvailable() {
@@ -151,14 +173,25 @@ void i2c::processDataIfAvailable() {
             if (checkCrc8fails()) {
                 return;
             }
-            geiger_counter::configure(*reinterpret_cast<volatile GeigerConfiguration *>(buffer + 2));
-            setCrcForSimpleCommand();
+            const GeigerConfiguration configuration{static_cast<uint16_t>(buffer[2] | (buffer[3] << 8))};
+            if (configuration.cycleLength == 0) {
+                rejectCommand();
+            } else {
+                geiger_counter::configure(configuration);
+                setCrcForSimpleCommand();
+            }
         } else if (cmd == Command::SET_EYE_CONFIGURATION) {
             if (checkCrc8fails()) {
                 return;
             }
-            magiceye::configure(*reinterpret_cast<volatile EyeConfiguration *>(buffer + 2));
-            setCrcForSimpleCommand();
+            // the raw bytes aren't valid bool and enum values in general
+            if (buffer[3] > static_cast<uint8_t>(EyeDisplayMode::FIXED_VALUE)) {
+                rejectCommand();
+            } else {
+                const EyeConfiguration configuration{buffer[2] != 0, static_cast<EyeDisplayMode>(buffer[3])};
+                magiceye::configure(configuration);
+                setCrcForSimpleCommand();
+            }
         }
     } else if (bytesProcessed == sizeof(BOOTLOADER_MAGIC) + 2) {
         if (cmd == Command::ENTER_BOOTLOADER) {

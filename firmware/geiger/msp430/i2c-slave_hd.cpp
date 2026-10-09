@@ -43,15 +43,21 @@ __interrupt_vec(USCIAB0TX_VECTOR) void USCIAB0TX_ISR() {
 
 /**
  * State machine interrupt. Called on I2C start, stop, nack etc. TI's naming is confusing.
+ * STOP of the previous transmission and START of the next one may both be pending, STOP is older.
+ * Each flag is cleared before it's handled, so a flag set meanwhile isn't lost.
  */
 __interrupt_vec(USCIAB0RX_VECTOR) void USCIAB0RX_ISR() {
     if (UCB0STAT & UCSTPIFG) {
+        UCB0STAT &= ~UCSTPIFG;
         i2c::onStop();
-    } else {
+    }
+
+    if (UCB0STAT & UCSTTIFG) {
+        UCB0STAT &= ~UCSTTIFG;
         i2c::onStart();
     }
 
-    UCB0STAT &= ~(UCSTPIFG + UCSTTIFG + UCNACKIFG + UCALIFG); // Clear interrupt flags
+    UCB0STAT &= ~(UCNACKIFG + UCALIFG);
 }
 
 volatile protocol::DeviceState &i2c::hd::getDeviceState() {

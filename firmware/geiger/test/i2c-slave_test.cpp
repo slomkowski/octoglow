@@ -35,11 +35,6 @@ volatile protocol::DeviceState &hd::getDeviceState() {
     return deviceState;
 }
 
-void geiger_counter::hd::resetDischargeToDefault() {
-    geiger_counter::hd::dischargeState = geiger_counter::DischargeState::WAITING_FOR_RISING_VOLTAGE;
-    geiger_counter::hd::noCyclesSinceLastDischargeStateChange = 0;
-}
-
 static void assertReadIs(const uint8_t expected) {
     uint8_t readValue;
     onTransmit(&readValue);
@@ -301,4 +296,127 @@ TEST(I2C, EnterBootloader) {
     assertReadIs(8);
 
     bootloaderRequested = false;
+}
+
+/**
+ * Master read of the reply, followed by STOP, as the USCI interrupts deliver it.
+ */
+static vector<uint8_t> readReply(const size_t length) {
+    vector<uint8_t> reply;
+    onStart();
+    for (size_t i = 0; i < length; ++i) {
+        uint8_t value;
+        onTransmit(&value);
+        reply.push_back(value);
+    }
+    onStop();
+    processDataIfAvailable();
+    return reply;
+}
+
+static vector<uint8_t> simpleReply(const protocol::Command command) {
+    const auto c = static_cast<uint8_t>(command);
+    return {crc8ccitt({c}), c};
+}
+
+static const vector<uint8_t> REJECTED_REPLY = {0, static_cast<uint8_t>(protocol::Command::NONE)};
+
+TEST(I2C, ReadingReplyDoesNotRepeatCommand) {
+    sendCommand({static_cast<uint8_t>(protocol::Command::CLEAN_GEIGER_STATE)});
+
+    geiger_counter::hd::numOfCountsCurrentCycle = 33;
+
+    // the reply has the command and its CRC, STOP after it mustn't execute it again
+    ASSERT_EQ(simpleReply(protocol::Command::CLEAN_GEIGER_STATE), readReply(2));
+    ASSERT_EQ(33, geiger_counter::hd::numOfCountsCurrentCycle);
+
+    // also with the byte the USCI prefetches after the last one
+    const auto replyWithPrefetchedByte = readReply(3);
+    ASSERT_EQ(simpleReply(protocol::Command::CLEAN_GEIGER_STATE), vector<uint8_t>(replyWithPrefetchedByte.begin(), replyWithPrefetchedByte.begin() + 2));
+    ASSERT_EQ(33, geiger_counter::hd::numOfCountsCurrentCycle);
+}
+
+TEST(I2C, ReadBeyondBufferReturnsZero) {
+    sendCommand({static_cast<uint8_t>(protocol::Command::CLEAN_GEIGER_STATE)});
+
+    const auto reply = readReply(40);
+
+    ASSERT_EQ(simpleReply(protocol::Command::CLEAN_GEIGER_STATE), vector<uint8_t>(reply.begin(), reply.begin() + 2));
+    ASSERT_EQ(vector<uint8_t>(24, 0), vector<uint8_t>(reply.begin() + 16, reply.end()));
+}
+
+TEST(I2C, LongWriteIsIgnored) {
+    currentAdcValue = 1;
+
+    vector<uint8_t> bytes(30, static_cast<uint8_t>(protocol::Command::SET_EYE_DISPLAY_VALUE));
+    sendCommand(bytes);
+
+    ASSERT_EQ(1, currentAdcValue);
+}
+
+TEST(I2C, WrongCrcIsRejected) {
+    currentAdcValue = 1;
+
+    onStart();
+    onReceive(0x00);
+    onReceive(static_cast<uint8_t>(protocol::Command::SET_EYE_DISPLAY_VALUE));
+    onReceive(200);
+    onStop();
+    processDataIfAvailable();
+    processDataIfAvailable();
+
+    ASSERT_EQ(1, currentAdcValue);
+    ASSERT_EQ(REJECTED_REPLY, readReply(2));
+
+    // the next command works
+    sendCommand({static_cast<uint8_t>(protocol::Command::SET_EYE_DISPLAY_VALUE), 200});
+    ASSERT_EQ(200, currentAdcValue);
+    ASSERT_EQ(simpleReply(protocol::Command::SET_EYE_DISPLAY_VALUE), readReply(2));
+}
+
+TEST(I2C, InvalidEyeModeIsRejected) {
+    sendCommand({static_cast<uint8_t>(protocol::Command::SET_EYE_CONFIGURATION), 0, 1});
+    assertEq(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
+
+    sendCommand({static_cast<uint8_t>(protocol::Command::SET_EYE_CONFIGURATION), 0, 2});
+
+    assertEq(protocol::EyeDisplayMode::FIXED_VALUE, magiceye::animationMode);
+    ASSERT_EQ(REJECTED_REPLY, readReply(2));
+}
+
+TEST(I2C, EyeEnabledByAnyNonZeroByte) {
+    sendCommand({static_cast<uint8_t>(protocol::Command::SET_EYE_CONFIGURATION), 0, 1});
+    assertEq(protocol::EyeInverterState::DISABLED, magiceye::state);
+
+    sendCommand({static_cast<uint8_t>(protocol::Command::SET_EYE_CONFIGURATION), 0x80, 1});
+    ASSERT_NE(protocol::EyeInverterState::DISABLED, static_cast<protocol::EyeInverterState>(magiceye::state));
+    ASSERT_EQ(simpleReply(protocol::Command::SET_EYE_CONFIGURATION), readReply(2));
+
+    sendCommand({static_cast<uint8_t>(protocol::Command::SET_EYE_CONFIGURATION), 0, 1});
+    assertEq(protocol::EyeInverterState::DISABLED, magiceye::state);
+}
+
+TEST(I2C, ZeroCycleLengthIsRejected) {
+    sendCommand({static_cast<uint8_t>(protocol::Command::SET_GEIGER_CONFIGURATION), 0x2c, 0x01});
+    ASSERT_EQ(300, static_cast<uint16_t>(geiger_counter::geigerState.cycleLength));
+    ASSERT_EQ(simpleReply(protocol::Command::SET_GEIGER_CONFIGURATION), readReply(2));
+
+    sendCommand({static_cast<uint8_t>(protocol::Command::SET_GEIGER_CONFIGURATION), 0, 0});
+
+    ASSERT_EQ(300, static_cast<uint16_t>(geiger_counter::geigerState.cycleLength));
+    ASSERT_EQ(REJECTED_REPLY, readReply(2));
+}
+
+TEST(I2C, GetGeigerStateClearsNewCycleFlag) {
+    sendCommand({static_cast<uint8_t>(protocol::Command::CLEAN_GEIGER_STATE)});
+    readReply(2);
+
+    sendCommand({static_cast<uint8_t>(protocol::Command::GET_GEIGER_STATE)});
+    auto reply = readReply(2 + sizeof(protocol::GeigerState));
+    ASSERT_EQ(crc8ccitt(vector<uint8_t>(reply.begin() + 1, reply.end())), reply[0]);
+    ASSERT_EQ(1, reply[2] & 0b1);
+
+    sendCommand({static_cast<uint8_t>(protocol::Command::GET_GEIGER_STATE)});
+    reply = readReply(2 + sizeof(protocol::GeigerState));
+    ASSERT_EQ(0, reply[2] & 0b1);
 }

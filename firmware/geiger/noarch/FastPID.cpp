@@ -25,11 +25,12 @@ int16_t fastpid::FastPID::step(int16_t sp, int16_t fb) {
         // int17 * int16 = int33
         _sum += int64_t(err) * int64_t(_i);
 
-        // Limit sum to 32-bit signed value so that it saturates, never overflows.
-        if (_sum > INTEG_MAX)
-            _sum = INTEG_MAX;
-        else if (_sum < INTEG_MIN)
-            _sum = INTEG_MIN;
+        // Anti-windup: the integral alone never exceeds the output range (it also fits 32 bits then),
+        // otherwise a long saturation (e.g. the inverter starting from 0 V) would take as long to unwind.
+        if (_sum > _outmax)
+            _sum = _outmax;
+        else if (_sum < _outmin)
+            _sum = _outmin;
 
         // int32
         I = _sum;

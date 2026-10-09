@@ -94,9 +94,9 @@ uint8_t octoglow::geiger::magiceye::_animate(const bool hasBeenGeigerCountInLast
             step = fix16_div(fix16_sub(previousValue, base), F16(CYCLES_TO_BACK_TO_NORMAL));
         }
     } else if (currentMode == CurrentMode::BACKING_TO_NORMAL) {
-        previousValue = fix16_sub(previousValue, step);
         if (cycleCounter < CYCLES_TO_BACK_TO_NORMAL) {
             ++cycleCounter;
+            previousValue = fix16_sub(previousValue, step);
         } else {
             currentMode = CurrentMode::NORMAL;
             cycleCounter = 0;

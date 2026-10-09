@@ -4,8 +4,6 @@
 
 #include <inttypes.h>
 
-#define INTEG_MAX    (INT32_MAX)
-#define INTEG_MIN    (INT32_MIN)
 #define DERIV_MAX    (INT16_MAX)
 #define DERIV_MIN    (INT16_MIN)
 

@@ -16,7 +16,7 @@ include_directories(../../lib/libfixmath/libfixmath)
 add_definitions(-DTWIBOOT_START=${BOOTLOADER_START} -DTWIBOOT_TIMEOUT_MS=${BOOTLOADER_TIMEOUT_MS})
 SET(BOOTLOADER_SOURCES ../bootloader/twiboot.cpp ../bootloader/twiboot.hpp ../bootloader/flash.hpp)
 
-SET(SOURCES common.hpp magiceye_test.cpp inverter_test.cpp i2c-slave_test.cpp twiboot_test.cpp)
+SET(SOURCES common.hpp magiceye_test.cpp inverter_test.cpp i2c-slave_test.cpp twiboot_test.cpp geiger-counter_test.cpp)
 
 enable_testing()
 

@@ -18,10 +18,13 @@ namespace octoglow::geiger::geiger_counter {
 using namespace octoglow::geiger;
 using namespace octoglow::geiger::geiger_counter;
 
-static uint16_t numberOfTicks = 0;
+// counted in seconds: the cycle can be up to 0xffff s long, the ticks wouldn't fit 16 bits (int on MSP430)
+static uint8_t ticksInSecond = 0;
+static_assert(octoglow::geiger::TICK_TIMER_FREQ <= UINT8_MAX);
+static uint16_t secondsInCycle = 0;
 
 void geiger_counter::tick() {
-    if (numberOfTicks == geigerState.cycleLength * TICK_TIMER_FREQ) {
+    if (secondsInCycle >= geigerState.cycleLength) {
         geigerState.numOfCountsCurrentCycle = 0;
         geigerState.numOfCountsPreviousCycle = hd::numOfCountsCurrentCycle;
         hd::numOfCountsCurrentCycle = 0;
@@ -29,9 +32,11 @@ void geiger_counter::tick() {
         geigerState.hasNewCycleStarted = true;
         geigerState.hasCycleEverCompleted = true;
 
-        numberOfTicks = 0;
-    } else {
-        ++numberOfTicks;
+        ticksInSecond = 0;
+        secondsInCycle = 0;
+    } else if (++ticksInSecond == TICK_TIMER_FREQ) {
+        ticksInSecond = 0;
+        ++secondsInCycle;
     }
 }
 
@@ -53,11 +58,12 @@ void geiger_counter::pollGeigerCounterState() {
 
 void geiger_counter::updateGeigerState() {
     geigerState.numOfCountsCurrentCycle = hd::numOfCountsCurrentCycle;
-    geigerState.currentCycleProgress = numberOfTicks / TICK_TIMER_FREQ;
+    geigerState.currentCycleProgress = secondsInCycle;
 }
 
 void geiger_counter::resetCounters() {
-    numberOfTicks = 0;
+    ticksInSecond = 0;
+    secondsInCycle = 0;
     hd::numOfCountsCurrentCycle = 0;
 
     geigerState.hasCycleEverCompleted = false;
