@@ -9,6 +9,14 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 interface Demon {
+    /**
+     * Called once before [createJobs]. I/O needed to set the demon up (I2C, database, network)
+     * goes here, not to the constructor.
+     */
+    suspend fun init() {
+        // do nothing
+    }
+
     fun createJobs(scope: CoroutineScope): List<Job>
 
     fun close(scope: CoroutineScope) {

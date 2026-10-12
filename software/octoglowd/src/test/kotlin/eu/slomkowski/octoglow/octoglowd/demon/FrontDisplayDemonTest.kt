@@ -71,6 +71,7 @@ class FrontDisplayDemonTest {
         coEvery { v2.redrawDisplay(true, true, any(), any(), any()) } just Runs
 
         val d = FrontDisplayDemon(defaultTestConfig, backgroundScope, hardware, listOf(v1, v2), emptyList(), mockk(), mockk(), realTimeClockDemon)
+        d.init()
 
         // poll() no longer draws anything itself, it only queues the request - the dedicated job has
         // to be running, and has to drain between the two polls or the second request would simply

@@ -83,6 +83,13 @@ private fun burnFirmware(target: FirmwareTarget, hexFile: Path): Int {
     // not closed: closing the devices would replace the result on the displays, the process exits anyway
     val hardware = HardwareReal(config)
 
+    // not hardware.init(): the other boards don't have to be initialized, and the one being updated may be in the bootloader
+    try {
+        runBlocking { hardware.frontDisplay.initDevice() }
+    } catch (e: Exception) {
+        logger.warn { "Cannot initialize the front display: ${e.message}" }
+    }
+
     // the front display can't show the progress of its own update, only the result
     val showProgress = target != FirmwareTarget.FRONT_DISPLAY
 
@@ -137,6 +144,7 @@ private fun runDaemon() {
 
     val mqttDemon = MqttDemon(config, eventBus, commandBus)
     val hardware = HardwareReal(config)
+    runBlocking { hardware.init() }
     val database = DatabaseDemon(config.databaseFile, eventBus, config.historicalValuesRetention)
 
     val frontDisplayViews2 = listOf(
@@ -215,6 +223,14 @@ private fun runDaemon() {
         demons.forEach {
             launch {
                 delay(Random.nextLong(1500, 4000))
+                try {
+                    it.init()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // the jobs are started anyway, like the demons whose polling fails
+                    logger.error(e) { "Failed to initialize $it." }
+                }
                 it.createJobs(workerScope)
             }
         }

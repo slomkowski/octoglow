@@ -276,12 +276,12 @@ class FrontDisplayDemon(
     init {
         require(frontDisplayViews.isNotEmpty())
 
-        runBlocking {
-            hardware.frontDisplay.clear()
-            hardware.frontDisplay.getButtonReport() // resets any remaining button state
-        }
-
         stateExecutor = createStateMachineExecutor()
+    }
+
+    override suspend fun init() {
+        hardware.frontDisplay.clear()
+        hardware.frontDisplay.getButtonReport() // resets any remaining button state
     }
 
     private fun getNeighbourView(info: ViewInfo, number: Int): ViewInfo = when (number) {

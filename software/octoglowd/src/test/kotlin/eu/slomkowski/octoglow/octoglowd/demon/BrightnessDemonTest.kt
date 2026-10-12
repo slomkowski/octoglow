@@ -58,6 +58,7 @@ class BrightnessDemonTest {
         )
 
         runBlocking {
+            bd.init()
             bd.poll()
 
             bd.setForcedMode(3)

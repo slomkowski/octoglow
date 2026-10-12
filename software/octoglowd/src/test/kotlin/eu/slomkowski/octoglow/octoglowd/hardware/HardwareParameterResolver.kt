@@ -2,6 +2,7 @@ package eu.slomkowski.octoglow.octoglowd.hardware
 
 import eu.slomkowski.octoglow.octoglowd.defaultTestConfig
 import io.helins.linux.i2c.I2CBus
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
@@ -26,6 +27,7 @@ class HardwareParameterResolver : ParameterResolver {
         val hardwareResource = store.computeIfAbsent("hardware", {
             val bus = I2CBus(defaultTestConfig.i2cBus)
             val hardware = HardwareReal(bus)
+            runBlocking { hardware.init() }
             HardwareResource(hardware)
         }, HardwareResource::class.java)
 

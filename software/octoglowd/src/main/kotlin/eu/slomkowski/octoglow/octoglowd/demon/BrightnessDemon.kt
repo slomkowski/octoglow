@@ -10,7 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -162,12 +161,9 @@ class BrightnessDemon(
         poll()
     }
 
-    init {
-        forced = runBlocking {
-            database.getChangeableSettingAsync(ChangeableSetting.BRIGHTNESS).await()?.toIntOrNull()?.apply {
-                hardware.setBrightness(this)
-            }
-        }
+    // the brightness itself is set by the first poll()
+    override suspend fun init() {
+        forced = database.getChangeableSettingAsync(ChangeableSetting.BRIGHTNESS).await()?.toIntOrNull()
     }
 
     override fun close(scope: CoroutineScope) {

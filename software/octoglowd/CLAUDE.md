@@ -43,7 +43,7 @@ Everything is wired together manually in `main.kt` (`runDaemon()`). The core is 
 
 ### Demons and buses
 
-- **`Demon`** (`demon/pollingDemons.kt`) — the base unit of work. `createJobs(scope)` launches its coroutines; `close(scope)` for shutdown. **`PollingDemon`** subclass runs `poll()` on a fixed interval with automatic exception-catch-and-retry. `main.kt` builds a `demons` list and starts each with a random 1.5–4 s stagger.
+- **`Demon`** (`demon/pollingDemons.kt`) — the base unit of work. `init()` does the I/O needed to set it up (constructors must not talk to I²C, the database or the network); `createJobs(scope)` launches its coroutines; `close(scope)` for shutdown. **`PollingDemon`** subclass runs `poll()` on a fixed interval with automatic exception-catch-and-retry. `main.kt` builds a `demons` list and starts each with a random 1.5–4 s stagger, calling `init()` right before `createJobs`.
 - **`DataSnapshotBus`** and **`CommandBus`** (`eventBuses.kt`) — `MutableSharedFlow(replay = 100)` wrappers. Producers `publish(...)`, consumers `.snapshots` / `.commands`. This is the only coupling between most components.
 - Two data directions:
   - **DataHarvesters** (`dataharvesters/`) extend `DataHarvester` (a `PollingDemon`) and `publish(Snapshot)` onto the `DataSnapshotBus`. Each harvester owns one data source (crypto, NBP forex, air quality, Geiger tube, local BME280/SCD40 sensors, radio weather sensor, SimpleMonitor, Todoist, network ping, Poznań garbage timetable).
@@ -87,7 +87,7 @@ Boards with the twiboot I²C bootloader can be updated by `--burn-firmware`:
 - **`IntelHex`** — parser for the `.hex` files from the firmware builds.
 - Tests run against `TwibootDeviceEmulator` (test sources), a `Hardware` that emulates the application and the bootloader on the bus level, following `firmware/clock-display/bootloader/protocol.cpp`. Keep it in sync when the bootloader protocol changes.
 
-In burn mode `HardwareReal` is not closed (closing the devices would overwrite the result shown on the front display) and the process ends via `ProgramResult`. `clikt-core` (used instead of full `clikt` to avoid Mordant) doesn't exit the process by default, so `OctoglowCommand` sets `exitProcess` in its context: without it, error exit codes would be 0 and the non-daemon I²C bus thread would keep the JVM running after burning.
+`HardwareReal` doesn't touch the bus in its constructor: the daemon calls `HardwareReal.init()` to initialize all devices, burn mode initializes only the front display, so the board being updated isn't touched. In burn mode `HardwareReal` is not closed (closing the devices would overwrite the result shown on the front display) and the process ends via `ProgramResult`. `clikt-core` (used instead of full `clikt` to avoid Mordant) doesn't exit the process by default, so `OctoglowCommand` sets `exitProcess` in its context: without it, error exit codes would be 0 and the non-daemon I²C bus thread would keep the JVM running after burning.
 
 ### MQTT / Home Assistant (`mqtt/`)
 

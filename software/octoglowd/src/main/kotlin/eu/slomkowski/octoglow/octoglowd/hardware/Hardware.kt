@@ -120,9 +120,15 @@ class HardwareReal(
     init {
         require(bus.functionalities.can(I2CFunctionality.TRANSACTIONS)) { "I2C bus requires transaction support" }
         require(bus.functionalities.can(I2CFunctionality.READ_BYTE)) { "I2C requires read byte support" }
+    }
 
+    /**
+     * Initializes all devices on the bus. Not done in the constructor, so that creating the object
+     * doesn't talk to the bus: firmware burning initializes only the front display, not the board being updated.
+     */
+    suspend fun init() {
         try {
-            runBlocking {
+            coroutineScope {
                 frontDisplay.apply {
                     initDevice()
                     clear()
