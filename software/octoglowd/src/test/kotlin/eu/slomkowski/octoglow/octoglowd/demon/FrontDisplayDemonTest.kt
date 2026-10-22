@@ -17,8 +17,10 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
 @OptIn(ExperimentalTime::class)
@@ -86,6 +88,65 @@ class FrontDisplayDemonTest {
 
         coVerify { v1.redrawDisplay(true, true, any(), any(), any()) }
         coVerify { v2.redrawDisplay(true, true, any(), any(), any()) }
+    }
+
+    private class TestClock(var now: Instant) : Clock {
+        override fun now(): Instant = now
+    }
+
+    private fun mockView(): FrontDisplayView<Any, Any> = mockk<FrontDisplayView<Any, Any>>().also {
+        every { it.preferredDisplayTime(any()) } returns 7.seconds
+        every { it.pollInstantEvery } returns null
+        coEvery { it.redrawDisplay(any(), any(), any(), any(), any()) } just Runs
+    }
+
+    private fun createDemon(scope: kotlinx.coroutines.CoroutineScope, views: List<FrontDisplayView<Any, Any>>, encoderDelta: Int, clock: Clock): FrontDisplayDemon {
+        val hardware = mockk<Hardware>()
+        val realTimeClockDemon = mockk<RealTimeClockDemon>()
+        coEvery { hardware.frontDisplay.clear() } just Runs
+        coEvery { hardware.frontDisplay.getButtonReport() } returns ButtonReport(ButtonState.NO_CHANGE, encoderDelta)
+        coEvery { realTimeClockDemon.setFrontDisplayViewNumber(any(), any()) } just Runs
+        return FrontDisplayDemon(defaultTestConfig, scope, hardware, views, emptyList(), mockk(), mockk(), realTimeClockDemon, clock)
+    }
+
+    @Test
+    fun testAutoCycleRedrawsNewView() = runTest {
+        val clock = TestClock(Instant.parse("2026-10-22T12:00:00Z"))
+        val v1 = mockView()
+        val v2 = mockView()
+        val d = createDemon(backgroundScope, listOf(v1, v2), 0, clock)
+        d.init()
+        d.createRedrawJob(backgroundScope)
+
+        // v1 has never been shown, so the first timeout shows it
+        d.poll()
+        runCurrent()
+        coVerify(exactly = 1) { v1.redrawDisplay(true, true, any(), any(), any()) }
+
+        // after v1's preferred display time, the auto cycle switches to v2 and has to paint v2, not v1 again
+        clock.now += 8.seconds
+        d.poll()
+        runCurrent()
+        coVerify(exactly = 1) { v1.redrawDisplay(true, true, any(), any(), any()) }
+        coVerify(exactly = 1) { v2.redrawDisplay(true, true, any(), any(), any()) }
+    }
+
+    @Test
+    fun testStaleDrawRequestIsDropped() = runTest {
+        val v1 = mockView()
+        val v2 = mockView()
+        val d = createDemon(backgroundScope, listOf(v1, v2), 1, TestClock(Instant.parse("2026-10-22T12:00:00Z")))
+        d.init()
+        d.createRedrawJob(backgroundScope)
+
+        // the dial switches from v1 to v2
+        d.poll()
+        // a side effect of a transition made while v1 was still shown arrives late
+        d.views[0].requestRedrawInstant()
+        runCurrent()
+
+        coVerify(exactly = 1) { v2.redrawDisplay(true, true, any(), any(), any()) }
+        coVerify(exactly = 0) { v1.redrawDisplay(any(), any(), any(), any(), any()) }
     }
 
     @Test

@@ -222,7 +222,18 @@ class FrontDisplayDemon(
 
     private val drawSignal = Channel<Unit>(Channel.CONFLATED)
 
+    private fun isDisplayed(info: ViewInfo): Boolean = (stateExecutor.state as? State.ViewCycle)?.info == info
+
     private fun enqueueDraw(draw: PendingDraw) {
+        // StateMachine runs onTransition after releasing its lock, so a side effect of a transition made
+        // in an older state can arrive after the view has already been switched. Painting it would put
+        // the old view's content on top of the new one, and superseding the pending slot would lose the
+        // new view's full redraw. The state is already updated here, so such requests are dropped.
+        // Menu draws are enqueued inside the transition (before the state changes) and are not checked.
+        if (draw is PendingDraw.View && !isDisplayed(draw.info)) {
+            logger.debug { "Dropping stale draw request of ${draw.info}." }
+            return
+        }
         synchronized(pendingDrawLock) {
             val previous = pendingDraw
             pendingDraw = when {
@@ -253,7 +264,11 @@ class FrontDisplayDemon(
             val pending = takePendingDraw() ?: continue
             try {
                 when (pending) {
-                    is PendingDraw.View -> pending.info.performRedraw(pending.redrawStatic, pending.redrawStatus, pending.byTimeout)
+                    is PendingDraw.View -> if (isDisplayed(pending.info)) {
+                        pending.info.performRedraw(pending.redrawStatic, pending.redrawStatus, pending.byTimeout)
+                    } else {
+                        logger.debug { "Dropping stale draw of ${pending.info}." }
+                    }
                     is PendingDraw.MenuOverview -> drawMenuOverview(pending.menu, pending.current)
                     is PendingDraw.MenuSettingOption -> drawMenuSettingOption(pending.menu, pending.selected, pending.redrawAll)
                     PendingDraw.ExitMenu -> drawExitMenu()
@@ -266,7 +281,7 @@ class FrontDisplayDemon(
         }
     }
 
-    private val views =
+    internal val views =
         frontDisplayViews.mapIndexed { idx, fdv -> ViewInfo(idx + 1, fdv as FrontDisplayView<Any, Any>) }
 
     private val allMenus = additionalMenus.plus(exitMenu)
@@ -456,7 +471,7 @@ class FrontDisplayDemon(
                     if (event.now - info.lastViewed >= info.view.preferredDisplayTime(info.currentStatus.obj)) {
                         val newView = getMostSuitableViewInfo(clock, views)
                         logger.info { "Going to view $newView because of timeout." }
-                        transitionTo(State.ViewCycle.Auto(newView), SideEffect.ViewInfoRedrawAll(this.info, true))
+                        transitionTo(State.ViewCycle.Auto(newView), SideEffect.ViewInfoRedrawAll(newView, true))
                     } else {
                         dontTransition()
                     }
