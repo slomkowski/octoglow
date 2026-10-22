@@ -9,6 +9,7 @@ namespace octoglow::geiger::geiger_counter::hd {
 
     volatile DischargeState dischargeState = DischargeState::WAITING_FOR_RISING_VOLTAGE;
     volatile uint16_t noCyclesSinceLastDischargeStateChange = 0;
+    volatile uint16_t pollCycles = 0;
 }
 
 namespace octoglow::geiger::geiger_counter {
@@ -43,6 +44,8 @@ void geiger_counter::tick() {
 void geiger_counter::pollGeigerCounterState() {
     using namespace hd;
     using namespace inverter;
+
+    ++pollCycles;
 
     if (noCyclesSinceLastDischargeStateChange < usToCycles(2000)) {
         noCyclesSinceLastDischargeStateChange++;

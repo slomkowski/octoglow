@@ -37,6 +37,11 @@ namespace octoglow::geiger::geiger_counter {
         extern volatile DischargeState dischargeState;
         extern volatile uint16_t noCyclesSinceLastDischargeStateChange;
 
+        /**
+         * Free-running, incremented by pollGeigerCounterState(), timestamps the discharges for the RNG.
+         */
+        extern volatile uint16_t pollCycles;
+
         void resetDischargeToDefault();
     }
 }

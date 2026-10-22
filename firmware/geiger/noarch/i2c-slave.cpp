@@ -2,6 +2,7 @@
 #include "magiceye.hpp"
 #include "inverter.hpp"
 #include "geiger-counter.hpp"
+#include "rng.hpp"
 
 using namespace octoglow::geiger::protocol;
 using namespace octoglow::geiger;
@@ -23,6 +24,7 @@ volatile bool i2c::bootloaderRequested = false;
 static_assert(sizeof(buffer) >= 4, "buffer has to have at least 4 bytes");
 static_assert(sizeof(buffer) >= sizeof(GeigerState) + 2, "buffer has to contain whole GeigerState structure");
 static_assert(sizeof(buffer) >= sizeof(DeviceState) + 2, "buffer has to contain whole DeviceState structure");
+static_assert(sizeof(buffer) >= sizeof(RandomBits) + 2, "buffer has to contain whole RandomBits structure");
 static_assert(sizeof(buffer) >= sizeof(BOOTLOADER_MAGIC) + 2, "buffer has to contain the bootloader magic");
 
 void i2c::onTransmit(uint8_t volatile *value) {
@@ -153,6 +155,14 @@ void i2c::processDataIfAvailable() {
             }
             fillBuffer(&hd::getDeviceState(), sizeof(DeviceState));
             setCrcForComplexCommand(sizeof(DeviceState));
+        } else if (cmd == Command::GET_RANDOM_BITS) {
+            if (checkCrc8fails()) {
+                return;
+            }
+            RandomBits randomBits;
+            rng::takeBits(randomBits);
+            fillBuffer(&randomBits, sizeof(RandomBits));
+            setCrcForComplexCommand(sizeof(RandomBits));
         }
     } else if (bytesProcessed == 3) {
         if (cmd == Command::SET_EYE_DISPLAY_VALUE) {

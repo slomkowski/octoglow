@@ -3,6 +3,7 @@
 #include <msp430.h>
 
 #include "inverter.hpp"
+#include "rng.hpp"
 
 using namespace octoglow::geiger::geiger_counter;
 
@@ -44,6 +45,7 @@ __interrupt_vec(PORT2_VECTOR) void PORT2_ISR() {
     } else if (dischargeState == DischargeState::WAITING_FOR_FALLING_VOLTAGE) {
         if (noCyclesSinceLastDischargeStateChange > usToCycles(60)) {
             numOfCountsCurrentCycle++;
+            octoglow::geiger::rng::onDischarge(pollCycles);
             dischargeState = DischargeState::RECOVERY;
             noCyclesSinceLastDischargeStateChange = 0;
         } else {

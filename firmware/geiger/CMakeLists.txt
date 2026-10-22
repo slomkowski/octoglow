@@ -14,6 +14,7 @@ SET(LIBRARY_SOURCES ../noarch/main.hpp ../noarch/protocol.hpp
         ../noarch/inverter.cpp ../noarch/inverter.hpp
         ../noarch/i2c-slave.cpp ../noarch/i2c-slave.hpp
         ../noarch/geiger-counter.cpp ../noarch/geiger-counter.hpp
+        ../noarch/rng.cpp ../noarch/rng.hpp
         ../noarch/FastPID.cpp ../noarch/FastPID.hpp
         ../../lib/libfixmath/libfixmath/fix16.c ../../lib/libfixmath/libfixmath/fix16.h)
 

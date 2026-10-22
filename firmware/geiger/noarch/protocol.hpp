@@ -27,6 +27,7 @@ namespace octoglow::geiger::protocol {
         SET_EYE_DISPLAY_VALUE,
         SET_BRIGHTNESS,
         ENTER_BOOTLOADER, // payload: BOOTLOADER_MAGIC, the device resets into the bootloader after the reply is read
+        GET_RANDOM_BITS, // reply: RandomBits, the returned bits are removed from the device
     };
 
     constexpr uint8_t BOOTLOADER_MAGIC[] = {'B', 'O', 'O', 'T'};
@@ -69,4 +70,16 @@ namespace octoglow::geiger::protocol {
     }__attribute__((packed));
 
     static_assert(sizeof(EyeConfiguration) == 2, "invalid size");
+
+    /**
+     * Fills the whole 16-byte I2C buffer together with the CRC and the command.
+     */
+    constexpr uint8_t RANDOM_BITS_MAX_BYTES = 13;
+
+    struct RandomBits {
+        uint8_t numOfBits; // 0..RANDOM_BITS_MAX_BYTES * 8, only the first numOfBits bits are valid, the rest is zero
+        uint8_t bits[RANDOM_BITS_MAX_BYTES]; // MSB of bits[0] first
+    }__attribute__((packed));
+
+    static_assert(sizeof(RandomBits) == 14, "invalid size");
 }

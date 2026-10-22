@@ -67,6 +67,21 @@ class GeigerTest {
     }
 
     @Test
+    fun testGeigerRandomBitsParse() {
+        assertThat(GeigerRandomBits.parse(intArrayOf(0, 9, 11, 0xa5, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))).isEqualTo(
+            GeigerRandomBits(11, byteArrayOf(0xa5.toByte(), 0xe0.toByte()))
+        )
+
+        assertThat(GeigerRandomBits.parse(IntArray(GeigerRandomBits.SIZE_IN_BYTES).also { it[1] = 9 })).isEqualTo(
+            GeigerRandomBits(0, byteArrayOf())
+        )
+
+        assertThatThrownBy {
+            GeigerRandomBits.parse(IntArray(GeigerRandomBits.SIZE_IN_BYTES).also { it[1] = 9; it[2] = 105 })
+        }
+    }
+
+    @Test
     fun testSetBrightnessRejectsOutOfRange(): Unit = runBlocking {
         val geiger = Geiger(HardwareMock())
         assertThatThrownBy { runBlocking { geiger.setBrightness(-1) } }

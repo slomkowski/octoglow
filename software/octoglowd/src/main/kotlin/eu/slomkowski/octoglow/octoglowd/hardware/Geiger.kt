@@ -97,6 +97,35 @@ data class GeigerDeviceState(
     }
 }
 
+/**
+ * Random bits generated from the intervals between the Geiger tube discharges, MSB of the first byte first.
+ * The device removes the bits once they are read.
+ */
+data class GeigerRandomBits(
+    val numOfBits: Int,
+    val bits: ByteArray,
+) {
+    companion object {
+        const val MAX_BYTES = 13
+        const val SIZE_IN_BYTES = 2 + 1 + MAX_BYTES
+
+        fun parse(buff: IntArray): GeigerRandomBits {
+            require(buff.size == SIZE_IN_BYTES) { "buffer size must be $SIZE_IN_BYTES" }
+            check(buff[1] == 9) { "invalid command identifier - expected 9 but got ${buff[1]}" }
+
+            val numOfBits = buff[2]
+            check(numOfBits <= MAX_BYTES * 8) { "invalid number of bits: $numOfBits" }
+
+            val numOfBytes = (numOfBits + 7) / 8
+            return GeigerRandomBits(numOfBits, ByteArray(numOfBytes) { buff[3 + it].toByte() })
+        }
+    }
+
+    override fun equals(other: Any?): Boolean = other is GeigerRandomBits && numOfBits == other.numOfBits && bits.contentEquals(other.bits)
+
+    override fun hashCode(): Int = 31 * numOfBits + bits.contentHashCode()
+}
+
 class Geiger(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x18, 5.milliseconds), HasBrightness {
 
     companion object {
@@ -130,6 +159,11 @@ class Geiger(hardware: Hardware) : CustomI2cDevice(hardware, logger, 0x18, 5.mil
     suspend fun getCounterState(): GeigerCounterState {
         val readBuffer = sendCommandAndReadData("get counter state", GeigerCounterState.SIZE_IN_BYTES, 2)
         return GeigerCounterState.parse(readBuffer)
+    }
+
+    suspend fun getRandomBits(): GeigerRandomBits {
+        val readBuffer = sendCommandAndReadData("get random bits", GeigerRandomBits.SIZE_IN_BYTES, 9)
+        return GeigerRandomBits.parse(readBuffer)
     }
 
     suspend fun setCycleLength(duration: Duration) {

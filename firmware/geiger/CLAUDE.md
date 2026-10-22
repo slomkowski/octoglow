@@ -48,6 +48,10 @@ cmake --build cmake-build-debug --target octoglow-geiger-test
   at startup and before any reset.
 - `geiger-counter`: PORT2 ISR on the tube pulse edges plus the 40 kHz poll implement a discharge state machine
   with time windows; counts are accumulated per configurable cycle (`GeigerState`).
+- `rng`: every registered discharge is timestamped with `hd::pollCycles` (40 kHz, wraps at 16 bits); each pair of
+  non-overlapping intervals gives one bit (comparison inverted on every other bit, equal intervals discarded).
+  The bits go to a 64-byte lock-free ring buffer (PORT2 ISR writes, main loop reads), `GET_RANDOM_BITS` returns
+  up to 104 bits and removes them. The buffer size is limited by the RAM left for the stack.
 - `magiceye`: heater preheat state machine (`EyeInverterState`) before enabling the eye inverter; the eye value is
   written to an external DAC by bit-banging; in `ANIMATION` mode `animation.cpp` reacts to new counts.
 - I2C protocol (`noarch/protocol.hpp`, `noarch/i2c-slave.cpp`): USCI ISRs only fill a 16-byte buffer; the command
